@@ -29,6 +29,8 @@ services:
       dockerfile: ./compose/production/postgres/Dockerfile
     image: rocket_connect_production_postgres
     container_name: postgres
+    ports:
+      - "5432:5432"    
     volumes:
       - local_postgres_data:/var/lib/postgresql/data:Z
       - local_postgres_data_backups:/backups:z
