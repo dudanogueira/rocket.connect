@@ -1,5 +1,7 @@
 from django.db import models
 import uuid
+from rocketchat_API.rocketchat import RocketChat
+
 
 class Server(models.Model):
 
@@ -9,7 +11,28 @@ class Server(models.Model):
 
     def __str__(self):
         return self.name
+
+    def get_rocket_client(self, bot=False):
+        '''
+            this will return a working ROCKETCHAT_API instance
+        '''
+        if bot:
+            user = self.bot_user
+            pwd = self.bot_password
+        else:
+            user = self.admin_user
+            pwd = self.admin_password
+        rocket = RocketChat(user, pwd, server_url=self.url)
+        return rocket
     
+    def send_admin_message(self, message, roomId):
+        r = self.get_rocket_client()
+        # create the admin room for this instance
+        r.chat_post_message(
+
+        )
+    
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=50)
     enabled = models.BooleanField(default=True)
@@ -19,9 +42,9 @@ class Server(models.Model):
     bot_user = models.CharField(max_length=50)
     bot_password = models.CharField(max_length=50)
     managers = models.CharField(max_length=50, help_text="separate users with comma, eg: user1,user2,user3")
-    #meta
+    # meta
     created = models.DateTimeField(
-            blank=True, auto_now_add=True, verbose_name="Created")
+        blank=True, auto_now_add=True, verbose_name="Created")
     updated = models.DateTimeField(
         blank=True, auto_now=True, verbose_name="Updated")
 
@@ -34,7 +57,7 @@ class Connector(models.Model):
 
     def __str__(self):
         return self.name
-    
+
     name = models.CharField(max_length=50)
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     server = models.ForeignKey(Server, on_delete=models.CASCADE, related_name="connectors")

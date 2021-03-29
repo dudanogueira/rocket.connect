@@ -1,8 +1,12 @@
-version: '3'
+version: "3"
 
 volumes:
   local_postgres_data: {}
   local_postgres_data_backups: {}
+  local_rocket_uploads: {}
+  local_rocket_db: {}
+  local_rocket_db_config: {}
+  local_rocket_db_dump: {}
 
 services:
   django: &django
@@ -30,7 +34,7 @@ services:
     image: rocket_connect_production_postgres
     container_name: postgres
     ports:
-      - "5432:5432"    
+      - "5432:5432"
     volumes:
       - local_postgres_data:/var/lib/postgresql/data:Z
       - local_postgres_data_backups:/backups:z
@@ -92,3 +96,52 @@ services:
     ports:
       - "5555:5555"
     command: /start-flower
+
+  rocketchat:
+    image: rocketchat/rocket.chat:3.12.3
+    command: >
+      bash -c
+        "for i in `seq 1 30`; do
+          node main.js &&
+          s=$$? && break || s=$$?;
+          echo \"Tried $$i times. Waiting 5 secs...\";
+          sleep 5;
+        done; (exit $$s)"
+    restart: unless-stopped
+    volumes:
+      - local_rocket_uploads:/app/uploads
+    environment:
+      - ADMIN_USERNAME=debug
+      - ADMIN_PASS=debug
+      - ADMIN_EMAIL=admin@example.com
+      - PORT=3000
+      - ROOT_URL=http://localhost:3000
+      - MONGO_URL=mongodb://mongo:27017/rocketchat
+      - MONGO_OPLOG_URL=mongodb://mongo:27017/local
+      - MAIL_URL=smtp://mailhog
+      - CREATE_TOKENS_FOR_USERS=true
+      - Accounts_TwoFactorAuthentication_Enforce_Password_Fallback=false
+      - OVERWRITE_SETTING_Show_Setup_Wizard=completed
+    depends_on:
+      - mongo
+    ports:
+      - 3000:3000
+
+  mongo:
+    image: mongo:4.0
+    restart: unless-stopped
+    ports:
+      - 27017:27017
+    volumes:
+      - local_rocket_db:/data/db
+      - local_rocket_db_config:/data/configdb
+      - local_rocket_db_dump:/dump
+    command: mongod --smallfiles --oplogSize 128 --replSet rs0 --storageEngine=mmapv1
+    labels:
+      - "traefik.enable=false"
+
+  mongo-init-replica:
+    image: mongo:4.0
+    command: 'bash -c "for i in `seq 1 30`; do mongo mongo/rocketchat --eval \"rs.initiate({ _id: ''rs0'', members: [ { _id: 0, host: ''localhost:27017'' } ]})\" && s=$$? && break || s=$$?; echo \"Tried $$i times. Waiting 5 secs...\"; sleep 5; done; (exit $$s)"'
+    depends_on:
+      - mongo

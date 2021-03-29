@@ -8,35 +8,23 @@ function init_venom(session_name, hook, handle_function) {
     .create(
       //session
       session_name, //Pass the name of the client you want to start the bot
-      //catchQR
+      //
+      // pass qr code to hook
+      //
       (base64Qrimg, asciiQR, attempts, urlCode) => {
         console.log('Number of attempts to read the qrcode: ', attempts);
         console.log('sending qr code to hook: ', hook)
+        //
+        // send qr to hood
+        //
         axios.post(
           hook,
           {
             "session": session_name,
-            "context": "management",
+            "context": "admin",
             "topic": "qrcode",
-            "attemps": attempts,
+            "attempt": attempts,
             "base64Qrimg": base64Qrimg,
-          }
-        ).then(function (response) {
-          console.log("qrcode sent to hook");
-        })
-        .catch(function (error) {
-          console.log("error sending qrc to hook");
-        });
-      },
-      (statusSession, session) => {
-        // send status session
-        axios.post(
-          hook,
-          {
-            "session": session_name,
-            "context": "management",
-            "topic": "status_session",
-            "message": statusSession
           }
         ).then(function (response) {
           console.log("qrcode sent to hook");
@@ -46,7 +34,33 @@ function init_venom(session_name, hook, handle_function) {
         });
 
       },
-      undefined
+      //
+      // send status to hook
+      //
+      (statusSession, session) => {
+        // send status session
+        axios.post(
+          hook,
+          {
+            "session": session_name,
+            "context": "admin",
+            "topic": "status_session",
+            "message": statusSession
+          }
+        ).then(function (response) {
+          console.log("qrcode sent to hook: ",  hook);
+        })
+        .catch(function (error) {
+          console.log("error sending qrc to hook: ", hook);
+        });
+
+      },
+      //
+      //
+      //
+      {
+        autoClose: 0,
+      }
     )
     .then((client) => {
       handle_function(client, hook);
@@ -59,17 +73,17 @@ function init_venom(session_name, hook, handle_function) {
 function start(client, hook) {
   client.onMessage((message) => {
     axios.post();
-    // on message, send to hook
-    // if (message.isGroupMsg === false) {
-    //   client
-    //     .sendText(message.from, 'Welcome Venom 🕷')
-    //     .then((result) => {
-    //       console.log('Result: ', result); //return object success
-    //     })
-    //     .catch((erro) => {
-    //       console.error('Error when sending: ', erro); //return object error
-    //     });
-    // }
+    //on message, send to hook
+    if (message.isGroupMsg === false) {
+      client
+        .sendText(message.from, 'Welcome Venom 🕷')
+        .then((result) => {
+          console.log('Result: ', result); //return object success
+        })
+        .catch((erro) => {
+          console.error('Error when sending: ', erro); //return object error
+        });
+    }
   });
 }
 

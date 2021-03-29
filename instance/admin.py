@@ -25,5 +25,5 @@ class ServerAdmin(admin.ModelAdmin):
 
 @admin.register(Connector)
 class ConnectorAdmin(admin.ModelAdmin):
-    list_display = ('id', 'server', 'connector_type', 'created', 'updated')
+    list_display = ('id', 'name', 'server', 'connector_type', 'created', 'updated')
     list_filter = ('server', 'created', 'updated')
