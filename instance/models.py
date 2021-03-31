@@ -31,7 +31,19 @@ class Server(models.Model):
         r.chat_post_message(
 
         )
-    
+
+    def get_managers(self):
+        '''
+        this method will return the managers (user1,user2,user3)
+        and the bot. The final result should be:
+        'manager1,manager2,manager3,bot_user'
+        '''
+        managers = self.managers.split(',')
+        managers.append(self.bot_user)
+        managers = ",".join(managers)
+        return managers
+
+
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=50)
@@ -58,10 +70,12 @@ class Connector(models.Model):
     def __str__(self):
         return self.name
 
-    name = models.CharField(max_length=50)
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=50, help_text="Connector Name")
+    token = models.CharField(max_length=50, help_text="Connector Token that is aggregated to visitor token")
     server = models.ForeignKey(Server, on_delete=models.CASCADE, related_name="connectors")
     connector_type = models.CharField(max_length=50)
+    department = models.CharField(max_length=50, blank=True, null=True)
     # meta
     created = models.DateTimeField(
         blank=True, auto_now_add=True, verbose_name="Created")

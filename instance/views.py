@@ -17,5 +17,6 @@ def connector_view(request, id):
         raw_message=raw_message
     )
     message.save()
+    print("SAVED MESSAGE", message)
     message.intake()
     return JsonResponse({})

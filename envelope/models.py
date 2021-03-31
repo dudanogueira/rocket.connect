@@ -16,7 +16,9 @@ class LiveChatRoom(models.Model):
         primary_key=True, default=uuid.uuid4, editable=False
     )
     connector = models.ForeignKey(Connector, on_delete=models.CASCADE, related_name="rooms")
-    token = models.CharField(max_length=50)
+    token = models.CharField(max_length=50, blank=True, null=True)
+    room_id = models.CharField(max_length=50, blank=True, null=True)
+    open = models.BooleanField(default=False)
     # meta
     created = models.DateTimeField(
         blank=True, auto_now_add=True, verbose_name="Created")
