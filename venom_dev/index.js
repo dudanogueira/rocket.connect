@@ -78,11 +78,11 @@ function init_venom(session_name, hook, handle_function) {
           // remove the token
           token_path = `tokens/${session_name}.data.json`
           console.log('unlinking ', token_path)
-          fs.unlink(`tokens/${session_name}.data.json`, (err => console.log(err)))
+          //fs.unlink(`tokens/${session_name}.data.json`, (err => console.log(err)))
           console.log('REOPENING');
           // reinitiate venom
           //client.close();
-          init_venom(session_name, hook, handle_function);
+          //init_venom(session_name, hook, handle_function);
           //client.restartService();
         }
 

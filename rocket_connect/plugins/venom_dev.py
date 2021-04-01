@@ -1,7 +1,7 @@
 
 import tempfile
 import base64
-
+import mimetypes
 from envelope.models import LiveChatRoom
 
 
@@ -102,11 +102,45 @@ class Connector(object):
                         )
             # deliver message to room
             if room:
-                rocket.livechat_message(
-                    token=visitor_token,
-                    rid=room.room_id,
-                    msg=message.raw_message.get('body')
-                )
+                #
+                # MEDIA MESSAGE
+                #   
+                if message.raw_message.get('isMedia', False):
+                    mime = message.raw_message.get("mimetype")
+                    extension = mimetypes.guess_extension(mime)
+                    data = message.raw_message.get("body")
+                    filedata = base64.b64decode(data)
+                    with tempfile.NamedTemporaryFile(suffix=extension) as tmp:
+                        tmp.write(filedata)
+                        file_send = rocket.call_api_post(
+                            "livechat/upload/" + room.room_id,
+                        )
+                        # file_send = rocket.rooms_upload(
+                        #     rid=room.room_id,
+                        #     file=tmp.name
+                        # )
+                        if file_send.ok:
+                            message.delivered = True
+                        # if caption, send it too
+                        if message.raw_message.get("caption"):
+                            deliver = rocket.chat_post_message(text=message.raw_message.get("caption"), room_id=room.room_id)
+                            if deliver.ok:
+                                message.delivered = True
+                        message.save()
+                
+                #
+                # TEXT ONLY MESSAGE
+                #
+                else:
+                    deliver = rocket.livechat_message(
+                        token=visitor_token,
+                        rid=room.room_id,
+                        msg=message.raw_message.get('body'),
+                        _id=message.raw_message["id"]
+                    )
+                if deliver.ok:
+                    message.deliverd = True
+                    message.save()
 
     def outcoming():
         '''
