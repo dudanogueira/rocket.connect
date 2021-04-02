@@ -1,22 +1,19 @@
 from django.shortcuts import render
 from instance.models import Connector
-from envelope.models import Message
 # import it
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.conf import settings
 import json
 
 @csrf_exempt
 def connector_view(request, id):
     # get connector
-    # connector = Connector.objects.get(id=id)
-    # create message associated with connector
+    connector = Connector.objects.get(id=id)
+    # income message
     raw_message = json.loads(request.body)
-    message = Message.objects.create(
-        connector_id=id,
-        raw_message=raw_message
-    )
-    message.save()
-    print("SAVED MESSAGE", message)
-    message.intake()
+    if settings.DEBUG == True:
+        print(raw_message)
+    # todo, create task here
+    connector.intake(raw_message)
     return JsonResponse({})

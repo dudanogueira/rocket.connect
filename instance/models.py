@@ -32,7 +32,7 @@ class Server(models.Model):
 
         )
 
-    def get_managers(self):
+    def get_managers(self, as_string=True):
         '''
         this method will return the managers (user1,user2,user3)
         and the bot. The final result should be:
@@ -40,7 +40,8 @@ class Server(models.Model):
         '''
         managers = self.managers.split(',')
         managers.append(self.bot_user)
-        managers = ",".join(managers)
+        if as_string:
+            return ",".join(managers)
         return managers
 
 
@@ -69,6 +70,46 @@ class Connector(models.Model):
 
     def __str__(self):
         return self.name
+    
+    def intake(self, message):
+        """
+        this method will intake the message, and apply the connector logic
+        """
+        connector_type = self.connector_type
+        # import the connector plugin
+        plugin_string = 'rocket_connect.plugins.{0}'.format(connector_type)
+        try:
+            plugin = __import__(
+                plugin_string,
+                fromlist=['Connector']
+            )
+        # no connector plugin, going base
+        except ModuleNotFoundError:
+            raise
+            # plugin = __import__(
+            #     'rocket_connect.plugins.base',
+            #     fromlist=['Connector']
+
+            # )
+        # initiate connector plugin
+        connector = plugin.Connector()
+        # send the connector obj and message to plugin
+        connector.incoming(self, message)
+
+    def get_managers(self, as_string=True):
+        '''
+        this method will return the managers both from server and 
+        connector (user1,user2,user3) or ['user1', 'user2, 'usern']
+        and the bot. The final result should be:
+        a string or a list
+        '''
+        managers = self.server.get_managers(as_string=False)
+        if self.managers:
+            connector_managers = self.managers.split(',')
+            managers.extend(connector_managers)
+        if as_string:
+            return ",".join(managers)
+        return managers
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=50, help_text="Connector Name")
@@ -76,6 +117,7 @@ class Connector(models.Model):
     server = models.ForeignKey(Server, on_delete=models.CASCADE, related_name="connectors")
     connector_type = models.CharField(max_length=50)
     department = models.CharField(max_length=50, blank=True, null=True)
+    managers = models.CharField(max_length=50, blank=True, null=True, help_text="separate users with comma, eg: user1,user2,user3")
     # meta
     created = models.DateTimeField(
         blank=True, auto_now_add=True, verbose_name="Created")

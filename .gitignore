@@ -4,6 +4,8 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+*.data.json
+
 # C extensions
 *.so
 

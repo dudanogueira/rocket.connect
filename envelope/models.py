@@ -33,30 +33,6 @@ class Message(models.Model):
         verbose_name_plural = "Messages"
         ordering = 'created',
 
-    def intake(self):
-        """
-        this method will intake the message, according to the connector
-        logic
-        """
-        connector_type = self.connector.connector_type
-        try:
-            plugin = __import__(
-                'rocket_connect.plugins.{0}'.format(connector_type),
-                fromlist=['Connector']
-
-            )
-        except ModuleNotFoundError:
-            plugin = __import__(
-                'rocket_connect.plugins.base',
-                fromlist=['Connector']
-
-            )
-        # initiate connector plugin
-        connector = plugin.Connector()
-        # intake message
-        connector.incoming(
-            self
-        )
 
     id = models.UUIDField(
         primary_key=True, default=uuid.uuid4, editable=False

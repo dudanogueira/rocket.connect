@@ -4,89 +4,44 @@ const venom = require('venom-bot');
 const axios = require('axios');
 const fs = require('fs');
 
-function init_venom(session_name, hook, handle_function) {
+async function init_venom(session, hook, handle_start) {
   venom
     .create(
       //session
-      session_name, //Pass the name of the client you want to start the bot
+      session,
       //
-      // pass qr code to hook
+      // handle qr code
       //
       (base64Qrimg, asciiQR, attempts, urlCode) => {
-        console.log('Number of attempts to read the qrcode: ', attempts);
-        console.log('sending qr code to hook: ', hook)
-        //
-        // send qr to hood
-        //
-        axios.post(
-          hook,
-          {
-            "session": session_name,
-            "context": "admin",
-            "topic": "qrcode",
-            "attempt": attempts,
-            "base64Qrimg": base64Qrimg,
-          }
-        ).then(function (response) {
-          console.log("qrcode sent to hook");
-        })
-          .catch(function (error) {
-            console.log("error sending qrc to hook");
-          });
-
+        handle_qr_code(base64Qrimg, asciiQR, attempts, urlCode, session, hook);
       },
       //
-      // send status to hook
+      // handle status session
       //
       (statusSession, session) => {
-        // send status session
-        axios.post(
-          hook,
-          {
-            "session": session_name,
-            "context": "admin",
-            "topic": "status_session",
-            "message": statusSession
-          }
-        ).then(function (response) {
-          console.log(`session status sent to hook ${hook}: ${statusSession}`);
-        })
-          .catch(function (error) {
-            console.log(`error session status sent to hook ${hook}: ${statusSession}`);
-          });
+
+        handle_status_session(statusSession, session, hook);
 
       },
       //
-      //
+      // instance configs
       //
       {
-        autoClose: false,
+        autoClose: 5000,
         headless: false, useChrome: false
+      },
+      //
+      // Browser Instance
+      //
+      (browser, waPage) => {
+        handle_browser_instance(browser, waPage)
       }
     )
     .then((client) => {
-      handle_function(client, hook);
+      handle_start(client, hook);
       // session management
-      client.onStateChange((state) => {
-        console.log('State changed: ', state);
-        // force whatsapp take over
-        if ('CONFLICT'.includes(state)) client.useHere();
-        // detect disconnect on whatsapp
-        if ('UNPAIRED'.includes(state)) console.log('logout');
-        // disconected
-        if ('OPENING'.includes(state)) {
-          // remove the token
-          token_path = `tokens/${session_name}.data.json`
-          console.log('unlinking ', token_path)
-          //fs.unlink(`tokens/${session_name}.data.json`, (err => console.log(err)))
-          console.log('REOPENING');
-          // reinitiate venom
-          //client.close();
-          //init_venom(session_name, hook, handle_function);
-          //client.restartService();
-        }
 
-      });
+      
 
       // function to detect incoming call
       client.onIncomingCall(async (call) => {
@@ -101,6 +56,7 @@ function init_venom(session_name, hook, handle_function) {
 }
 
 function start(client, hook) {
+  // new message
   client.onMessage((message) => {
     //on message, send to hook
     if (message.isGroupMsg === false) {
@@ -119,7 +75,61 @@ function start(client, hook) {
       //   });
     }
   });
+  // status change
+  client.onStateChange((state) => {
+    console.log('State changed: ', state);
+  });
+
+
 }
 
+function handle_qr_code(base64Qrimg, asciiQR, attempts, urlCode, session_name, hook) {
+  console.log('Number of attempts to read the qrcode: ', attempts);
+  console.log('sending qr code to hook: ', hook)
+  //
+  // send qr to hood
+  //
+  axios.post(
+    hook,
+    {
+      "session": session_name,
+      "context": "admin",
+      "topic": "qrcode",
+      "attempt": attempts,
+      "base64Qrimg": base64Qrimg,
+    }
+  ).then(function (response) {
+    console.log("qrcode sent to hook");
+  }).catch(function (error) {
+    console.log("error sending qrc to hook: ", error);
+  });
+}
+
+function handle_status_session(statusSession, session, hook) {
+  axios.post(
+    hook,
+    {
+      "session": session,
+      "context": "admin",
+      "topic": "status_session",
+      "message": statusSession
+    }
+  ).then(function (response) {
+    console.log(`session status sent to hook ${hook}: ${statusSession}`);
+  })
+    .catch(function (error) {
+      console.log(`error session status sent to hook ${hook}: ${statusSession}`);
+    });
+}
+
+function handle_browser_instance(browser, waPage) {
+  console.log("Browser PID:", browser.process().pid);
+  console.log("Browser:", browser);
+  console.log("waPage:", waPage);
+  waPage.screenshot({ path: session + '-' + 'screenshot.png' });
+}
+
+
+
 //init_venom("instancia1", "http://127.0.0.1:8000/connector/ccf9bed0-34e4-4367-9f25-e469bda54c8a", start);
-init_venom("instancia2", "http://127.0.0.1:8000/connector/e62f9f19-becf-4f29-84d2-ef0ecb36e269", start);
+await init_venom("instancia2", "http://127.0.0.1:8000/connector/e62f9f19-becf-4f29-84d2-ef0ecb36e269", start);
