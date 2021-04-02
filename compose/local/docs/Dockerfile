@@ -5,9 +5,11 @@ ENV PYTHONDONTWRITEBYTECODE 1
 
 RUN apt-get update \
     # dependencies for building Python packages
-    && apt-get install -y build-essential \
+    && apt-get install -y build-essential python3-dev \
     # psycopg2 dependencies
     && apt-get install -y libpq-dev \
+    # QR TOOLS
+    && apt-get install -y libzbar0 libzbar-dev \    
     # Translations dependencies
     && apt-get install -y gettext \
     # Uncomment below lines to enable Sphinx output to latex and pdf

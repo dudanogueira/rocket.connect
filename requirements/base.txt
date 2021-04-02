@@ -24,5 +24,9 @@ django-cors-headers==3.7.0 # https://github.com/adamchainz/django-cors-headers
 
 # RocketChat
 # ------------------------------------------------------------------------------
- # https://github.com/jadolg/rocketchat_API/
- rocketchat_API==1.15.0
+rocketchat_API==1.15.0 # https://github.com/jadolg/rocketchat_API/
+
+# QR
+# ------------------------------------------------------------------------------
+zbarlight
+qrcode[pil]

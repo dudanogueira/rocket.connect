@@ -24,8 +24,12 @@ class Connector(ConnectorBase):
         # )
         if message.get('namespace'):
             if message.get('namespace') == 'qr':
-                text = "SESSION ID: {0}".format(message.get('sessionId')) 
-                self.outcome_qr(connector,  message.get('data'))
+                text = "SESSION ID: {0}".format(message.get('sessionId'))
+                # recreate the qrcode image. WA-Automate doesnt work on older phones
+                # too small, can focus.
+                code = self.get_qrcode_from_base64(message.get('data'))
+                base64_fixed_code = self.generate_qrcode(code)
+                self.outcome_qrbase64(connector,  base64_fixed_code)
             else:
                 text_message = "SESSION {0} > NAMESPACE {1}: {2} ".format(
                     message.get('sessionId'),
