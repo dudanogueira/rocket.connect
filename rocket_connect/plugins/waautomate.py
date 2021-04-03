@@ -17,6 +17,12 @@ class Connector(ConnectorBase):
                                     --event-mode
     '''
 
+    def populate_config(self):
+        self.connector.config = {
+            "endpoint": "http://waautomate:8080"
+        }
+        self.save()
+
     def incoming(self):
         '''
         this method will process the incoming messages
@@ -35,8 +41,6 @@ class Connector(ConnectorBase):
         #
         if self.message.get('data') and type(self.message['data']) == dict:
             try:
-                print("#### GOIING FOR")
-                print(self.message)
                 #
                 # on Any Message
                 if self.message['data']['event'] == "onAnyMessage":
@@ -67,7 +71,19 @@ class Connector(ConnectorBase):
                                     extension
                                 )
                                 # decrypt media
-                                data = self.message['data']['data'].get('body')
+                                url_decrypt = "{0}/decryptMedia".format(
+                                    self.config['endpoint']
+                                )
+                                payload = {
+                                    "args": {
+                                        "message": self.get_message_id()
+                                    }
+                                }
+                                decrypted_data_request = requests.post(
+                                    url_decrypt, json=payload
+                                )
+                                if decrypted_data_request.ok:
+                                    data = decrypted_data_request.json()['response'].split(',')[1]
                                 filedata = base64.b64decode(data)
                                 rocket = self.get_rocket_client()
                                 with tempfile.NamedTemporaryFile(suffix=extension) as tmp:

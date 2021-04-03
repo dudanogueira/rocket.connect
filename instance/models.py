@@ -124,6 +124,7 @@ class Connector(models.Model):
     connector_type = models.CharField(max_length=50)
     department = models.CharField(max_length=50, blank=True, null=True)
     managers = models.CharField(max_length=50, blank=True, null=True, help_text="separate users with comma, eg: user1,user2,user3")
+    config = models.JSONField(blank=True, null=True, help_text="Connector General configutarion")
     # meta
     created = models.DateTimeField(
         blank=True, auto_now_add=True, verbose_name="Created")

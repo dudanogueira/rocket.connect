@@ -14,6 +14,7 @@ class Connector(object):
 
     def __init__(self, connector, message):
         self.connector = connector
+        self.config = self.connector.config
         self.message = message
         self.message_object = None
         self.rocket = None

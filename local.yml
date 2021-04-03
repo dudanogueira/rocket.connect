@@ -192,3 +192,6 @@ services:
       WA_WEBHOOK: 'http://django.docker:8000/connector/4333bd76-519f-4fe8-b51a-a228b29a4e19'
       WA_EV: 'http://django.docker:8000/connector/4333bd76-519f-4fe8-b51a-a228b29a4e19'
       WA_SESSION_ID: "test_session"
+      WA_KILL_CLIENT_ON_LOGOUT: 'true'
+      WA_STATS: 'true'
+      WA_QR_LOG_SKIP: 'true'
