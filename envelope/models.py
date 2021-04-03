@@ -33,6 +33,9 @@ class Message(models.Model):
         verbose_name_plural = "Messages"
         ordering = 'created',
 
+    def get_connector(self):
+        Connector = self.connector.get_connector_class()
+        return Connector(self.connector, self.raw_message)
 
     id = models.UUIDField(
         primary_key=True, default=uuid.uuid4, editable=False

@@ -6,7 +6,7 @@ from .models import LiveChatRoom, Message
 
 @admin.register(LiveChatRoom)
 class LiveChatRoomAdmin(admin.ModelAdmin):
-    list_display = ('id', 'connector', 'token', 'created', 'updated')
+    list_display = ('id', 'connector', 'token', 'room_id', 'created', 'updated')
     list_filter = ('connector', 'created', 'updated')
 
 

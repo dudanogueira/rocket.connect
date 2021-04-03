@@ -70,11 +70,8 @@ class Connector(models.Model):
 
     def __str__(self):
         return self.name
-    
-    def intake(self, message):
-        """
-        this method will intake the message, and apply the connector logic
-        """
+
+    def get_connector_class(self):
         connector_type = self.connector_type
         # import the connector plugin
         plugin_string = 'rocket_connect.plugins.{0}'.format(connector_type)
@@ -92,9 +89,18 @@ class Connector(models.Model):
 
             # )
         # initiate connector plugin
-        connector = plugin.Connector()
-        # send the connector obj and message to plugin
-        connector.incoming(self, message)
+        return plugin.Connector
+
+    def intake(self, message):
+        """
+        this method will intake the raw message, and apply the connector logic
+        """
+        # get connector
+        Connector = self.get_connector_class()
+        # initiate with raw message
+        connector = Connector(self, message)
+        # income message
+        connector.incoming()
 
     def get_managers(self, as_string=True):
         '''
