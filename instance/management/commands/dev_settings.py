@@ -5,11 +5,14 @@ from instance.models import Server
 class Command(BaseCommand):
     help = "My shiny new management command."
 
-    def handle(self, *args, **options):
+
+    def handle_django(self):
         # create admin user
         User = get_user_model()
         admin,admin_created = User.objects.get_or_create(username="admin")
         admin.set_password("admin")
+        admin.is_superuser = True
+        admin.is_staff = True
         admin.save()
         # create default server and default connector
         server,server_created = Server.objects.get_or_create(
@@ -38,4 +41,8 @@ class Command(BaseCommand):
             }
             connector.save()
 
+    def handle_rocketchat(self):
+        rocket = Server.objects.first()
 
+    def handle(self, *args, **options):
+        self.handle_django()

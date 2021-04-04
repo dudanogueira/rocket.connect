@@ -9,10 +9,11 @@ WORKDIR /usr/src/app
 COPY package*.json ./
 
 # Uncomment the next line to use this Dockerfile on your own app
-RUN npm install
 RUN apk add --no-cache python3 alpine-sdk
 RUN npm install --only=dev --ignore-scripts
 RUN npm rebuild --verbose sharp
+
+RUN npm install
 
 # Copy the session data over to the container
 # Bundle app source

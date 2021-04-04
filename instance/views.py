@@ -1,5 +1,6 @@
 from django.shortcuts import render
 from instance.models import Connector
+from envelope.models import Message
 # import it
 from django.http import JsonResponse
 from django.http import HttpResponse

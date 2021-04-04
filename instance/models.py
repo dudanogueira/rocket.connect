@@ -27,13 +27,6 @@ class Server(models.Model):
             pwd = self.admin_password
         rocket = RocketChat(user, pwd, server_url=self.url)
         return rocket
-    
-    def send_admin_message(self, message, roomId):
-        r = self.get_rocket_client()
-        # create the admin room for this instance
-        r.chat_post_message(
-
-        )
 
     def get_managers(self, as_string=True):
         '''

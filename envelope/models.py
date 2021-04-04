@@ -38,7 +38,7 @@ class Message(models.Model):
         return Connector(self.connector, self.raw_message)
 
     uuid = models.UUIDField(
-        primary_key=True, default=uuid.uuid4, editable=False
+        default=uuid.uuid4, editable=False
     )
     envelope_id = models.CharField(max_length=100)
     room = models.ForeignKey(LiveChatRoom, on_delete=models.CASCADE, related_name="messages", blank=True, null=True)

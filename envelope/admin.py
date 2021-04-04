@@ -13,7 +13,9 @@ class LiveChatRoomAdmin(admin.ModelAdmin):
 @admin.register(Message)
 class MessageAdmin(admin.ModelAdmin):
     list_display = (
+        'id',
         'room',
+        'delivered',
         'connector',
         'created'
     )

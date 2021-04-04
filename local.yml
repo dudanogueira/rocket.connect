@@ -7,6 +7,7 @@ volumes:
   local_rocket_db: {}
   local_rocket_db_config: {}
   local_rocket_db_dump: {}
+  local_waautomate_session_data: {}
 
 services:
   django: &django
@@ -179,17 +180,24 @@ services:
     command: npm run start
     depends_on:
       - browser
+      - django
     ports:
       - "8080:8080"
     links:
-      - "django:django.docker"      
+      - "django:django.docker"
+    volumes:
+      - local_waautomate_session_data:/usr/src/app/session_data/
     environment:
-      WA_BROWSER_WS_ENDPOINT: 'http://browser:3000'
-      WA_DISABLE_SPINS: 'true'
+      WA_SESSION_ID: "test_session"
       WA_WEBHOOK: 'http://django.docker:8000/connector/CONNECTOR_EXTERNAL_TOKEN/'
       WA_EV: 'http://django.docker:8000/connector/CONNECTOR_EXTERNAL_TOKEN/'
-      WA_SESSION_ID: "test_session"
-      WA_KILL_CLIENT_ON_LOGOUT: 'true'
+      WA_SESSION_DATA_PATH: 'session_data'
+      WA_BROWSER_WS_ENDPOINT: 'http://browser:3000'
+      WA_DISABLE_SPINS: 'true'
+      #WA_KILL_CLIENT_ON_LOGOUT: 'true'
       WA_STATS: 'true'
       WA_QR_LOG_SKIP: 'true'
       WA_KILL_CLIENT_ON_LOGOUT: 'true'
+      WA_SKIP_SAVE_POSTMAN_COLLECTION: 'true'
+      #WA_KEEP_ALIVE: 'true'
+      #WA_BLOCK_CRASH_LOGS: 'true'

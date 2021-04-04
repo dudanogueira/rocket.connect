@@ -8,6 +8,7 @@ from PIL import Image
 from envelope.models import LiveChatRoom
 import random
 import string
+import requests
 
 
 class Connector(object):
@@ -35,7 +36,6 @@ class Connector(object):
         '''
         this method will send the qrbase64 image to the connector managers at RocketChat
         '''
-        print("OUTCOME qr to outcome", qrbase64)
         server = self.connector.server
         # send message as bot
         rocket = self.get_rocket_client(bot=True)
@@ -57,7 +57,7 @@ class Connector(object):
                     file=tmp.name
                 )
 
-    def outcome_file(self, base64_data, mime):
+    def outcome_file(self, base64_data, room_id, mime):
         # prepare payload
         filedata = base64.b64decode(base64_data)
         rocket = self.get_rocket_client()
@@ -79,7 +79,7 @@ class Connector(object):
             }
             url = "{0}/api/v1/livechat/upload/{1}".format(
                 self.connector.server.url,
-                room.room_id
+                room_id
             )
             file_sent = requests.post(
                 url,
@@ -119,7 +119,7 @@ class Connector(object):
         managers = self.connector.get_managers()
         im_room = rocket.im_create(username="", usernames=managers)
         response = im_room.json()
-        text_message = ":rocket::rocket::rocket::rocket:CONNECT {0} > {1}".format(
+        text_message = ":rocket:CONNECT {0} {1}".format(
             self.connector.name,
             text
         )
@@ -226,6 +226,30 @@ class Connector(object):
                         open=True
                     )
         return room
+
+    def room_close_and_reintake(self, room):
+        room.open = False
+        room.save()
+        # reintake the message
+        # so now it can go to a new room
+        self.incoming()
+
+    def room_send_text(self, room_id, text):
+        rocket = self.get_rocket_client()
+        return rocket.livechat_message(
+            token=self.get_visitor_connector_token(),
+            rid=room_id,
+            msg=text,
+            _id=self.get_message_id()
+        )
+    def register_message(self):
+        message, created = self.connector.messages.get_or_create(
+            envelope_id=self.get_message_id()
+        )
+        message.raw_message = self.message
+        message.save()
+        self.message_object = message
+        return message, created
 
     def get_message_id(self):
         try:
