@@ -6,14 +6,13 @@ from .models import LiveChatRoom, Message
 
 @admin.register(LiveChatRoom)
 class LiveChatRoomAdmin(admin.ModelAdmin):
-    list_display = ('id', 'connector', 'token', 'room_id', 'created', 'updated')
+    list_display = ('connector', 'token', 'room_id', 'created', 'updated')
     list_filter = ('connector', 'created', 'updated')
 
 
 @admin.register(Message)
 class MessageAdmin(admin.ModelAdmin):
     list_display = (
-        'id',
         'room',
         'connector',
         'created'

@@ -39,6 +39,7 @@ class Connector(ConnectorBase):
         # USER MESSAGES
         #
         #
+        # wa automate messages come with data as dictionaries
         if self.message.get('data') and type(self.message['data']) == dict:
             try:
                 #
@@ -56,76 +57,50 @@ class Connector(ConnectorBase):
                         if settings.DEBUG:
                             print("NEW MESSAGE REGISTERED: ", message.id)
                         # get a room
+                        a
                         room = self.get_room()
                         if room:
                             print("got room: ", room.room_id)
                             #
-                            # MEDIA MESSAGE
+                            # MEDIA (PICTURE) MESSAGE
                             #
                             if self.message['data']['data'].get('isMedia'):
                                 mime = self.message['data']['data'].get('mimetype')
-                                extension = mimetypes.guess_extension(mime)
-                                filename = self.message['data']['data'].get('filehash').replace(".", "")
-                                filename_extension = "{0}{1}".format(
-                                    filename,
-                                    extension
-                                )
                                 # decrypt media
-                                url_decrypt = "{0}/decryptMedia".format(
-                                    self.config['endpoint']
-                                )
-                                payload = {
-                                    "args": {
-                                        "message": self.get_message_id()
-                                    }
-                                }
-                                decrypted_data_request = requests.post(
-                                    url_decrypt, json=payload
-                                )
-                                if decrypted_data_request.ok:
-                                    data = decrypted_data_request.json()['response'].split(',')[1]
-                                filedata = base64.b64decode(data)
-                                rocket = self.get_rocket_client()
-                                with tempfile.NamedTemporaryFile(suffix=extension) as tmp:
-                                    tmp.write(filedata)
-                                    headers = {
-                                        'x-visitor-token': self.get_visitor_connector_token()
-                                    }
-                                    files = {
-                                        'file': (filename, open(tmp.name, 'rb'), mime)
-                                    }
-                                    url = "{0}/api/v1/livechat/upload/{1}".format(
-                                        self.connector.server.url,
-                                        room.room_id
+                                data = self.decrypt_media()
+                                # we  got data
+                                # HERE we send the media file
+                                #
+                                if data:
+                                    file_sent = self.outcome_file(data, mime)
+                                else:
+                                    file_sent = False
+                                # if file was sent
+                                if file_sent.ok:
+                                    self.message_object.delivered = True
+                                # if caption, send it too
+                                if self.message['data']['data'].get('caption'):
+                                    deliver = rocket.chat_post_message(
+                                        text=self.message['data']['data'].get('caption'), room_id=room.room_id
                                     )
-
-                                    file_sent = requests.post(
-                                        url,
-                                        headers=headers,
-                                        files=files
-                                    )
-                                    if file_sent.ok:
-                                        message.delivered = True
-                                    # if caption, send it too
-                                    if self.message['data']['data'].get('caption'):
-                                        deliver = rocket.chat_post_message(
-                                            text=self.message['data']['data'].get('caption'), room_id=room.room_id
-                                        )
-                                        if deliver.ok:
-                                            print("message delivered ", message.id)
-                                            message.deliverd = True
-                                            message.save()
-                                        else:
-                                            # room can be closed on RC and open here
-                                            r = deliver.json()
-                                            if r['error'] == "room-closed":
-                                                room.open = False
-                                                room.save()
-                                                # reintake the message
-                                                # so now it can go to a new room
-                                                self.incoming()
-                                    message.save()
-
+                                    if deliver.ok:
+                                        print("message delivered ", message.id)
+                                        self.message_object.delivered = True
+                                        self.message_object.save()
+                                    else:
+                                        # room can be closed on RC and open here
+                                        r = deliver.json()
+                                        if r['error'] == "room-closed":
+                                            room.open = False
+                                            room.save()
+                                            # reintake the message
+                                            # so now it can go to a new room
+                                            self.incoming()
+                            #
+                            # PPT / OGG / VOICE OVER WHATSAPP
+                            elif 'ogg' in self.message['data']['data'].get('mimetype'):
+                                pass
+                            #
                             #
                             # TEXT ONLY MESSAGE
                             #
@@ -139,8 +114,8 @@ class Connector(ConnectorBase):
                                 )
                                 if deliver.ok:
                                     print("message delivered ", message.id)
-                                    message.deliverd = True
-                                    message.save()
+                                    self.message_object.deliverd = True
+                                    self.message_object.save()
                                 else:
                                     # room can be closed on RC and open here
                                     r = deliver.json()
@@ -150,8 +125,24 @@ class Connector(ConnectorBase):
                                         # reintake the message
                                         # so now it can go to a new room
                                         self.incoming()
+                    
             except KeyError:
                 pass
+        # here we get regular events (Battery, Plug Status)
+        if self.message.get('event') == 'onBattery':
+            text_message = ":battery: Battery level: {0}%".format(
+                self.message.get('data')
+            )
+            self.outcome_admin_message(text_message)
+        # here we get regular events (Battery, Plug Status)
+        if self.message.get('event') == 'onPlugged':
+            if self.message.get('data'):
+                text_message = ":radioactive: Device is charging"
+            else:
+                text_message = ":electric_plug: Device is unplugged"
+            self.outcome_admin_message(text_message)
+
+
         #
         # ADMIN / CONNECTION MESSAGES
         #

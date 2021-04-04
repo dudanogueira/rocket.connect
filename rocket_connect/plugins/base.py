@@ -57,6 +57,37 @@ class Connector(object):
                     file=tmp.name
                 )
 
+    def outcome_file(self, base64_data, mime):
+        # prepare payload
+        filedata = base64.b64decode(base64_data)
+        rocket = self.get_rocket_client()
+        extension = mimetypes.guess_extension(mime)
+        filename = self.message['data']['data'].get('filehash').replace(".", "")
+        filename_extension = "{0}{1}".format(
+            filename,
+            extension
+        )
+        # write file to temp file
+        # TODO: maybe dont touch the hard drive, keep it buffer
+        with tempfile.NamedTemporaryFile(suffix=extension) as tmp:
+            tmp.write(filedata)
+            headers = {
+                'x-visitor-token': self.get_visitor_connector_token()
+            }
+            files = {
+                'file': (filename, open(tmp.name, 'rb'), mime)
+            }
+            url = "{0}/api/v1/livechat/upload/{1}".format(
+                self.connector.server.url,
+                room.room_id
+            )
+            file_sent = requests.post(
+                url,
+                headers=headers,
+                files=files
+            )
+            return file_sent
+
     def get_qrcode_from_base64(self, qrbase64):
         try:
             data = qrbase64.split(',')[1]
@@ -211,15 +242,34 @@ class Connector(object):
         except IndexError:
             message_body = "New Message: {0}".format(
                 ''.join(random.choice(letters) for i in range(10))
-            ) 
+            )
         return message_body
 
     def get_rocket_client(self, bot=False):
-        # this will prevent multiple client initiation at the same 
+        # this will prevent multiple client initiation at the same
         # Classe initiation
         if not self.rocket:
             self.rocket = self.connector.server.get_rocket_client(bot=bot)
         return self.rocket
+
+    # API METHODS
+    def decrypt_media(self):
+        url_decrypt = "{0}/decryptMedia".format(
+            self.config['endpoint']
+        )
+        payload = {
+            "args": {
+                "message": self.get_message_id()
+            }
+        }
+        decrypted_data_request = requests.post(
+            url_decrypt, json=payload
+        )
+        # get decrypted data
+        data = None
+        if decrypted_data_request.ok:
+            data = decrypted_data_request.json()['response'].split(',')[1]
+        return data
 
     def outcoming():
         '''

@@ -12,8 +12,8 @@ class LiveChatRoom(models.Model):
     def __str__(self):
         return self.token
 
-    id = models.UUIDField(
-        primary_key=True, default=uuid.uuid4, editable=False
+    uuid = models.UUIDField(
+        default=uuid.uuid4, editable=False
     )
     connector = models.ForeignKey(Connector, on_delete=models.CASCADE, related_name="rooms")
     token = models.CharField(max_length=50, blank=True, null=True)
@@ -37,7 +37,7 @@ class Message(models.Model):
         Connector = self.connector.get_connector_class()
         return Connector(self.connector, self.raw_message)
 
-    id = models.UUIDField(
+    uuid = models.UUIDField(
         primary_key=True, default=uuid.uuid4, editable=False
     )
     envelope_id = models.CharField(max_length=100)

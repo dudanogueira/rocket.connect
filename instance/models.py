@@ -3,6 +3,9 @@ import uuid
 from rocketchat_API.rocketchat import RocketChat
 
 
+def random_string():
+    return uuid.uuid4().hex[:20].upper()
+
 class Server(models.Model):
 
     class Meta:
@@ -46,7 +49,7 @@ class Server(models.Model):
 
 
 
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    uuid = models.UUIDField(default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=50)
     enabled = models.BooleanField(default=True)
     url = models.CharField(max_length=150)
@@ -117,7 +120,8 @@ class Connector(models.Model):
             return ",".join(managers)
         return managers
 
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    uuid = models.UUIDField(default=uuid.uuid4, editable=False)
+    external_token = models.CharField(max_length=50, default=random_string)
     name = models.CharField(max_length=50, help_text="Connector Name")
     token = models.CharField(max_length=50, help_text="Connector Token that is aggregated to visitor token")
     server = models.ForeignKey(Server, on_delete=models.CASCADE, related_name="connectors")

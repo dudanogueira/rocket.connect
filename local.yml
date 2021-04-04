@@ -25,11 +25,6 @@ services:
       - ./.envs/.local/.postgres
     ports:
       - "8000:8000"
-    networks:
-      default:
-        aliases:
-          # need to wa automate no calling it invalid url
-          - django.docker
 
     command: /start
 
@@ -117,8 +112,8 @@ services:
     volumes:
       - local_rocket_uploads:/app/uploads
     environment:
-      - ADMIN_USERNAME=debug
-      - ADMIN_PASS=debug
+      - ADMIN_USERNAME=admin
+      - ADMIN_PASS=admin
       - ADMIN_EMAIL=admin@example.com
       - PORT=3000
       - ROOT_URL=http://localhost:3000
@@ -186,12 +181,15 @@ services:
       - browser
     ports:
       - "8080:8080"
+    links:
+      - "django:django.docker"      
     environment:
       WA_BROWSER_WS_ENDPOINT: 'http://browser:3000'
       WA_DISABLE_SPINS: 'true'
-      WA_WEBHOOK: 'http://django.docker:8000/connector/4333bd76-519f-4fe8-b51a-a228b29a4e19'
-      WA_EV: 'http://django.docker:8000/connector/4333bd76-519f-4fe8-b51a-a228b29a4e19'
+      WA_WEBHOOK: 'http://django.docker:8000/connector/CONNECTOR_EXTERNAL_TOKEN/'
+      WA_EV: 'http://django.docker:8000/connector/CONNECTOR_EXTERNAL_TOKEN/'
       WA_SESSION_ID: "test_session"
       WA_KILL_CLIENT_ON_LOGOUT: 'true'
       WA_STATS: 'true'
       WA_QR_LOG_SKIP: 'true'
+      WA_KILL_CLIENT_ON_LOGOUT: 'true'
