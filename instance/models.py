@@ -43,6 +43,8 @@ class Server(models.Model):
 
 
     uuid = models.UUIDField(default=uuid.uuid4, editable=False)
+    external_token = models.CharField(max_length=50, default=random_string)
+    secret_token = models.CharField(max_length=50, null=True, blank=True)
     name = models.CharField(max_length=50)
     enabled = models.BooleanField(default=True)
     url = models.CharField(max_length=150)
@@ -94,9 +96,17 @@ class Connector(models.Model):
         # get connector
         Connector = self.get_connector_class()
         # initiate with raw message
-        connector = Connector(self, message)
+        connector = Connector(self, message, "incoming")
         # income message
         connector.incoming()
+
+    def outtake(self, message):
+        # get connector
+        Connector = self.get_connector_class()
+        # initiate with raw message
+        connector = Connector(self, message, "outgoing")
+        # income message
+        connector.outgoing()
 
     def get_managers(self, as_string=True):
         '''

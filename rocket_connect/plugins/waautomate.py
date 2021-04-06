@@ -4,6 +4,7 @@ import mimetypes
 import requests
 import base64
 import tempfile
+import json
 from django.conf import settings
 from envelope.models import Message
 
@@ -41,100 +42,100 @@ class Connector(ConnectorBase):
         #
         #
         # wa automate messages come with data as dictionaries
-        if self.message.get('data') and type(self.message['data']) == dict:
-            try:
-                #
-                # on Any Message
-                if self.message['data']['event'] == "onAnyMessage":
-                    # No Group Messages
-                    if not self.message['data']['data']['isGroupMsg']:
-                        # create message
-                        message, created = self.register_message()
-                        if settings.DEBUG:
-                            if created:
-                                print("NEW MESSAGE REGISTERED: ", self.message_object.id)
+        if self.message.get('event') == "onAnyMessage" and \
+            self.message.get('data', {}).get('data', {}).get('type') != 'sticker':
+            # No Group Messages
+            if not self.message.get('data', {}).get('isGroupMsg'):
+                # create message
+                message, created = self.register_message()
+                if settings.DEBUG:
+                    if created:
+                        print("NEW MESSAGE REGISTERED: ", self.message_object.id)
+                    else:
+                        print("EXISTING MESSAGE: ", self.message_object.id)
+                # get a room
+                room = self.get_room()
+                if room:
+                    mimetypes_to_upload = [
+                        'audio/ogg; codecs=opus',
+                        'application/pdf',
+                        'image/webp'
+                    ]   
+                    print("got room: ", room.room_id)
+                    #
+                    # MEDIA (PICTURE) MESSAGE
+                    #
+                    if self.message.get('data', {}).get('isMedia'):
+                        mime = self.message.get('data', {}).get('mimetype')
+                        # decrypt media
+                        data = self.decrypt_media()
+                        # we  got data
+                        # HERE we send the media file
+                        #
+                        if data:
+                            file_sent = self.outcome_file(data, room.room_id, mime)
+                        else:
+                            file_sent = False
+                        # if file was sent
+                        if file_sent.ok:
+                            self.message_object.delivered = True
+                        # if caption, send it too
+                        if self.message.get('data', {}).get('caption'):
+                            caption = self.message.get('data', {}).get('caption')
+                            rocket = self.get_rocket_client(bot=True)
+                            deliver = self.room_send_text(
+                                text=caption,
+                                room_id=room.room_id
+                            )
+                            if deliver.ok:
+                                if settings.DEBUG:
+                                    print("message delivered ", self.message_object.id)
+                                self.message_object.delivered = True
                             else:
-                                print("EXISTING MESSAGE: ", self.message_object.id)
-                        # get a room
-                        room = self.get_room()
-                        if room:
-                            print("got room: ", room.room_id)
-                            #
-                            # MEDIA (PICTURE) MESSAGE
-                            #
-                            if self.message['data']['data'].get('isMedia'):
-                                mime = self.message['data']['data'].get('mimetype')
-                                # decrypt media
-                                data = self.decrypt_media()
-                                # we  got data
-                                # HERE we send the media file
-                                #
-                                if data:
-                                    file_sent = self.outcome_file(data, room.room_id, mime)
-                                else:
-                                    file_sent = False
-                                # if file was sent
-                                if file_sent.ok:
-                                    self.message_object.delivered = True
-                                # if caption, send it too
-                                if self.message['data']['data'].get('caption'):
-                                    rocket = self.get_rocket_client(bot=True)
-                                    deliver = self.room_send_text(
-                                        text=self.message['data']['data'].get('caption'), 
-                                        room_id=room.room_id
-                                    )
-                                    if deliver.ok:
-                                        if settings.DEBUG:
-                                            print("message delivered ", self.message_object.id)
-                                        self.message_object.delivered = True
-                                    else:
-                                        # room can be closed on RC and open here
-                                        r = deliver.json()
-                                        if r['error'] == "room-closed":
-                                            self.room_close_and_reintake(room)
-                                # save if image and/or caption was delivered
-                                self.message_object.save()
-                            #
-                            # PTT / OGG / VOICE OVER WHATSAPP
-                            elif  self.message.get('data', {}).get('data', {}).get('mimetype') == 'audio/ogg; codecs=opus':
-                                mime = self.message['data']['data'].get('mimetype')
-                                # decrypt media
-                                data = self.decrypt_media()
-                                # we  got data
-                                if data:
-                                    file_sent = self.outcome_file(data, room.room_id, mime)
-                                else:
-                                    file_sent = False
-                                # if file was sent
-                                if file_sent.ok:
-                                    self.message_object.delivered = True
-                            #
-                            #
-                            # TEXT ONLY MESSAGE
-                            #
-                            else:
-                                deliver = self.room_send_text(
-                                    room.room_id, self.get_message_body()
-                                )
-                                # deliver = rocket.livechat_message(
-                                #     token=self.get_visitor_connector_token(),
-                                #     rid=room.room_id,
-                                #     msg=self.get_message_body(),
-                                #     _id=self.get_message_id()
-                                # )
-                                if deliver.ok:
-                                    if settings.DEBUG:
-                                        print("message delivered ", self.message_object.id)
-                                    self.message_object.delivered = True
-                                    self.message_object.save()
-                                else:
-                                    # room can be closed on RC and open here
-                                    r = deliver.json()
-                                    if r['error'] == "room-closed":
-                                        self.room_close_and_reintake(room)
+                                # room can be closed on RC and open here
+                                r = deliver.json()
+                                if r['error'] == "room-closed":
+                                    self.room_close_and_reintake(room)
+                        # save if image and/or caption was delivered
+                        self.message_object.save()
+                    #
+                    # PTT / OGG / VOICE OVER WHATSAPP
 
-            except KeyError:
-                pass
+                    elif self.message.get('data', {}).get('mimetype') in mimetypes_to_upload:
+                        mime = self.message.get('data', {}).get('mimetype')
+                        # decrypt media
+                        data = self.decrypt_media()
+                        # we  got data
+                        if data:
+                            file_sent = self.outcome_file(data, room.room_id, mime)
+                        else:
+                            file_sent = False
+                        # if file was sent
+                        if file_sent.ok:
+                            self.message_object.delivered = True
+                    #
+                    #
+                    # TEXT ONLY MESSAGE
+                    #
+                    else:
+                        deliver = self.room_send_text(
+                            room.room_id, self.get_message_body()
+                        )
+                        self.message_object.payload = json.loads(deliver.request.body)
+                        if deliver.ok:
+                            if settings.DEBUG:
+                                print("message delivered ", self.message_object.id)
+                            self.message_object.delivered = True
+                            self.message_object.room = room
+                            self.message_object.save()
+                            # save payload and save message object
+                        else:
+                            # save payload and save message object
+                            self.message_object.save()
+                            # room can be closed on RC and open here
+                            r = deliver.json()
+                            if r['error'] == "room-closed":
+                                self.room_close_and_reintake(room)
 
         # here we get regular events (Battery, Plug Status)
         if self.message.get('event') == 'onBattery':
@@ -161,6 +162,7 @@ class Connector(ConnectorBase):
             #
             # ADMIN / CONNECTION MESSAGES
             #
+
         if self.message.get('namespace') and self.message.get('data'):
             message = self.message
             if message.get('namespace') == 'qr':
@@ -178,8 +180,41 @@ class Connector(ConnectorBase):
                 )
                 self.outcome_admin_message(text_message)
 
-    def outcoming():
+    def ingoing(self):
         '''
         this method will process the outcoming messages
         comming from Rocketchat, and deliver to the connector
         '''
+        # Session start
+        if self.message.get('type') == "LivechatSessionStart":
+            print("Starting Session")
+            # todo: mark as seen
+            # todo: simulate typing
+            # some welcome message may fit here
+
+        else:
+            message, created = self.register_message()
+            if settings.DEBUG:
+                if created:
+                    print("NEW MESSAGE REGISTERED: ", self.message_object.id)
+                else:
+                    print("EXISTING MESSAGE: ", self.message_object.id)
+            # prepare message to be sent to client
+            for message in self.message.get('messages', []):
+                self.outgo_text_message(message)
+
+    def outgo_text_message(self, message):
+        payload = {
+            "args": {
+                "to": self.outgo_destintion(),
+                "content": message['msg']
+            }
+        }
+        sent = requests.post(
+            self.connector.config['endpoint'] + "/sendText",
+            json=payload
+        )
+        if sent.ok:
+            self.message_object.payload = payload
+            self.message_object.delivered = True
+            self.message_object.save()

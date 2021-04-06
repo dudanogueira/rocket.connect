@@ -9,12 +9,16 @@ from envelope.models import LiveChatRoom
 import random
 import string
 import requests
+from django.conf import settings
 
 
 class Connector(object):
 
-    def __init__(self, connector, message):
+    def __init__(self, connector, message, type):
         self.connector = connector
+        self.type = type
+        if settings.DEBUG:
+            print("TYPE: ", self.type)
         self.config = self.connector.config
         self.message = message
         self.message_object = None
@@ -62,7 +66,7 @@ class Connector(object):
         filedata = base64.b64decode(base64_data)
         rocket = self.get_rocket_client()
         extension = mimetypes.guess_extension(mime)
-        filename = self.message['data']['data'].get('filehash').replace(".", "")
+        filename = self.message.get('data', {}).get('filehash').replace(".", "")
         filename_extension = "{0}{1}".format(
             filename,
             extension
@@ -72,7 +76,7 @@ class Connector(object):
         with tempfile.NamedTemporaryFile(suffix=extension) as tmp:
             tmp.write(filedata)
             headers = {
-                'x-visitor-token': self.get_visitor_connector_token()
+                'x-visitor-token': self.get_visitor_token()
             }
             files = {
                 'file': (filename, open(tmp.name, 'rb'), mime)
@@ -86,6 +90,7 @@ class Connector(object):
                 headers=headers,
                 files=files
             )
+            # TODO: teste with room closed
             return file_sent
 
     def get_qrcode_from_base64(self, qrbase64):
@@ -128,7 +133,7 @@ class Connector(object):
 
     def get_visitor_name(self):
         try:
-            name = self.message['data']['data']['sender']['name']
+            name = self.message.get('data', {}).get('sender', {}).get('from')
         except IndexError:
             name = "Duda Nogueira"
         return name
@@ -137,7 +142,7 @@ class Connector(object):
         try:
             visitor_username = "whatsapp:{0}".format(
                 # works for wa-automate
-                self.message['data']['data']['from']
+                self.message.get('data', {}).get('from')
             )
         except IndexError:
             visitor_username = "channel:visitor-username"
@@ -145,7 +150,7 @@ class Connector(object):
 
     def get_visitor_phone(self):
         try:
-            visitor_phone = self.message['data']['data']['from'].split("@")[0]
+            visitor_phone = self.message.get('data', {}).get('from').split("@")[0]
         except IndexError:
             visitor_phone = "553199999999"
         return visitor_phone
@@ -154,7 +159,7 @@ class Connector(object):
         visitor_name = self.get_visitor_name()
         visitor_username = self.get_visitor_username()
         visitor_phone = self.get_visitor_phone()
-        visitor_token = self.get_visitor_connector_token()
+        visitor_token = self.get_visitor_token()
         department = self.connector.department
 
         visitor = {
@@ -178,26 +183,26 @@ class Connector(object):
         }
         return visitor
 
-    def get_visitor_id(self):
+    def get_visitor_token(self):
         try:
             # this works for wa-automate EASYAPI
-            visitor_id = self.message['data']['data']['from']
+            visitor_id = self.message.get('data', {}).get('from')
             visitor_id = "whatsapp:{0}".format(visitor_id)
             return visitor_id
         except IndexError:
             return "channel:visitor-id"
 
-    def get_visitor_connector_token(self):
-        visitor_id = self.get_visitor_id()
-        visitor_connector_token = "{0}@{1}".format(
-            visitor_id,
-            self.connector.token
-        )
-        return visitor_connector_token
+    # def get_visitor_connector_token(self):
+    #     visitor_id = self.get_visitor_token()
+    #     visitor_connector_token = "{0}@{1}".format(
+    #         visitor_id,
+    #         self.connector.token
+    #     )
+    #     return visitor_connector_token
 
     def get_room(self):
         room = None
-        visitor_connector_token = self.get_visitor_connector_token()
+        visitor_connector_token = self.get_visitor_token()
         try:
             room = LiveChatRoom.objects.get(
                 connector=self.connector,
@@ -236,33 +241,48 @@ class Connector(object):
 
     def room_send_text(self, room_id, text):
         rocket = self.get_rocket_client()
-        return rocket.livechat_message(
-            token=self.get_visitor_connector_token(),
+        response = rocket.livechat_message(
+            token=self.get_visitor_token(),
             rid=room_id,
             msg=text,
             _id=self.get_message_id()
         )
+        return response
+
     def register_message(self):
-        message, created = self.connector.messages.get_or_create(
-            envelope_id=self.get_message_id()
+        self.message_object, created = self.connector.messages.get_or_create(
+            envelope_id=self.get_message_id(),
+            type=self.type
         )
-        message.raw_message = self.message
-        message.save()
-        self.message_object = message
-        return message, created
+        self.message_object.raw_message = self.message
+        self.message_object.save()
+        return self.message_object, created
 
     def get_message_id(self):
+        if self.type == "incoming":
+            return self.get_incoming_message_id()
+        if self.type == "ingoing":
+            # rocketchat message id
+            if self.message['messages']:
+                rc_message_id = self.message['messages'][0]['_id']
+                return rc_message_id
+            else:
+                return None
+
+    def get_incoming_message_id(self):
+        # this works for wa-automate EASYAPI
         try:
-            # this works for wa-automate EASYAPI
-            message_id = self.message['data']['data']['id']
+            message_id = self.message.get('data', {}).get('id')
         except IndexError:
+            # for sake of forgiveness, lets make it random
             message_id = ''.join(random.choice(letters) for i in range(10))
+        print("MESSAGE ID ", message_id)
         return message_id
 
     def get_message_body(self):
         try:
             # this works for wa-automate EASYAPI
-            message_body = self.message['data']['data']['body']
+            message_body = self.message.get('data', {}).get('body')
         except IndexError:
             message_body = "New Message: {0}".format(
                 ''.join(random.choice(letters) for i in range(10))
@@ -295,9 +315,16 @@ class Connector(object):
             data = decrypted_data_request.json()['response'].split(',')[1]
         return data
 
-    def outcoming():
+    def ingoing(self):
         '''
         this method will process the outcoming messages
         comming from Rocketchat, and deliver to the connector
         '''
-        pass
+        print("we should deliver this message to client: ", self.message)
+
+    def outgo_text_message(self, message, to):
+        print("SENT TEXT MESSAGE: ", message)
+        print("SENT TEXT MESSAGE TO: ", to)
+    
+    def outgo_destintion(self):
+        return self.message['visitor']['username'].split(":")[1]

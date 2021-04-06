@@ -7,7 +7,7 @@ volumes:
   local_rocket_db: {}
   local_rocket_db_config: {}
   local_rocket_db_dump: {}
-  local_waautomate_session_data: {}
+  local_waautomate_data: {}
 
 services:
   django: &django
@@ -100,7 +100,7 @@ services:
     command: /start-flower
 
   rocketchat:
-    image: rocketchat/rocket.chat:3.12.3
+    image: rocketchat/rocket.chat:3.13.0
     command: >
       bash -c
         "for i in `seq 1 30`; do
@@ -120,10 +120,15 @@ services:
       - ROOT_URL=http://localhost:3000
       - MONGO_URL=mongodb://mongo:27017/rocketchat
       - MONGO_OPLOG_URL=mongodb://mongo:27017/local
-      - MAIL_URL=smtp://mailhog
-      - CREATE_TOKENS_FOR_USERS=true
-      - Accounts_TwoFactorAuthentication_Enforce_Password_Fallback=false
+      - OVERWRITE_SETTING_Accounts_TwoFactorAuthentication_Enforce_Password_Fallback=false
+      - OVERWRITE_SETTING_SMTP_HOST=mailhog
+      - OVERWRITE_SETTING_SMTP_PORT=1025
+      - OVERWRITE_SETTING_SMTP_Username=smtp_user
+      - OVERWRITE_SETTING_SMTP_Password=smtp_password
+      - OVERWRITE_SETTING_SMTP_From_Email=from@email.smtp
       - OVERWRITE_SETTING_Show_Setup_Wizard=completed
+      - OVERWRITE_SETTING_API_Enable_Rate_Limiter=false
+      - CREATE_TOKENS_FOR_USERS=true
     depends_on:
       - mongo
     ports:
@@ -149,55 +154,41 @@ services:
       - mongo
 
   browser:
-    image: browserless/chrome:1.22-chrome-stable
-    hostname: browser
-    ports:
-      - "3001:3000"
-    deploy:
-      replicas: 1
-      update_config:
-        parallelism: 1
-        delay: 10s
-      restart_policy:
-        condition: on-failure
-    environment:
-      CONNECTION_TIMEOUT: -1
-      KEEP_ALIVE: 'true'
-      WORKSPACE_EXPIRE_DAYS: 1
-      ENABLE_CORS: 'true'
-      CHROME_REFRESH_TIME: 86400000
-      DEFAULT_BLOCK_ADS: 'true'
-      FUNCTION_ENABLE_INCOGNITO_MODE: 'true'
-      ENABLE_XVBF: 'true'
-      CHROME_PATH: '/usr/bin/google-chrome'
-      USE_CHROME_STABLE: 'true'
-      NODE_ENV: 'production'
+      image: browserless/chrome:1.22-chrome-stable
+      hostname: browser
+      ports:
+        - "3001:3000"
+      deploy:
+        replicas: 1
+        update_config:
+          parallelism: 1
+          delay: 10s
+        restart_policy:
+          condition: on-failure
+      environment:
+        CONNECTION_TIMEOUT: -1
+        KEEP_ALIVE: 'true'
+        WORKSPACE_EXPIRE_DAYS: 1
+        ENABLE_CORS: 'true'
+        CHROME_REFRESH_TIME: 86400000
+        DEFAULT_BLOCK_ADS: 'true'
+        FUNCTION_ENABLE_INCOGNITO_MODE: 'true'
+        ENABLE_XVBF: 'true'
+        CHROME_PATH: '/usr/bin/google-chrome'
+        USE_CHROME_STABLE: 'true'
+        NODE_ENV: 'production'
 
   waautomate:
+    # waautomate options ar at  ./compose/local/waautomate/cli.config.json
     build:
       context: ./compose/local/waautomate
+    command:  npx @open-wa/wa-automate --ev "http://django.docker:8000/connector/CONNECTOR_EXTERNAL_TOKEN/" --ef qr,STARTUP --session-data-path "session_data"
     restart: on-failure
-    command: npm run start
+    volumes:
+      - local_waautomate_data:/usr/src/app/session_data
+    links:
+      - "django:django.docker"    
     depends_on:
       - browser
-      - django
     ports:
-      - "8080:8080"
-    links:
-      - "django:django.docker"
-    volumes:
-      - local_waautomate_session_data:/usr/src/app/session_data/
-    environment:
-      WA_SESSION_ID: "test_session"
-      WA_WEBHOOK: 'http://django.docker:8000/connector/CONNECTOR_EXTERNAL_TOKEN/'
-      WA_EV: 'http://django.docker:8000/connector/CONNECTOR_EXTERNAL_TOKEN/'
-      WA_SESSION_DATA_PATH: 'session_data'
-      WA_BROWSER_WS_ENDPOINT: 'http://browser:3000'
-      WA_DISABLE_SPINS: 'true'
-      #WA_KILL_CLIENT_ON_LOGOUT: 'true'
-      WA_STATS: 'true'
-      WA_QR_LOG_SKIP: 'true'
-      WA_KILL_CLIENT_ON_LOGOUT: 'true'
-      WA_SKIP_SAVE_POSTMAN_COLLECTION: 'true'
-      #WA_KEEP_ALIVE: 'true'
-      #WA_BLOCK_CRASH_LOGS: 'true'
+      - "8002:8002"

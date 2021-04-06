@@ -10,7 +10,10 @@ class LiveChatRoom(models.Model):
         verbose_name_plural = "Live Chat Rooms"
 
     def __str__(self):
-        return self.token
+        return "{0} at {1}".format(
+            self.token,
+            self.room_id
+        )
 
     uuid = models.UUIDField(
         default=uuid.uuid4, editable=False
@@ -32,19 +35,27 @@ class Message(models.Model):
         verbose_name = "Message"
         verbose_name_plural = "Messages"
         ordering = 'created',
+        unique_together = [('envelope_id', 'type')]
+
+    # STAGE TYPE CHOICES
+    STAGE_CHOICES = [
+        ['incoming', 'Incoming Message'],
+        ['ingoing', 'Ingoing Message'],
+    ]
 
     def get_connector(self):
         Connector = self.connector.get_connector_class()
-        return Connector(self.connector, self.raw_message)
+        return Connector(self.connector, self.raw_message, self.type)
 
     uuid = models.UUIDField(
         default=uuid.uuid4, editable=False
     )
+    type = models.CharField(max_length=50, choices=STAGE_CHOICES, default="incoming")
     envelope_id = models.CharField(max_length=100)
     room = models.ForeignKey(LiveChatRoom, on_delete=models.CASCADE, related_name="messages", blank=True, null=True)
     connector = models.ForeignKey(Connector, on_delete=models.CASCADE, related_name="messages")
-    raw_message = models.JSONField(blank=True, null=True)
-    payload = models.JSONField(blank=True, null=True)
+    raw_message = models.JSONField(blank=True, null=True, help_text="the message that first came to be connected")
+    payload = models.JSONField(blank=True, null=True, help_text="the message that goes gout, after processed")
     response = models.JSONField(blank=True, null=True)
     delivered = models.BooleanField(null=True)
     # meta

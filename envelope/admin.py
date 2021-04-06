@@ -15,8 +15,10 @@ class MessageAdmin(admin.ModelAdmin):
     list_display = (
         'id',
         'room',
+        'type',
         'delivered',
         'connector',
         'created'
     )
     list_filter = ('room', 'connector', 'delivered', 'created', 'updated')
+    ordering = '-created',
