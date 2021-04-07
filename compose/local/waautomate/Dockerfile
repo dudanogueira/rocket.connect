@@ -21,5 +21,5 @@ COPY . .
 EXPOSE 8080
 
 COPY cli.config* ./
-
+RUN cat cli.config.json
 CMD ["npm", "run", "start"]

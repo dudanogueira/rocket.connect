@@ -1,10 +1,12 @@
 
 from .base import Connector as ConnectorBase
+from instance import tasks
 import mimetypes
 import requests
 import base64
 import tempfile
 import json
+import time
 from django.conf import settings
 from envelope.models import Message
 
@@ -30,20 +32,13 @@ class Connector(ConnectorBase):
         this method will process the incoming messages
         and ajust what necessary, to output to rocketchat
         '''
-        # print(
-        #     "INTAKING. PLUGIN WA-AUTOMATE, CONNECTOR {0}, MESSAGE {1}".format(
-        #         connector.name,
-        #         message
-        #     )
-        # )
-
         #
         # USER MESSAGES
         #
         #
         # wa automate messages come with data as dictionaries
-        if self.message.get('event') == "onAnyMessage" and \
-            self.message.get('data', {}).get('data', {}).get('type') != 'sticker':
+        if self.message.get('event') == "onMessage" and \
+                self.message.get('data', {}).get('data', {}).get('type') != 'sticker':
             # No Group Messages
             if not self.message.get('data', {}).get('isGroupMsg'):
                 # create message
@@ -60,7 +55,7 @@ class Connector(ConnectorBase):
                         'audio/ogg; codecs=opus',
                         'application/pdf',
                         'image/webp'
-                    ]   
+                    ]
                     print("got room: ", room.room_id)
                     #
                     # MEDIA (PICTURE) MESSAGE
@@ -91,6 +86,8 @@ class Connector(ConnectorBase):
                                 if settings.DEBUG:
                                     print("message delivered ", self.message_object.id)
                                 self.message_object.delivered = True
+                                # send seen
+                                self.send_seen()
                             else:
                                 # room can be closed on RC and open here
                                 r = deliver.json()
@@ -122,13 +119,15 @@ class Connector(ConnectorBase):
                             room.room_id, self.get_message_body()
                         )
                         self.message_object.payload = json.loads(deliver.request.body)
+                        self.message_object.response = deliver.json()
                         if deliver.ok:
                             if settings.DEBUG:
                                 print("message delivered ", self.message_object.id)
                             self.message_object.delivered = True
                             self.message_object.room = room
                             self.message_object.save()
-                            # save payload and save message object
+                            # send seen
+                            self.send_seen()
                         else:
                             # save payload and save message object
                             self.message_object.save()
@@ -150,9 +149,10 @@ class Connector(ConnectorBase):
         if self.message.get('event') == 'onPlugged':
             if self.message.get('data') == True:
                 text_message = ":radioactive:\n:satellite:  Device is charging"
-            else:
+                self.outcome_admin_message(text_message)
+            if self.message.get('data') == False:
                 text_message = ":electric_plug:\n:satellite:  Device is unplugged"
-            self.outcome_admin_message(text_message)
+                self.outcome_admin_message(text_message)
 
         # when device logged out
         if self.message.get('event') == 'onLogout':
@@ -163,8 +163,23 @@ class Connector(ConnectorBase):
             # ADMIN / CONNECTION MESSAGES
             #
 
+        # state changed
+        if self.message.get('event') == 'onStateChanged':
+            text_message = ":information_source:\n:satellite: {0} > {1}: {2} ".format(
+                self.message.get('sessionId'),
+                self.message.get('event'),
+                self.message.get('data')
+            )
+            self.outcome_admin_message(text_message)
+
+        # sesion launch and qr code
         if self.message.get('namespace') and self.message.get('data'):
             message = self.message
+            # OPEN WA REDY. Get unread messages
+            if '@OPEN-WA ready' in message.get('data'):
+                print('INITIATING INTAKE UNREAD TASK')
+                tasks.intake_unread_messages.delay(self.connector.id)
+
             if message.get('namespace') == 'qr':
                 # recreate qrcode image. WA-Automate doesnt work on older phones
                 # too small, can't focus.
@@ -180,34 +195,44 @@ class Connector(ConnectorBase):
                 )
                 self.outcome_admin_message(text_message)
 
-    def ingoing(self):
-        '''
-        this method will process the outcoming messages
-        comming from Rocketchat, and deliver to the connector
-        '''
-        # Session start
-        if self.message.get('type') == "LivechatSessionStart":
-            print("Starting Session")
-            # todo: mark as seen
-            # todo: simulate typing
-            # some welcome message may fit here
-
-        else:
-            message, created = self.register_message()
-            if settings.DEBUG:
-                if created:
-                    print("NEW MESSAGE REGISTERED: ", self.message_object.id)
-                else:
-                    print("EXISTING MESSAGE: ", self.message_object.id)
-            # prepare message to be sent to client
-            for message in self.message.get('messages', []):
-                self.outgo_text_message(message)
-
-    def outgo_text_message(self, message):
+    def send_seen(self, visitor_id=None):
+        if not visitor_id:
+            visitor_id = self.get_visitor_id()
         payload = {
             "args": {
-                "to": self.outgo_destintion(),
-                "content": message['msg']
+                "chatId": visitor_id
+            }
+        }
+        r = requests.post(self.connector.config['endpoint'] + "/sendSeen", json=payload)
+        return r.json()
+
+    def intake_unread_messages(self):
+        r = requests.post(self.connector.config['endpoint'] + "/getAllUnreadMessages")
+        if r.ok and r.json().get('response', {}):
+            for message in r.json().get('response', {}):
+                # for each unread message, initiate a connector
+                formated_message = {
+                    'ts': int(time.time()),
+                    'event': 'onMessage', 
+                    'data': message
+                 }
+                new_connector = Connector(self.connector, formated_message, type=self.type)
+                # for each connector instance, income message
+                new_connector.incoming()
+                # send seen
+                new_connector.send_seen(message['from'])
+        return r.json().get('response', {})
+
+    def outgo_text_message(self, message):
+        agent_name = message.get('u', {}).get('name', {})
+        if agent_name:
+            content = "*[" + agent_name + "]*\n" + message['msg']
+        else:
+            content = message.msg
+        payload = {
+            "args": {
+                "to": self.get_visitor_id(),
+                "content": content
             }
         }
         sent = requests.post(
@@ -217,4 +242,33 @@ class Connector(ConnectorBase):
         if sent.ok:
             self.message_object.payload = payload
             self.message_object.delivered = True
+            self.message_object.response = sent.json()
+            self.message_object.save()
+
+    def outgo_file_message(self, message):
+        # if its audio, treat different
+        ppt = False
+        if message["file"]["type"] == "audio/mpeg":
+            ppt = True
+        payload = {
+            "args": {
+                "to": self.get_visitor_id(),
+                "url": message["fileUpload"]["publicFilePath"],
+                "filename": message["attachments"][0]["title"],
+                "caption": message["attachments"][0]["description"],
+                "waitForId": False,
+                "withoutPreview": False,
+                "ptt": ppt,
+            }
+        }
+        if settings.DEBUG:
+            print("PAYLOAD OUTGING FILE: ", payload)
+        sent = requests.post(
+            self.connector.config['endpoint'] + "/sendFileFromUrl",
+            json=payload
+        )
+        if sent.ok:
+            self.message_object.payload = payload
+            self.message_object.delivered = True
+            self.message_object.response = sent.json()
             self.message_object.save()

@@ -23,6 +23,7 @@ class Connector(object):
         self.message = message
         self.message_object = None
         self.rocket = None
+        self.room = None
 
     def incoming(self):
         '''
@@ -133,7 +134,7 @@ class Connector(object):
 
     def get_visitor_name(self):
         try:
-            name = self.message.get('data', {}).get('sender', {}).get('from')
+            name = self.message.get('data', {}).get('sender', {}).get('name')
         except IndexError:
             name = "Duda Nogueira"
         return name
@@ -183,10 +184,16 @@ class Connector(object):
         }
         return visitor
 
+    def get_visitor_id(self):
+        if self.type == "incoming":
+            return self.message.get('data', {}).get('from')
+        else:
+            return self.message.get('visitor', {}).get('token').split(":")[1]
+
     def get_visitor_token(self):
         try:
             # this works for wa-automate EASYAPI
-            visitor_id = self.message.get('data', {}).get('from')
+            visitor_id = self.get_visitor_id()
             visitor_id = "whatsapp:{0}".format(visitor_id)
             return visitor_id
         except IndexError:
@@ -209,7 +216,9 @@ class Connector(object):
                 token=visitor_connector_token,
                 open=True
             )
+            print("get_room, got: ", room)
         except LiveChatRoom.DoesNotExist:
+            print("get_room, didnt get for: ", visitor_connector_token)
             # room not available, let's create one.
             # get the visitor json
             visitor_json = self.get_visitor_json()
@@ -219,6 +228,8 @@ class Connector(object):
                 visitor=visitor_json, token=visitor_connector_token
             )
             response = visitor_object.json()
+            if settings.DEBUG:
+                print("VISITOR REGISTERING: ", visitor_object.json())
             # we got a new room
             # this is where you can hook some "welcoming features"
             if response['success']:
@@ -230,9 +241,13 @@ class Connector(object):
                         room_id=rc_room.json()['room']['_id'],
                         open=True
                     )
+        self.room = room
         return room
 
     def room_close_and_reintake(self, room):
+        if settings.DEBUG:
+            print("ROOM IS CLOSED. CLOSING AND REINTAKING")
+        self
         room.open = False
         room.save()
         # reintake the message
@@ -255,6 +270,7 @@ class Connector(object):
             type=self.type
         )
         self.message_object.raw_message = self.message
+        self.message_object.room = self.room
         self.message_object.save()
         return self.message_object, created
 
@@ -315,16 +331,58 @@ class Connector(object):
             data = decrypted_data_request.json()['response'].split(',')[1]
         return data
 
+    def close_room(self):
+        if self.room:
+            if settings.DEBUG:
+                print("Closing Message...")
+            self.room.open = False
+            self.room.save()
+
     def ingoing(self):
         '''
         this method will process the outcoming messages
         comming from Rocketchat, and deliver to the connector
         '''
-        print("we should deliver this message to client: ", self.message)
+        # Session start
+        if self.message.get('type') == "LivechatSessionStart":
+            if settings.DEBUG:
+                print("LivechatSessionStart")
+            # todo: mark as seen
+            # todo: simulate typing
+            # some welcome message may fit here
+        if self.message.get("type") == "LivechatSession":
+            #
+            # This message is sent at the end of the chat,
+            # with all the chats from the session. Not Sure Why.
+            if settings.DEBUG:
+                print("LivechatSession")
 
-    def outgo_text_message(self, message, to):
-        print("SENT TEXT MESSAGE: ", message)
-        print("SENT TEXT MESSAGE TO: ", to)
-    
-    def outgo_destintion(self):
-        return self.message['visitor']['username'].split(":")[1]
+        if self.message.get("type") == "LivechatSessionTaken":
+            #
+            # This message is sent when the message if taken
+            if settings.DEBUG:
+                print("LivechatSessionTaken")
+        if self.message.get("type") == "LivechatSessionForwarded":
+            #
+            # This message is sent when the message if Forwarded
+            if settings.DEBUG:
+                print("LivechatSessionForwarded")
+
+        if self.message.get("type") == "Message":
+            message, created = self.register_message()
+            if settings.DEBUG:
+                if created:
+                    print("NEW MESSAGE REGISTERED: ", self.message_object.id)
+                else:
+                    print("EXISTING MESSAGE: ", self.message_object.id)
+            # prepare message to be sent to client
+            for message in self.message.get('messages', []):
+                if message.get("attachments", {}):
+                    # send file
+                    self.outgo_file_message(message)
+                else:
+                    self.outgo_text_message(message)
+
+                # closing message
+                if message.get('closingMessage'):
+                    self.close_room()

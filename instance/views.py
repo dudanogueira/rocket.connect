@@ -45,6 +45,7 @@ def server_view(request, server_id):
                 print("Got Room:", room.id)
                 Connector = room.connector.get_connector_class()
                 connector = Connector(room.connector, raw_message, "ingoing")
+                connector.room = room
                 # todo: create task to out go message
                 connector.ingoing()
             except LiveChatRoom.DoesNotExist():

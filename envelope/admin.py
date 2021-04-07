@@ -6,8 +6,10 @@ from .models import LiveChatRoom, Message
 
 @admin.register(LiveChatRoom)
 class LiveChatRoomAdmin(admin.ModelAdmin):
-    list_display = ('connector', 'token', 'room_id', 'created', 'updated')
-    list_filter = ('connector', 'created', 'updated')
+    list_display = ('connector', 'open','token', 'room_id', 'created', 'updated')
+    list_filter = ('open', 'connector', 'created', 'updated', )
+    date_hierarchy = 'created'
+    ordering = '-created',
 
 
 @admin.register(Message)
@@ -20,5 +22,6 @@ class MessageAdmin(admin.ModelAdmin):
         'connector',
         'created'
     )
-    list_filter = ('room', 'connector', 'delivered', 'created', 'updated')
+    list_filter = ('connector', 'delivered', 'created', 'updated')
     ordering = '-created',
+    date_hierarchy = 'created'
