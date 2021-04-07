@@ -37,8 +37,7 @@ class Connector(ConnectorBase):
         #
         #
         # wa automate messages come with data as dictionaries
-        if self.message.get('event') == "onMessage" and \
-                self.message.get('data', {}).get('data', {}).get('type') != 'sticker':
+        if self.message.get('event') == "onMessage":
             # No Group Messages
             if not self.message.get('data', {}).get('isGroupMsg'):
                 # create message
@@ -172,6 +171,29 @@ class Connector(ConnectorBase):
             )
             self.outcome_admin_message(text_message)
 
+        # incoming call
+        if self.message.get('event') == 'onIncomingCall':
+            if self.connector.config.get('auto_answer_incoming_call'):
+                message = {
+                    "msg": self.connector.config.get('auto_answer_incoming_call')
+                }
+                # TODO: store this out message at database
+                self.outgo_text_message(message)
+            if self.connector.config.get('convert_incoming_call_to_text'):
+                # change the message to the custom one
+                # adapta to be like a regular incoming
+                self.message = {
+                    'ts': int(time.time()),
+                    'event': 'onMessage',
+                    'data': {
+                        'body': self.connector.config.get('convert_incoming_call_to_text'),
+                        'from': self.message.get('data', {}).get('peerJid'),
+                        "isGroup": False,
+                        'id': self.message.get('id')
+                    }
+                }
+                self.incoming()
+        
         # sesion launch and qr code
         if self.message.get('namespace') and self.message.get('data'):
             message = self.message
@@ -213,9 +235,9 @@ class Connector(ConnectorBase):
                 # for each unread message, initiate a connector
                 formated_message = {
                     'ts': int(time.time()),
-                    'event': 'onMessage', 
+                    'event': 'onMessage',
                     'data': message
-                 }
+                }
                 new_connector = Connector(self.connector, formated_message, type=self.type)
                 # for each connector instance, income message
                 new_connector.incoming()
@@ -224,22 +246,30 @@ class Connector(ConnectorBase):
         return r.json().get('response', {})
 
     def outgo_text_message(self, message):
-        agent_name = message.get('u', {}).get('name', {})
+
+        # message may not have an agent
+        if message.get('u', {}):
+            agent_name = message.get('u', {}).get('name', {})
+        else:
+            agent_name = None
+
         if agent_name:
             content = "*[" + agent_name + "]*\n" + message['msg']
         else:
-            content = message.msg
+            content = message['msg']
         payload = {
             "args": {
                 "to": self.get_visitor_id(),
                 "content": content
             }
         }
+        if settings.DEBUG:
+            print("outgo payload", payload)
         sent = requests.post(
             self.connector.config['endpoint'] + "/sendText",
             json=payload
         )
-        if sent.ok:
+        if sent.ok and self.message_object:
             self.message_object.payload = payload
             self.message_object.delivered = True
             self.message_object.response = sent.json()

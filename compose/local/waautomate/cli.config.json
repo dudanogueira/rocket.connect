@@ -2,7 +2,7 @@
     "sessionId": "test_session",
     "webhook": [{
         "url": "http://django.docker:8000/connector/CONNECTOR_EXTERNAL_TOKEN/",
-        "events": ["onPlugged", "onMessage", "onBattery", "onIncomingCall", "onStateChanged", "onLogout"]
+        "events": ["onPlugged", "onMessage", "onBattery", "onIncomingCall", "onStateChanged", "onLogout", "onIncomingCall"]
     }],
     "stats": true,
     "headful": false,

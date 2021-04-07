@@ -186,7 +186,11 @@ class Connector(object):
 
     def get_visitor_id(self):
         if self.type == "incoming":
-            return self.message.get('data', {}).get('from')
+            if self.message.get("event") == "onIncomingCall":
+                # incoming call get different ID
+                return self.message.get('data', {}).get('peerJid')
+            else:
+                return self.message.get('data', {}).get('from')
         else:
             return self.message.get('visitor', {}).get('token').split(":")[1]
 
