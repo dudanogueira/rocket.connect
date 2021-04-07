@@ -181,19 +181,33 @@ class Connector(ConnectorBase):
                 self.outgo_text_message(message)
             if self.connector.config.get('convert_incoming_call_to_text'):
                 # change the message to the custom one
-                # adapta to be like a regular incoming
+                # adapt to be like a regular incoming
+                # this event doesnt come with the name, lets get it from the api
+                visitor_id = self.message.get('data', {}).get('peerJid')
+                payload = {
+                    "args": {
+                        "contactId": visitor_id
+                    }
+                }
+                r = requests.post(self.connector.config['endpoint'] + "/getContact", json=payload)
+                if r.ok:
+                    visitor_name = r.json()['response']['formattedName']
                 self.message = {
-                    'ts': int(time.time()),
-                    'event': 'onMessage',
-                    'data': {
-                        'body': self.connector.config.get('convert_incoming_call_to_text'),
-                        'from': self.message.get('data', {}).get('peerJid'),
+                    "ts": int(time.time()),
+                    "event": "onMessage",
+                    "data": {
+                        "body": self.connector.config.get('convert_incoming_call_to_text'),
+                        "from": visitor_id,
                         "isGroup": False,
-                        'id': self.message.get('id')
+                        "id": self.message.get('id'),
+                        "sender": {
+                            "name": visitor_name
+                        }
+
                     }
                 }
                 self.incoming()
-        
+
         # sesion launch and qr code
         if self.message.get('namespace') and self.message.get('data'):
             message = self.message
