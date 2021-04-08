@@ -9,6 +9,7 @@ from envelope.models import LiveChatRoom
 import random
 import string
 import requests
+from emojipy import emojipy
 from django.conf import settings
 
 
@@ -134,7 +135,7 @@ class Connector(object):
         if response['success']:
             rocket.chat_post_message(
                 alias=self.connector.name,
-                text=text_message, 
+                text=text_message,
                 room_id=response['room']['rid']
             )
 
@@ -313,6 +314,9 @@ class Connector(object):
         if not self.rocket:
             self.rocket = self.connector.server.get_rocket_client(bot=bot)
         return self.rocket
+
+    def joypixel_to_unicode(self, content):
+        return emojipy.Emoji().shortcode_to_unicode(content)
 
     # API METHODS
     def decrypt_media(self):

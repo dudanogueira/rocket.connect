@@ -11,7 +11,6 @@ import random
 from django.conf import settings
 from envelope.models import Message
 
-
 class Connector(ConnectorBase):
     '''
         how to run wa-automate:
@@ -297,7 +296,6 @@ class Connector(ConnectorBase):
         return r.json().get('response', {})
 
     def outgo_text_message(self, message):
-
         # message may not have an agent
         if message.get('u', {}):
             agent_name = message.get('u', {}).get('name', {})
@@ -308,6 +306,8 @@ class Connector(ConnectorBase):
             content = "*[" + agent_name + "]*\n" + message['msg']
         else:
             content = message['msg']
+        # replace emojis
+        content = self.joypixel_to_unicode(content)  
         payload = {
             "args": {
                 "to": self.get_visitor_id(),
