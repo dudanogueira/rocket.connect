@@ -280,7 +280,7 @@ class Connector(ConnectorBase):
     def intake_unread_messages(self):
         session = self.get_request_session()
         url = self.connector.config['endpoint'] + "/getAllUnreadMessages"
-        r = session.post(url, json=payload)
+        r = session.post(url, json={})
         if r.ok and r.json().get('response', {}):
             for message in r.json().get('response', {}):
                 # for each unread message, initiate a connector
