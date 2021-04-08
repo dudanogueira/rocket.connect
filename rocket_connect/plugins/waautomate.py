@@ -240,7 +240,7 @@ class Connector(ConnectorBase):
     def get_request_session(self):
         s = requests.Session()
         s.headers = {'content-type': 'application/json'}
-        if self.connector.config["api_key"]:
+        if self.connector.config.get("api_key"):
             s.headers.update({'api_key': self.connector.config["api_key"]})
         return s
 

@@ -36,8 +36,11 @@ class Command(BaseCommand):
             connector.connector_type = "waautomate"
             connector.department = "WA-DEPARTMENT"
             connector.managers = "agent1"
-            connector.config = {
-                "endpoint": "http://waautomate:8080"
+            connector.config = config = {
+                "endpoint": "http://waautomate:8002",
+                "convert_incoming_call_to_text": "User tried to call",
+                "auto_answer_incoming_call": "Sorry, this number is for text messages only",
+                "api_key": "super_secret_key"
             }
             connector.save()
 
@@ -108,10 +111,10 @@ class Command(BaseCommand):
             ["Livechat_webhook_on_start", True],
             ["Livechat_webhook_on_close", True],
             ["Livechat_webhook_on_agent_message", True],
+            ["Accounts_TwoFactorAuthentication_Enabled", False]
         ]
         for config in configs:
             rocket.settings_update(config[0], config[1])
-
 
     def handle(self, *args, **options):
         self.handle_django()
