@@ -337,7 +337,7 @@ class Connector(ConnectorBase):
                 "to": self.get_visitor_id(),
                 "url": message["fileUpload"]["publicFilePath"],
                 "filename": message["attachments"][0]["title"],
-                "caption": message["attachments"][0]["description"],
+                "caption": message["attachments"][0].get("description"),
                 "waitForId": False,
                 "withoutPreview": False,
                 "ptt": ppt,

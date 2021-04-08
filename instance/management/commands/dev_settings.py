@@ -36,7 +36,7 @@ class Command(BaseCommand):
             connector.connector_type = "waautomate"
             connector.department = "WA-DEPARTMENT"
             connector.managers = "agent1"
-            connector.config = config = {
+            connector.config = {
                 "endpoint": "http://waautomate:8002",
                 "convert_incoming_call_to_text": "User tried to call",
                 "auto_answer_incoming_call": "Sorry, this number is for text messages only",
