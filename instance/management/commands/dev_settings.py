@@ -33,7 +33,6 @@ class Command(BaseCommand):
             external_token="CONNECTOR_EXTERNAL_TOKEN"
         )
         if connector_created:
-            connector.token = "wa-instance1"
             connector.connector_type = "waautomate"
             connector.department = "WA-DEPARTMENT"
             connector.managers = "agent1"

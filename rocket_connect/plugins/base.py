@@ -59,7 +59,9 @@ class Connector(object):
                 tmp.write(imgdata)
                 rocket.rooms_upload(
                     rid=response['room']['rid'],
-                    file=tmp.name
+                    file=tmp.name,
+                    msg="*Connector Name*: {0}".format(self.connector.name),
+                    description="Scan this QR Code at your Whatsapp Phone:"
                 )
 
     def outcome_file(self, base64_data, room_id, mime):
@@ -130,7 +132,11 @@ class Connector(object):
             text
         )
         if response['success']:
-            rocket.chat_post_message(text=text_message, room_id=response['room']['rid'])
+            rocket.chat_post_message(
+                alias=self.connector.name,
+                text=text_message, 
+                room_id=response['room']['rid']
+            )
 
     def get_visitor_name(self):
         try:
@@ -202,14 +208,6 @@ class Connector(object):
             return visitor_id
         except IndexError:
             return "channel:visitor-id"
-
-    # def get_visitor_connector_token(self):
-    #     visitor_id = self.get_visitor_token()
-    #     visitor_connector_token = "{0}@{1}".format(
-    #         visitor_id,
-    #         self.connector.token
-    #     )
-    #     return visitor_connector_token
 
     def get_room(self):
         room = None
