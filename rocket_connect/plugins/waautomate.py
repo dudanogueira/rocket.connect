@@ -7,6 +7,7 @@ import base64
 import tempfile
 import json
 import time
+import random
 from django.conf import settings
 from envelope.models import Message
 
@@ -257,6 +258,25 @@ class Connector(ConnectorBase):
         r = session.post(url, json=payload)
         return r.json()
 
+    def simulate_typing(self, visitor_id=None, active=False):
+        if not visitor_id:
+            visitor_id = self.get_visitor_id()
+        payload = {
+            "args": {
+                "to": visitor_id,
+                "on": active
+            }
+        }
+        session = self.get_request_session()
+        url = self.connector.config['endpoint'] + "/simulateTyping"
+        r = session.post(url, json=payload)
+        return r.json()
+
+    def full_simulate_typing(self, visitor_id=None):
+        self.simulate_typing(visitor_id=visitor_id, active=True)
+        time.sleep(random.randint(2, 6))
+        self.simulate_typing(visitor_id=visitor_id, active=False)
+
     def intake_unread_messages(self):
         session = self.get_request_session()
         url = self.connector.config['endpoint'] + "/getAllUnreadMessages"
@@ -299,6 +319,7 @@ class Connector(ConnectorBase):
 
         session = self.get_request_session()
         url = self.connector.config['endpoint'] + "/sendText"
+        self.full_simulate_typing()
         sent = session.post(url, json=payload)
         if sent.ok and self.message_object:
             self.message_object.delivered = True
@@ -326,6 +347,7 @@ class Connector(ConnectorBase):
             print("PAYLOAD OUTGING FILE: ", payload)
         session = self.get_request_session()
         url = self.connector.config['endpoint'] + "/sendFileFromUrl"
+        self.full_simulate_typing()
         sent = session.post(url, json=payload)
         if sent.ok:
             self.message_object.payload = payload
