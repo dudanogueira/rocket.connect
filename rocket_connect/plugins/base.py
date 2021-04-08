@@ -326,7 +326,8 @@ class Connector(object):
                 "message": self.get_message_id()
             }
         }
-        decrypted_data_request = requests.post(
+        s = self.get_request_session()
+        decrypted_data_request = s.post(
             url_decrypt, json=payload
         )
         # get decrypted data

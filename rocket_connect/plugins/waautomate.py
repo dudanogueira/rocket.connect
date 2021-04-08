@@ -23,7 +23,10 @@ class Connector(ConnectorBase):
 
     def populate_config(self):
         self.connector.config = {
-            "endpoint": "http://waautomate:8080"
+            "endpoint": "http://waautomate:8002",
+            "convert_incoming_call_to_text": "User tried to call",
+            "auto_answer_incoming_call": "Sorry, this number is for text messages only",
+            "api_key": "super_secret_key"
         }
         self.save()
 
@@ -189,7 +192,9 @@ class Connector(ConnectorBase):
                         "contactId": visitor_id
                     }
                 }
-                r = requests.post(self.connector.config['endpoint'] + "/getContact", json=payload)
+                session = self.get_request_session()
+                url = self.connector.config['endpoint'] + "/getContact"
+                r = session.post(url, json=payload)
                 if r.ok:
                     visitor_name = r.json()['response']['formattedName']
                 self.message = {
@@ -231,6 +236,13 @@ class Connector(ConnectorBase):
                 )
                 self.outcome_admin_message(text_message)
 
+    def get_request_session(self):
+        s = requests.Session()
+        s.headers = {'content-type': 'application/json'}
+        if self.connector.config["api_key"]:
+            s.headers.update({'api_key': self.connector.config["api_key"]})
+        return s
+
     def send_seen(self, visitor_id=None):
         if not visitor_id:
             visitor_id = self.get_visitor_id()
@@ -239,11 +251,16 @@ class Connector(ConnectorBase):
                 "chatId": visitor_id
             }
         }
-        r = requests.post(self.connector.config['endpoint'] + "/sendSeen", json=payload)
+
+        session = self.get_request_session()
+        url = self.connector.config['endpoint'] + "/sendSeen"
+        r = session.post(url, json=payload)
         return r.json()
 
     def intake_unread_messages(self):
-        r = requests.post(self.connector.config['endpoint'] + "/getAllUnreadMessages")
+        session = self.get_request_session()
+        url = self.connector.config['endpoint'] + "/getAllUnreadMessages"
+        r = session.post(url, json=payload)
         if r.ok and r.json().get('response', {}):
             for message in r.json().get('response', {}):
                 # for each unread message, initiate a connector
@@ -279,15 +296,15 @@ class Connector(ConnectorBase):
         }
         if settings.DEBUG:
             print("outgo payload", payload)
-        sent = requests.post(
-            self.connector.config['endpoint'] + "/sendText",
-            json=payload
-        )
+
+        session = self.get_request_session()
+        url = self.connector.config['endpoint'] + "/sendText"
+        sent = session.post(url, json=payload)
         if sent.ok and self.message_object:
-            self.message_object.payload = payload
             self.message_object.delivered = True
-            self.message_object.response = sent.json()
-            self.message_object.save()
+        self.message_object.payload = payload
+        self.message_object.response = sent.json()
+        self.message_object.save()
 
     def outgo_file_message(self, message):
         # if its audio, treat different
@@ -307,10 +324,9 @@ class Connector(ConnectorBase):
         }
         if settings.DEBUG:
             print("PAYLOAD OUTGING FILE: ", payload)
-        sent = requests.post(
-            self.connector.config['endpoint'] + "/sendFileFromUrl",
-            json=payload
-        )
+        session = self.get_request_session()
+        url = self.connector.config['endpoint'] + "/sendFileFromUrl"
+        sent = session.post(url, json=payload)
         if sent.ok:
             self.message_object.payload = payload
             self.message_object.delivered = True
