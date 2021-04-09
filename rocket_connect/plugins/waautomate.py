@@ -63,6 +63,8 @@ class Connector(ConnectorBase):
                     # MEDIA (PICTURE) MESSAGE
                     #
                     if self.message.get('data', {}).get('isMedia'):
+                        if settings.DEBUG:
+                            print("MEDIA FILE")
                         mime = self.message.get('data', {}).get('mimetype')
                         # decrypt media
                         data = self.decrypt_media()
@@ -101,17 +103,24 @@ class Connector(ConnectorBase):
                     # PTT / OGG / VOICE OVER WHATSAPP
 
                     elif self.message.get('data', {}).get('mimetype') in mimetypes_to_upload:
-                        mime = self.message.get('data', {}).get('mimetype')
-                        # decrypt media
-                        data = self.decrypt_media()
-                        # we  got data
-                        if data:
-                            file_sent = self.outcome_file(data, room.room_id, mime)
+                        if self.message.get('data', {}).get('type') == 'sticker':
+                            if settings.DEBUG:
+                                print("STICKER! ")
+                                self.room_send_text(
+                                room.room_id, "User sent sticker"
+                                )
                         else:
-                            file_sent = False
-                        # if file was sent
-                        if file_sent.ok:
-                            self.message_object.delivered = True
+                            mime = self.message.get('data', {}).get('mimetype')
+                            # decrypt media
+                            data = self.decrypt_media()
+                            # we  got data
+                            if data:
+                                file_sent = self.outcome_file(data, room.room_id, mime)
+                            else:
+                                file_sent = False
+                            # if file was sent
+                            if file_sent.ok:
+                                self.message_object.delivered = True
                     #
                     #
                     # TEXT ONLY MESSAGE
@@ -122,6 +131,8 @@ class Connector(ConnectorBase):
                         )
                         self.message_object.payload = json.loads(deliver.request.body)
                         self.message_object.response = deliver.json()
+                        if settings.DEBUG:
+                            print("DELIVERING... ", deliver.request.body)
                         if deliver.ok:
                             if settings.DEBUG:
                                 print("message delivered ", self.message_object.id)

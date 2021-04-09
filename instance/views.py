@@ -10,7 +10,7 @@ import json
 
 @csrf_exempt
 def connector_view(request, connector_id):
-    connector = Connector.objects.get(external_token=connector_id)
+    connector = get_object_or_404(Connector, external_token=connector_id)
     # income message
     if request.body:
         raw_message = json.loads(request.body)
@@ -48,7 +48,7 @@ def server_view(request, server_id):
                 connector.room = room
                 # todo: create task to out go message
                 connector.ingoing()
-            except LiveChatRoom.DoesNotExist():
+            except LiveChatRoom.DoesNotExist:
                 # todo: try to get the room from rocketchat, and recreated it
                 # maybesomething happened here.
                 return HttpResponse('Room Not Found', status=404)

@@ -61,7 +61,7 @@ class Connector(object):
                 rocket.rooms_upload(
                     rid=response['room']['rid'],
                     file=tmp.name,
-                    msg="*Connector Name*: {0}".format(self.connector.name),
+                    msg=":rocket: Connect > *Connector Name*: {0}".format(self.connector.name),
                     description="Scan this QR Code at your Whatsapp Phone:"
                 )
 
@@ -128,8 +128,7 @@ class Connector(object):
         managers = self.connector.get_managers()
         im_room = rocket.im_create(username="", usernames=managers)
         response = im_room.json()
-        text_message = ":rocket:CONNECT {0} {1}".format(
-            self.connector.name,
+        text_message = ":rocket:CONNECT {0}".format(
             text
         )
         if response['success']:
@@ -212,38 +211,45 @@ class Connector(object):
 
     def get_room(self):
         room = None
-        visitor_connector_token = self.get_visitor_token()
+        connector_token = self.get_visitor_token()
         try:
             room = LiveChatRoom.objects.get(
                 connector=self.connector,
-                token=visitor_connector_token,
+                token=connector_token,
                 open=True
             )
             print("get_room, got: ", room)
         except LiveChatRoom.DoesNotExist:
-            print("get_room, didnt get for: ", visitor_connector_token)
+            print("get_room, didnt get for: ", connector_token)
             # room not available, let's create one.
             # get the visitor json
             visitor_json = self.get_visitor_json()
             # get the visitor object
             rocket = self.get_rocket_client()
             visitor_object = rocket.livechat_register_visitor(
-                visitor=visitor_json, token=visitor_connector_token
+                visitor=visitor_json, token=connector_token
             )
             response = visitor_object.json()
             if settings.DEBUG:
-                print("VISITOR REGISTERING: ", visitor_object.json())
+                print("VISITOR REGISTERING: ", response)
             # we got a new room
             # this is where you can hook some "welcoming features"
             if response['success']:
-                rc_room = rocket.livechat_room(token=visitor_connector_token)
-                if rc_room.json()['success']:
+                rc_room = rocket.livechat_room(token=connector_token)
+                rc_room_response = rc_room.json()
+                if settings.DEBUG:
+                    print("REGISTERING ROOM, ", rc_room_response)
+                if rc_room_response['success']:
                     room = LiveChatRoom.objects.create(
                         connector=self.connector,
-                        token=visitor_connector_token,
-                        room_id=rc_room.json()['room']['_id'],
+                        token=connector_token,
+                        room_id=rc_room_response['room']['_id'],
                         open=True
                     )
+                else:
+                    if rc_room_response["error"] == "no-agent-online":
+                        if settings.DEBUG:
+                            print("Erro! No Agents Online")
         self.room = room
         return room
 

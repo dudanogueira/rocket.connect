@@ -107,11 +107,14 @@ class Command(BaseCommand):
         # configure server webhook api
         configs = [
             ["Livechat_webhookUrl", "http://django:8000/server/SERVER_EXTERNAL_TOKEN/"],
+            ["Livechat_enabled", True],
+            ["Livechat_accept_chats_with_no_agents", True],
             ["Livechat_secret_token", "secret_token"],
             ["Livechat_webhook_on_start", True],
             ["Livechat_webhook_on_close", True],
             ["Livechat_webhook_on_agent_message", True],
-            ["Accounts_TwoFactorAuthentication_Enabled", False]
+            ["Accounts_TwoFactorAuthentication_Enabled", False],
+            ["Accounts_TwoFactorAuthentication_By_Email_Enabled", False]
         ]
         for config in configs:
             rocket.settings_update(config[0], config[1])
