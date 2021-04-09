@@ -1,6 +1,7 @@
 from django.db import models
 from instance.models import Server, Connector
 import uuid
+import json
 
 
 class LiveChatRoom(models.Model):
@@ -45,7 +46,8 @@ class Message(models.Model):
 
     def get_connector(self):
         Connector = self.connector.get_connector_class()
-        return Connector(self.connector, self.raw_message, self.type)
+        message = json.dumps(self.raw_message)
+        return Connector(self.connector, message, self.type)
 
     uuid = models.UUIDField(
         default=uuid.uuid4, editable=False

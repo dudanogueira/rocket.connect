@@ -11,6 +11,8 @@ import random
 from django.conf import settings
 from envelope.models import Message
 
+from django.http import JsonResponse
+
 class Connector(ConnectorBase):
     '''
         how to run wa-automate:
@@ -36,20 +38,14 @@ class Connector(ConnectorBase):
         and ajust what necessary, to output to rocketchat
         '''
         #
-        # USER MESSAGES
+        # EVENTS
         #
         #
-        # wa automate messages come with data as dictionaries
         if self.message.get('event') == "onMessage":
             # No Group Messages
             if not self.message.get('data', {}).get('isGroupMsg'):
                 # create message
                 message, created = self.register_message()
-                if settings.DEBUG:
-                    if created:
-                        print("NEW MESSAGE REGISTERED: ", self.message_object.id)
-                    else:
-                        print("EXISTING MESSAGE: ", self.message_object.id)
                 # get a room
                 room = self.get_room()
                 if room:
@@ -224,7 +220,9 @@ class Connector(ConnectorBase):
                 }
                 self.incoming()
 
-        # sesion launch and qr code
+        #
+        #   LAUNCH EVENTS AND QRCODE
+        #
         if self.message.get('namespace') and self.message.get('data'):
             message = self.message
             # OPEN WA REDY. Get unread messages
@@ -246,6 +244,8 @@ class Connector(ConnectorBase):
                     else ":white_check_mark::white_check_mark::white_check_mark:      SUCESS!!!      :white_check_mark::white_check_mark::white_check_mark:"
                 )
                 self.outcome_admin_message(text_message)
+
+        return JsonResponse({})
 
     def get_request_session(self):
         s = requests.Session()

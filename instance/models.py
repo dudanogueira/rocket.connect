@@ -89,16 +89,16 @@ class Connector(models.Model):
         # initiate connector plugin
         return plugin.Connector
 
-    def intake(self, message):
+    def intake(self, request):
         """
         this method will intake the raw message, and apply the connector logic
         """
         # get connector
         Connector = self.get_connector_class()
         # initiate with raw message
-        connector = Connector(self, message, "incoming")
+        connector = Connector(self, request.body, "incoming", request)
         # income message
-        connector.incoming()
+        return connector.incoming()
 
     def outtake(self, message):
         # get connector

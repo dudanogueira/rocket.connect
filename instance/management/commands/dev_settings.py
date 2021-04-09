@@ -106,6 +106,7 @@ class Command(BaseCommand):
             print("Bot user created")
         # configure server webhook api
         configs = [
+            ["Site_Url", "http://rocketchat:3000"],
             ["Livechat_webhookUrl", "http://django:8000/server/SERVER_EXTERNAL_TOKEN/"],
             ["Livechat_enabled", True],
             ["Livechat_accept_chats_with_no_agents", True],

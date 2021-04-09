@@ -9,19 +9,25 @@ from envelope.models import LiveChatRoom
 import random
 import string
 import requests
+import json
 from emojipy import emojipy
 from django.conf import settings
 
 
 class Connector(object):
 
-    def __init__(self, connector, message, type):
+    def __init__(self, connector, message, type, request=None):
         self.connector = connector
         self.type = type
         if settings.DEBUG:
             print("TYPE: ", self.type)
         self.config = self.connector.config
-        self.message = message
+        # self.message must be a dictionary
+        if message:
+            self.message = json.loads(message)
+        else:
+            self.message = None
+        self.request = request
         self.message_object = None
         self.rocket = None
         self.room = None
@@ -190,13 +196,17 @@ class Connector(object):
         }
         return visitor
 
+
+    def get_incoming_visitor_id(self):
+        if self.message.get("event") == "onIncomingCall":
+            # incoming call get different ID
+            return self.message.get('data', {}).get('peerJid')
+        else:
+            return self.message.get('data', {}).get('from')
+
     def get_visitor_id(self):
         if self.type == "incoming":
-            if self.message.get("event") == "onIncomingCall":
-                # incoming call get different ID
-                return self.message.get('data', {}).get('peerJid')
-            else:
-                return self.message.get('data', {}).get('from')
+            return self.get_incoming_visitor_id()
         else:
             return self.message.get('visitor', {}).get('token').split(":")[1]
 
@@ -256,7 +266,6 @@ class Connector(object):
     def room_close_and_reintake(self, room):
         if settings.DEBUG:
             print("ROOM IS CLOSED. CLOSING AND REINTAKING")
-        self
         room.open = False
         room.save()
         # reintake the message
@@ -281,6 +290,11 @@ class Connector(object):
         self.message_object.raw_message = self.message
         self.message_object.room = self.room
         self.message_object.save()
+        if settings.DEBUG:
+            if created:
+                print("NEW MESSAGE REGISTERED: ", self.message_object.id)
+            else:
+                print("EXISTING MESSAGE: ", self.message_object.id)
         return self.message_object, created
 
     def get_message_id(self):
@@ -383,11 +397,7 @@ class Connector(object):
 
         if self.message.get("type") == "Message":
             message, created = self.register_message()
-            if settings.DEBUG:
-                if created:
-                    print("NEW MESSAGE REGISTERED: ", self.message_object.id)
-                else:
-                    print("EXISTING MESSAGE: ", self.message_object.id)
+
             # prepare message to be sent to client
             for message in self.message.get('messages', []):
                 if message.get("attachments", {}):
@@ -398,4 +408,5 @@ class Connector(object):
 
                 # closing message
                 if message.get('closingMessage'):
+                    # TODO: add custom closing message
                     self.close_room()

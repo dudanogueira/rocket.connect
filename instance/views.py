@@ -11,15 +11,12 @@ import json
 @csrf_exempt
 def connector_view(request, connector_id):
     connector = get_object_or_404(Connector, external_token=connector_id)
-    # income message
-    if request.body:
-        raw_message = json.loads(request.body)
-        if settings.DEBUG == True:
-            print("INCOMING", raw_message)
-        # todo, create task here
-        connector.intake(raw_message)
-    return JsonResponse({})
-
+    if settings.DEBUG:
+        if request.body:
+            body = json.loads(request.body)
+            print("INCOMING > CONNECTOR NAME: REQUEST BODY: {0}: ".format(connector.name), body)
+    return_response = connector.intake(request)
+    return return_response
 
 @csrf_exempt
 def server_view(request, server_id):
@@ -32,7 +29,7 @@ def server_view(request, server_id):
     if request.body:
         raw_message = json.loads(request.body)
         if settings.DEBUG == True:
-            print("INGOING", raw_message)
+            print("INGOING", request.body)
         # roketchat test message
         if raw_message['_id'] == "fasd6f5a4sd6f8a4sdf":
             return JsonResponse({})        
@@ -44,7 +41,7 @@ def server_view(request, server_id):
                 )
                 print("Got Room:", room.id)
                 Connector = room.connector.get_connector_class()
-                connector = Connector(room.connector, raw_message, "ingoing")
+                connector = Connector(room.connector, request.body, "ingoing", request)
                 connector.room = room
                 # todo: create task to out go message
                 connector.ingoing()
