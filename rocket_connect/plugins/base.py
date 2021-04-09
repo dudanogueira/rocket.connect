@@ -71,12 +71,16 @@ class Connector(object):
                     description="Scan this QR Code at your Whatsapp Phone:"
                 )
 
-    def outcome_file(self, base64_data, room_id, mime):
+    def outcome_file(self, base64_data, room_id, mime, filename=None):
+        if settings.DEBUG:
+            print("OUTCOMING FILE TO ROCKETCHAT")
         # prepare payload
         filedata = base64.b64decode(base64_data)
         rocket = self.get_rocket_client()
         extension = mimetypes.guess_extension(mime)
-        filename = self.message.get('data', {}).get('filehash').replace(".", "")
+        if not filename:
+            # random filename
+            filename = ''.join(random.choices(string.ascii_letters + string.digits, k=16))
         filename_extension = "{0}{1}".format(
             filename,
             extension
@@ -95,11 +99,14 @@ class Connector(object):
                 self.connector.server.url,
                 room_id
             )
+            print(url)
             file_sent = requests.post(
                 url,
                 headers=headers,
                 files=files
             )
+            print(file_sent.request.body)
+            print(file_sent.json())
             # TODO: teste with room closed
             return file_sent
 

@@ -9,6 +9,8 @@ from django.http import HttpResponseForbidden
 
 import json
 import requests
+import base64
+
 
 class Connector(ConnectorBase):
     '''
@@ -50,26 +52,44 @@ class Connector(ConnectorBase):
                     # Gets the body of the webhook event
                     webhook_event = entry['messaging'][0]
                     sender_psid = webhook_event['sender']['id']
-                    deliver = self.room_send_text(
-                        room.room_id, self.get_message_body()
-                    )
-                    if settings.DEBUG:
-                        print("room_send_text, ", deliver.request.body)
-                    if deliver.ok:
-                        if settings.DEBUG:
-                            print("message delivered ", self.message_object.id)
-                        self.message_object.delivered = True
-                        # return 200 Response
+                    #
+                    # TODO: Check differente type of messages.
+                    # has attachments
+                    if webhook_event['message'].get('attachments'):
+                        for attachment in webhook_event['message'].get('attachments', []):
+                            url = webhook_event['message']['attachments'][0]["payload"]['url']
+                            r = requests.get(url)
+                            base = base64.b64encode(r.content)
+                            mime = r.headers['Content-Type']
+                            self.outcome_file(base, room.room_id, mime)
+                        if webhook_event['message'].get("text"):
+                            deliver = self.room_send_text(
+                                room.room_id, webhook_event['message'].get("text")
+                            )
+                        # RETURN 200
                         return HttpResponse("EVENT_RECEIVED")
-                    else:
-                        # room can be closed on RC and open here
-                        r = deliver.json()
-                        if r.get('error') == "room-closed":
-                            self.room_close_and_reintake(room)
+
+                    if self.get_message_body():
+                        deliver = self.room_send_text(
+                            room.room_id, self.get_message_body()
+                        )
+                        if settings.DEBUG:
+                            print("room_send_text, ", deliver.request.body)
+                        if deliver.ok:
+                            if settings.DEBUG:
+                                print("message delivered ", self.message_object.id)
+                            self.message_object.delivered = True
+                            # return 200 Response
+                            return HttpResponse("EVENT_RECEIVED")
                         else:
-                            print("ERRO AO ENTEGAR")
+                            # room can be closed on RC and open here
+                            r = deliver.json()
+                            if r.get('error') == "room-closed":
+                                self.room_close_and_reintake(room)
+                            else:
+                                print("ERRO AO ENTEGAR")
                     self.message_object.save()
-                    
+
         return JsonResponse({'ae': 1})
 
     def get_incoming_message_id(self):
@@ -78,7 +98,7 @@ class Connector(ConnectorBase):
 
     def get_incoming_visitor_id(self):
         return self.message["entry"][0]['messaging'][0]['sender']['id']
-    
+
     def get_visitor_token(self):
         visitor_id = self.get_visitor_id()
         token = "facebook:{0}".format(visitor_id)
@@ -133,7 +153,6 @@ class Connector(ConnectorBase):
         message_body = self.message['entry'][0]['messaging'][0]['message']['text']
         return message_body
 
-
     def outgo_text_message(self, message):
         visitor_id = self.get_visitor_id()
         if message.get('u', {}):
@@ -146,7 +165,7 @@ class Connector(ConnectorBase):
         else:
             content = message['msg']
         # replace emojis
-        content = self.joypixel_to_unicode(content)  
+        content = self.joypixel_to_unicode(content)
         url = "https://graph.facebook.com/v2.6/me/messages?access_token={0}".format(
             self.connector.config['access_token']
         )
