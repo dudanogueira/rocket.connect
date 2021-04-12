@@ -16,7 +16,6 @@ class LiveChatRoomAdmin(admin.ModelAdmin):
 class MessageAdmin(admin.ModelAdmin):
     list_display = (
         'id',
-        'room',
         'type',
         'delivered',
         'connector',

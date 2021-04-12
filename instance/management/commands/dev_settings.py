@@ -115,7 +115,8 @@ class Command(BaseCommand):
             ["Livechat_webhook_on_close", True],
             ["Livechat_webhook_on_agent_message", True],
             ["Accounts_TwoFactorAuthentication_Enabled", False],
-            ["Accounts_TwoFactorAuthentication_By_Email_Enabled", False]
+            ["Accounts_TwoFactorAuthentication_By_Email_Enabled", False],
+            ["API_Enable_Rate_Limiter", False],
         ]
         for config in configs:
             rocket.settings_update(config[0], config[1])

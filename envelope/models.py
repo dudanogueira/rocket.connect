@@ -57,8 +57,8 @@ class Message(models.Model):
     room = models.ForeignKey(LiveChatRoom, on_delete=models.CASCADE, related_name="messages", blank=True, null=True)
     connector = models.ForeignKey(Connector, on_delete=models.CASCADE, related_name="messages")
     raw_message = models.JSONField(blank=True, null=True, help_text="the message that first came to be connected")
-    payload = models.JSONField(blank=True, null=True, help_text="the message that goes gout, after processed")
-    response = models.JSONField(blank=True, null=True)
+    payload = models.JSONField(blank=True, null=True, help_text="the message that goes gout, after processed", default=dict)
+    response = models.JSONField(blank=True, null=True, default=dict)
     delivered = models.BooleanField(null=True)
     # meta
     created = models.DateTimeField(

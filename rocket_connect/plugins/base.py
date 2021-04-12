@@ -10,6 +10,7 @@ import random
 import string
 import requests
 import json
+import time
 from emojipy import emojipy
 from django.conf import settings
 
@@ -100,15 +101,43 @@ class Connector(object):
                 room_id
             )
             print(url)
-            file_sent = requests.post(
+            deliver = requests.post(
                 url,
                 headers=headers,
                 files=files
             )
-            print(file_sent.request.body)
-            print(file_sent.json())
-            # TODO: teste with room closed
-            return file_sent
+            timestamp = int(time.time())
+            #byte_body = deliver.request.body.decode("ascii", "ignore") 
+            self.message_object.payload[timestamp] = {"data": "sent attached file to rocketchat"}
+            self.message_object.response[timestamp] = deliver.json()
+            self.message_object.save()
+            return deliver
+
+    def outcome_text(self, room_id, text):
+        deliver = self.room_send_text(
+            room_id, text
+        )
+        timestamp = int(time.time())
+        self.message_object.payload[timestamp] = json.loads(deliver.request.body)
+        self.message_object.response[timestamp] = deliver.json()
+        if settings.DEBUG:
+            print("DELIVERING... ", deliver.request.body)
+            print("RESPONSE", deliver.json())
+        if deliver.ok:
+            if settings.DEBUG:
+                print("message delivered ", self.message_object.id)
+            self.message_object.delivered = True
+            self.message_object.room = self.room
+            self.message_object.save()
+            return deliver
+        else:
+            # save payload and save message object
+            self.message_object.save()
+            # room can be closed on RC and open here
+            r = deliver.json()
+            if r['error'] in ["room-closed", "invalid-room"]:
+                self.room_close_and_reintake(room)
+            return deliver
 
     def get_qrcode_from_base64(self, qrbase64):
         try:
@@ -203,7 +232,6 @@ class Connector(object):
         }
         return visitor
 
-
     def get_incoming_visitor_id(self):
         if self.message.get("event") == "onIncomingCall":
             # incoming call get different ID
@@ -268,6 +296,10 @@ class Connector(object):
                         if settings.DEBUG:
                             print("Erro! No Agents Online")
         self.room = room
+        if self.message_object:
+            self.message_object.room = room
+            self.message_object.save()
+
         return room
 
     def room_close_and_reintake(self, room):

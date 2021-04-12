@@ -35,8 +35,12 @@ class Connector(ConnectorBase):
         if self.request.GET:
             if mode == 'subscribe' and verify_token == self.connector.config.get('verify_token'):
                 challenge = self.request.GET.get('hub.challenge')
+                text_message = ":white_check_mark: :white_check_mark: :white_check_mark:\n:satellite:  Endpoint Sucessfuly verified by Facebook"
+                self.outcome_admin_message(text_message)
                 return HttpResponse(challenge)
             else:
+                text_message = ":warning: :warning: :warning: \n:satellite:  Error while verifying endpoint by Facebook"
+                self.outcome_admin_message(text_message)
                 return HttpResponseForbidden()
 
         # POST REQUEST
@@ -56,39 +60,43 @@ class Connector(ConnectorBase):
                     # TODO: Check differente type of messages.
                     # has attachments
                     if webhook_event['message'].get('attachments'):
+                        #
+                        # TODO: grant attachments delivery, like text messages
+                        #
                         for attachment in webhook_event['message'].get('attachments', []):
-                            url = webhook_event['message']['attachments'][0]["payload"]['url']
-                            r = requests.get(url)
-                            base = base64.b64encode(r.content)
-                            mime = r.headers['Content-Type']
-                            self.outcome_file(base, room.room_id, mime)
+                            if attachment.get("type") == "location":
+                                lat = attachment["payload"]["coordinates"]["lat"]
+                                lng =  attachment["payload"]["coordinates"]["long"]
+                                link = "https://www.google.com/maps/search/?api=1&query={0}+{1}".format(
+                                    lat, lng
+                                )
+                                text = "Lat:{0}, Long:{1}: Link: {2}".format(
+                                    lat,
+                                    lng,
+                                    link
+                                )
+                                deliver = self.outcome_text(
+                                    room.room_id, text
+                                )
+                            else:
+                                url = attachment["payload"]['url']
+                                r = requests.get(url)
+                                base = base64.b64encode(r.content)
+                                mime = r.headers['Content-Type']
+                                self.outcome_file(base, room.room_id, mime)
                         if webhook_event['message'].get("text"):
-                            deliver = self.room_send_text(
+                            deliver = self.outcome_text(
                                 room.room_id, webhook_event['message'].get("text")
                             )
                         # RETURN 200
                         return HttpResponse("EVENT_RECEIVED")
 
                     if self.get_message_body():
-                        deliver = self.room_send_text(
+                        deliver = self.outcome_text(
                             room.room_id, self.get_message_body()
                         )
-                        if settings.DEBUG:
-                            print("room_send_text, ", deliver.request.body)
                         if deliver.ok:
-                            if settings.DEBUG:
-                                print("message delivered ", self.message_object.id)
-                            self.message_object.delivered = True
-                            # return 200 Response
                             return HttpResponse("EVENT_RECEIVED")
-                        else:
-                            # room can be closed on RC and open here
-                            r = deliver.json()
-                            if r.get('error') == "room-closed":
-                                self.room_close_and_reintake(room)
-                            else:
-                                print("ERRO AO ENTEGAR")
-                    self.message_object.save()
 
         return JsonResponse({'ae': 1})
 
@@ -185,3 +193,35 @@ class Connector(ConnectorBase):
         self.message_object.payload = payload
         self.message_object.response = sent.json()
         self.message_object.save()
+
+    def outgo_file_message(self, message):
+        #
+        visitor_id = self.get_visitor_id()
+        url = self.connector.config['endpoint'] + "/sendFileFromUrl"
+        params = {
+            "access_token": self.connector.config["access_token"]
+        }
+        payload = {
+            'recipient': {
+                'id': visitor_id
+            },
+            'message': {
+                'attachment': {
+                    'type': 'image',
+                    'payload': {}
+                }
+            },
+            'filedata': ('bot.png', open('/app/bot.png', 'rb'))
+        }
+        r = requests.post("https://graph.facebook.com/v10.0/me/messages", params=params, json=data)
+
+        if settings.DEBUG:
+            print("PAYLOAD OUTGING FILE: ", payload)
+        session = self.get_request_session()
+        self.full_simulate_typing()
+        sent = session.post(url, json=payload)
+        if sent.ok:
+            self.message_object.payload = payload
+            self.message_object.delivered = True
+            self.message_object.response = sent.json()
+            self.message_object.save()

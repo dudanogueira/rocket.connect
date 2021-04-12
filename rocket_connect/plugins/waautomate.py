@@ -13,6 +13,7 @@ from envelope.models import Message
 
 from django.http import JsonResponse
 
+
 class Connector(ConnectorBase):
     '''
         how to run wa-automate:
@@ -77,24 +78,11 @@ class Connector(ConnectorBase):
                         # if caption, send it too
                         if self.message.get('data', {}).get('caption'):
                             caption = self.message.get('data', {}).get('caption')
-                            rocket = self.get_rocket_client(bot=True)
-                            deliver = self.room_send_text(
+                            deliver = self.outcome_text(
                                 text=caption,
                                 room_id=room.room_id
                             )
-                            if deliver.ok:
-                                if settings.DEBUG:
-                                    print("message delivered ", self.message_object.id)
-                                self.message_object.delivered = True
-                                # send seen
-                                self.send_seen()
-                            else:
-                                # room can be closed on RC and open here
-                                r = deliver.json()
-                                if r['error'] == "room-closed":
-                                    self.room_close_and_reintake(room)
-                        # save if image and/or caption was delivered
-                        self.message_object.save()
+
                     #
                     # PTT / OGG / VOICE OVER WHATSAPP
 
@@ -103,7 +91,7 @@ class Connector(ConnectorBase):
                             if settings.DEBUG:
                                 print("STICKER! ")
                                 self.room_send_text(
-                                room.room_id, "User sent sticker"
+                                    room.room_id, "User sent sticker"
                                 )
                         else:
                             mime = self.message.get('data', {}).get('mimetype')
@@ -117,33 +105,29 @@ class Connector(ConnectorBase):
                             # if file was sent
                             if file_sent.ok:
                                 self.message_object.delivered = True
+                                self.message_object.save()
+                    #
+                    # SEND LOCATION
+                    #
+                    elif self.message.get('data', {}).get('mimetype') == None \
+                            and self.message.get('data', {}).get('type') == 'location':
+                        lat = self.message.get('data', {}).get('lat')
+                        lng = self.message.get('data', {}).get('lng')
+                        link = "https://www.google.com/maps/search/?api=1&query={0}+{1}".format(
+                            lat, lng
+                        )
+                        text = "Lat:{0}, Long:{1}: Link: {2}".format(
+                            lat,
+                            lng,
+                            link
+                        )
+                        self.outcome_text(room.room_id, text)
                     #
                     #
                     # TEXT ONLY MESSAGE
                     #
                     else:
-                        deliver = self.room_send_text(
-                            room.room_id, self.get_message_body()
-                        )
-                        self.message_object.payload = json.loads(deliver.request.body)
-                        self.message_object.response = deliver.json()
-                        if settings.DEBUG:
-                            print("DELIVERING... ", deliver.request.body)
-                        if deliver.ok:
-                            if settings.DEBUG:
-                                print("message delivered ", self.message_object.id)
-                            self.message_object.delivered = True
-                            self.message_object.room = room
-                            self.message_object.save()
-                            # send seen
-                            self.send_seen()
-                        else:
-                            # save payload and save message object
-                            self.message_object.save()
-                            # room can be closed on RC and open here
-                            r = deliver.json()
-                            if r['error'] == "room-closed":
-                                self.room_close_and_reintake(room)
+                        deliver = self.outcome_text(room.room_id, self.get_message_body())
 
         # here we get regular events (Battery, Plug Status)
         if self.message.get('event') == 'onBattery':
@@ -183,11 +167,12 @@ class Connector(ConnectorBase):
 
         # incoming call
         if self.message.get('event') == 'onIncomingCall':
+            self.register_message()
+            self.get_room()
             if self.connector.config.get('auto_answer_incoming_call'):
                 message = {
                     "msg": self.connector.config.get('auto_answer_incoming_call')
                 }
-                # TODO: store this out message at database
                 self.outgo_text_message(message)
             if self.connector.config.get('convert_incoming_call_to_text'):
                 # change the message to the custom one
@@ -318,7 +303,7 @@ class Connector(ConnectorBase):
         else:
             content = message['msg']
         # replace emojis
-        content = self.joypixel_to_unicode(content)  
+        content = self.joypixel_to_unicode(content)
         payload = {
             "args": {
                 "to": self.get_visitor_id(),
@@ -334,9 +319,11 @@ class Connector(ConnectorBase):
         sent = session.post(url, json=payload)
         if sent.ok and self.message_object:
             self.message_object.delivered = True
-        self.message_object.payload = payload
-        self.message_object.response = sent.json()
-        self.message_object.save()
+            self.send_seen()
+        if self.message_object:
+            self.message_object.payload = payload
+            self.message_object.response = sent.json()
+            self.message_object.save()
 
     def outgo_file_message(self, message):
         # if its audio, treat different
@@ -365,3 +352,4 @@ class Connector(ConnectorBase):
             self.message_object.delivered = True
             self.message_object.response = sent.json()
             self.message_object.save()
+            self.send_seen()
