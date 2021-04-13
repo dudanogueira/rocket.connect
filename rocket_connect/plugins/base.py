@@ -49,7 +49,6 @@ class Connector(object):
         '''
         this method will send the qrbase64 image to the connector managers at RocketChat
         '''
-        server = self.connector.server
         # send message as bot
         rocket = self.get_rocket_client(bot=True)
         # create im for managers
@@ -77,15 +76,10 @@ class Connector(object):
             print("OUTCOMING FILE TO ROCKETCHAT")
         # prepare payload
         filedata = base64.b64decode(base64_data)
-        rocket = self.get_rocket_client()
         extension = mimetypes.guess_extension(mime)
         if not filename:
             # random filename
             filename = ''.join(random.choices(string.ascii_letters + string.digits, k=16))
-        filename_extension = "{0}{1}".format(
-            filename,
-            extension
-        )
         # write file to temp file
         # TODO: maybe dont touch the hard drive, keep it buffer
         with tempfile.NamedTemporaryFile(suffix=extension) as tmp:
@@ -107,7 +101,6 @@ class Connector(object):
                 files=files
             )
             timestamp = int(time.time())
-            #byte_body = deliver.request.body.decode("ascii", "ignore")
             self.message_object.payload[timestamp] = {"data": "sent attached file to rocketchat"}
             self.message_object.response[timestamp] = deliver.json()
             self.message_object.save()
@@ -136,7 +129,7 @@ class Connector(object):
             # room can be closed on RC and open here
             r = deliver.json()
             if r['error'] in ["room-closed", "invalid-room"]:
-                self.room_close_and_reintake(room)
+                self.room_close_and_reintake(self.room)
             return deliver
 
     def get_qrcode_from_base64(self, qrbase64):
@@ -353,7 +346,7 @@ class Connector(object):
             message_id = self.message.get('data', {}).get('id')
         except IndexError:
             # for sake of forgiveness, lets make it random
-            message_id = ''.join(random.choice(letters) for i in range(10))
+            message_id = ''.join(random.choice(string.ascii_letters) for i in range(10))
         print("MESSAGE ID ", message_id)
         return message_id
 
@@ -363,7 +356,7 @@ class Connector(object):
             message_body = self.message.get('data', {}).get('body')
         except IndexError:
             message_body = "New Message: {0}".format(
-                ''.join(random.choice(letters) for i in range(10))
+                ''.join(random.choice(string.ascii_letters) for i in range(10))
             )
         return message_body
 

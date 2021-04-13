@@ -1,4 +1,4 @@
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import get_object_or_404
 from instance.models import Connector, Server
 from envelope.models import LiveChatRoom
 # import it
@@ -7,6 +7,7 @@ from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 import json
+
 
 @csrf_exempt
 def connector_view(request, connector_id):
@@ -18,6 +19,7 @@ def connector_view(request, connector_id):
     return_response = connector.intake(request)
     return return_response
 
+
 @csrf_exempt
 def server_view(request, server_id):
     server = get_object_or_404(Server, external_token=server_id)
@@ -28,11 +30,11 @@ def server_view(request, server_id):
     # income message, we have a body
     if request.body:
         raw_message = json.loads(request.body)
-        if settings.DEBUG == True:
+        if settings.DEBUG is True:
             print("INGOING", request.body)
         # roketchat test message
         if raw_message['_id'] == "fasd6f5a4sd6f8a4sdf":
-            return JsonResponse({})        
+            return JsonResponse({})
         else:
             # process ingoing message
             try:

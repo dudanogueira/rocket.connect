@@ -20,8 +20,8 @@ urlpatterns = [
     path("users/", include("rocket_connect.users.urls", namespace="users")),
     path("accounts/", include("allauth.urls")),
     # Your stuff: custom urls includes go here
-    re_path("^connector/(?P<connector_id>\w+)/?$", connector_view),
-    re_path("^server/(?P<server_id>\w+)/?$", server_view),
+    re_path(r"^connector/(?P<connector_id>\w+)/?$", connector_view),
+    re_path(r"^server/(?P<server_id>\w+)/?$", server_view),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 if settings.DEBUG:
     # Static file serving when using Gunicorn + Uvicorn for local web socket development

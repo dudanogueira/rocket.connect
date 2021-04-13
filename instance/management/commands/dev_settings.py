@@ -39,9 +39,11 @@ class Command(BaseCommand):
             connector.config = {
                 "api_key": "super_secret_key",
                 "endpoint": "http://waautomate:8002",
-                "auto_answer_incoming_call": "Sorry, this number is for text messages only. Please, call to (XX) XXXX-XXXX for voice support",
+                "auto_answer_incoming_call": '''Sorry, this number is for text messages only.
+                    Please, call to (XX) XXXX-XXXX for voice support''',
                 "convert_incoming_call_to_text": "User tried to call",
-                "auto_answer_on_audio_message": "Sorry, this number do not support Audio Messages. Please, call to (XX) XXXX-XXXX for voice support",
+                "auto_answer_on_audio_message": '''Sorry, this number do not support Audio Messages.
+                        Please, call to (XX) XXXX-XXXX for voice support''',
                 "convert_incoming_audio_to_text": "User sent audio"
             }
             connector.save()
@@ -79,7 +81,8 @@ class Command(BaseCommand):
                     "showOnOfflineForm": True,
                     "email": "wa-department@email.com",
                     "name": "WA-DEPARTMENT",
-                    "description": "wa-automate department, as configured on \nWA Connector at Rocket Connect (http://127.0.0.1:8000/admin/instance/connector/1/change/)"
+                    "description": '''wa-automate department, as configured on \n
+                    WA Connector at Rocket Connect (http://127.0.0.1:8000/admin/instance/connector/1/change/)'''
                 },
                 "agents": [{
                     "agentId": aa.json()['user']['_id'],
@@ -88,7 +91,7 @@ class Command(BaseCommand):
                     "order": 0
                 }]
             }
-            new_dpto = rocket.call_api_post(
+            rocket.call_api_post(
                 "livechat/department",
                 **new_department
             )

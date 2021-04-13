@@ -6,6 +6,7 @@ from rocketchat_API.rocketchat import RocketChat
 def random_string():
     return uuid.uuid4().hex[:20].upper()
 
+
 class Server(models.Model):
 
     class Meta:
@@ -39,8 +40,6 @@ class Server(models.Model):
         if as_string:
             return ",".join(managers)
         return managers
-
-
 
     uuid = models.UUIDField(default=uuid.uuid4, editable=False)
     external_token = models.CharField(max_length=50, default=random_string)
@@ -110,7 +109,7 @@ class Connector(models.Model):
 
     def get_managers(self, as_string=True):
         '''
-        this method will return the managers both from server and 
+        this method will return the managers both from server and
         connector (user1,user2,user3) or ['user1', 'user2, 'usern']
         and the bot. The final result should be:
         a string or a list
@@ -129,7 +128,9 @@ class Connector(models.Model):
     server = models.ForeignKey(Server, on_delete=models.CASCADE, related_name="connectors")
     connector_type = models.CharField(max_length=50)
     department = models.CharField(max_length=50, blank=True, null=True)
-    managers = models.CharField(max_length=50, blank=True, null=True, help_text="separate users with comma, eg: user1,user2,user3")
+    managers = models.CharField(max_length=50, blank=True, null=True,
+                                help_text="separate users with comma, eg: user1,user2,user3"
+                                )
     config = models.JSONField(blank=True, null=True, help_text="Connector General configutarion")
     # meta
     created = models.DateTimeField(

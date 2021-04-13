@@ -37,7 +37,8 @@ class Connector(ConnectorBase):
         if self.request.GET:
             if mode == 'subscribe' and verify_token == self.connector.config.get('verify_token'):
                 challenge = self.request.GET.get('hub.challenge')
-                text_message = ":white_check_mark: :white_check_mark: :white_check_mark:\n:satellite:  Endpoint Sucessfuly verified by Facebook"
+                text_message = ''':white_check_mark: :white_check_mark: :white_check_mark:\n
+                :satellite:  Endpoint Sucessfuly verified by Facebook'''
                 self.outcome_admin_message(text_message)
                 return HttpResponse(challenge)
             else:
@@ -57,7 +58,6 @@ class Connector(ConnectorBase):
                     message, created = self.register_message()
                     # Gets the body of the webhook event
                     webhook_event = entry['messaging'][0]
-                    sender_psid = webhook_event['sender']['id']
                     #
                     # TODO: Check differente type of messages.
                     # has attachments

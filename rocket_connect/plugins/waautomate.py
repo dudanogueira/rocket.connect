@@ -1,15 +1,11 @@
 
 from .base import Connector as ConnectorBase
 from instance import tasks
-import mimetypes
 import requests
-import base64
-import tempfile
 import json
 import time
 import random
 from django.conf import settings
-from envelope.models import Message
 
 from django.http import JsonResponse
 
@@ -118,7 +114,7 @@ class Connector(ConnectorBase):
                     #
                     # SEND LOCATION
                     #
-                    elif self.message.get('data', {}).get('mimetype') == None \
+                    elif self.message.get('data', {}).get('mimetype') is None \
                             and self.message.get('data', {}).get('type') == 'location':
                         lat = self.message.get('data', {}).get('lat')
                         lng = self.message.get('data', {}).get('lng')
@@ -137,6 +133,8 @@ class Connector(ConnectorBase):
                     #
                     else:
                         deliver = self.outcome_text(room.room_id, self.get_message_body())
+                        if settings.DEBUG:
+                            print("DELIVER OF TEXT MESSAGE:", deliver.ok)
 
         # here we get regular events (Battery, Plug Status)
         if self.message.get('event') == 'onBattery':
@@ -149,10 +147,10 @@ class Connector(ConnectorBase):
 
         # here we get regular events (Battery, Plug Status)
         if self.message.get('event') == 'onPlugged':
-            if self.message.get('data') == True:
+            if self.message.get('data') is True:
                 text_message = ":radioactive:\n:satellite:  Device is charging"
                 self.outcome_admin_message(text_message)
-            if self.message.get('data') == False:
+            if self.message.get('data') is False:
                 text_message = ":electric_plug:\n:satellite:  Device is unplugged"
                 self.outcome_admin_message(text_message)
 
@@ -235,7 +233,8 @@ class Connector(ConnectorBase):
                     message.get('sessionId'),
                     message.get('namespace'),
                     message.get('data') if message.get('data') != "SUCCESS"
-                    else ":white_check_mark::white_check_mark::white_check_mark:      SUCESS!!!      :white_check_mark::white_check_mark::white_check_mark:"
+                    else ''':white_check_mark::white_check_mark::white_check_mark:
+                          SUCESS!!!      :white_check_mark::white_check_mark::white_check_mark:'''
                 )
                 self.outcome_admin_message(text_message)
 
