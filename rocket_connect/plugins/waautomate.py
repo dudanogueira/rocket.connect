@@ -292,7 +292,7 @@ class Connector(ConnectorBase):
                     'event': 'onMessage',
                     'data': message
                 }
-                new_connector = Connector(self.connector, formated_message, type=self.type)
+                new_connector = Connector(self.connector, json.dumps(formated_message), type=self.type)
                 # for each connector instance, income message
                 new_connector.incoming()
                 # send seen
