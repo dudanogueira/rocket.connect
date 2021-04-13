@@ -61,5 +61,3 @@ services:
     <<: *django
     image: rocket_connect_production_flower
     command: /start-flower
-
-  

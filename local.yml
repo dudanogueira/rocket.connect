@@ -187,7 +187,7 @@ services:
     volumes:
       - local_waautomate_data:/usr/src/app/session_data
     links:
-      - "django:django.docker"    
+      - "django:django.docker"
     depends_on:
       - browser
     ports:

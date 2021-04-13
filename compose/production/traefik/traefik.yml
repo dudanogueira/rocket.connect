@@ -32,7 +32,7 @@ http:
   routers:
     web-secure-router:
       rule: "Host(`example.com`) || Host(`www.example.com`)"
-      
+
       entryPoints:
         - web-secure
       middlewares:
