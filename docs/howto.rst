@@ -1,38 +1,36 @@
-How To - Project Documentation
+How To
 ======================================================================
 
-Get Started
+Run the development stack
 ----------------------------------------------------------------------
 
-Documentation can be written as rst files in the `rocket_connect/docs/_source`.
-
-
-To build and serve docs, use the commands:
+To run the development stack, you must haver docker and docker compose properly installed. You should run
     ::
     
-        docker-compose -f local.yml up docs
+        docker-compose -f local.yml up
 
 
-Changes to files in `docs/_source` will be picked up and reloaded automatically.
+We have created a nice management command to setup everything for you:
 
-`Sphinx <https://www.sphinx-doc.org/>`_ is the tool used to build documentation.
+    ::
+    
+        docker-compose -f local.yml run --rm django python manage.py dev_settings
 
-Docstrings to Documentation
+If everything went fine, you should have the following running services and exposed ports:
+
+* http://localhost:8000/admin - Rocket Connect Admin User/Password: admin/admin
+* http://localhost:3000 - Rocket Chat Server. User/Password: admin/admin
+* http://localhost:5555 - Flower, where you see how the tasks are running. User/Password: admin/admin
+* http://localhost:8025 - Mailhog - A nice mailserver
+* http://localhost:3010 - BrowserLess - A Browserless chrome instance
+http://localhost:8002/api-docs/ - WA-AUTOMATE API DOCS - Only Available after QR SCANNING
+
+Scanning WA-AUTOMATE QR CODE
 ----------------------------------------------------------------------
 
-The sphinx extension `apidoc <https://www.sphinx-doc.org/en/master/man/sphinx-apidoc.html/>`_ is used to automatically document code using signatures and docstrings.
+If you access Rocket Chat, as admin, you should see new direct messages popping with the launch status of the WA-AUTOMATE CLient.
 
-Numpy or Google style docstrings will be picked up from project files and availble for documentation. See the `Napoleon <https://sphinxcontrib-napoleon.readthedocs.io/en/latest/>`_ extension for details.
+.. figure:: wa-launch-messages.png
 
-For an in-use example, see the `page source <_sources/users.rst.txt>`_ for :ref:`users`.
+At the end, you should see the QR CODE, that should be scanned with the device you want to PAIR.
 
-To compile all docstrings automatically into documentation source files, use the command:
-    ::
-    
-        make apidocs
-
-
-This can be done in the docker container:
-    :: 
-        
-        docker run --rm docs make apidocs

@@ -11,8 +11,8 @@ Welcome to Rocket Connect's documentation!
    :caption: Contents:
 
    howto
-   pycharm/configuration
-   users
+   howitworks
+   connectors
 
 
 
