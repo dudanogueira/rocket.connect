@@ -37,10 +37,12 @@ class Command(BaseCommand):
             connector.department = "WA-DEPARTMENT"
             connector.managers = "agent1"
             connector.config = {
+                "api_key": "super_secret_key",
                 "endpoint": "http://waautomate:8002",
+                "auto_answer_incoming_call": "Sorry, this number is for text messages only. Please, call to (XX) XXXX-XXXX for voice support",
                 "convert_incoming_call_to_text": "User tried to call",
-                "auto_answer_incoming_call": "Sorry, this number is for text messages only",
-                "api_key": "super_secret_key"
+                "auto_answer_on_audio_message": "Sorry, this number do not support Audio Messages. Please, call to (XX) XXXX-XXXX for voice support",
+                "convert_incoming_audio_to_text": "User sent audio"
             }
             connector.save()
 

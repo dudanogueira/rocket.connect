@@ -95,6 +95,14 @@ class Connector(ConnectorBase):
                                 )
                         else:
                             mime = self.message.get('data', {}).get('mimetype')
+                            if "audio/ogg" in mime:
+                                if self.connector.config.get("auto_answer_on_audio_message", False):
+                                    message = {
+                                        "msg": self.connector.config.get('auto_answer_on_audio_message')
+                                    }
+                                    deliver = self.outgo_text_message(message)
+                                if self.connector.config.get("convert_incoming_audio_to_text"):
+                                    deliver = self.outcome_text(room.room_id, self.connector.config.get("convert_incoming_audio_to_text"))
                             # decrypt media
                             data = self.decrypt_media()
                             # we  got data
@@ -269,7 +277,7 @@ class Connector(ConnectorBase):
 
     def full_simulate_typing(self, visitor_id=None):
         self.simulate_typing(visitor_id=visitor_id, active=True)
-        time.sleep(random.randint(2, 6))
+        time.sleep(random.randint(2, 3))
         self.simulate_typing(visitor_id=visitor_id, active=False)
 
     def intake_unread_messages(self):
