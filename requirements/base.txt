@@ -30,3 +30,8 @@ rocketchat_API==1.15.0 # https://github.com/jadolg/rocketchat_API/
 # ------------------------------------------------------------------------------
 zbarlight
 qrcode[pil]
+
+#
+# HELPERS
+#
+requests-toolbelt==0.9.1

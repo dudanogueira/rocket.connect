@@ -1,4 +1,5 @@
 
+from requests_toolbelt import MultipartEncoder
 from .base import Connector as ConnectorBase
 
 from django.conf import settings
@@ -10,7 +11,7 @@ from django.http import HttpResponseForbidden
 import json
 import requests
 import base64
-
+import time
 
 class Connector(ConnectorBase):
     '''
@@ -66,7 +67,7 @@ class Connector(ConnectorBase):
                         for attachment in webhook_event['message'].get('attachments', []):
                             if attachment.get("type") == "location":
                                 lat = attachment["payload"]["coordinates"]["lat"]
-                                lng =  attachment["payload"]["coordinates"]["long"]
+                                lng = attachment["payload"]["coordinates"]["long"]
                                 link = "https://www.google.com/maps/search/?api=1&query={0}+{1}".format(
                                     lat, lng
                                 )
@@ -188,40 +189,66 @@ class Connector(ConnectorBase):
             json=payload
         )
         # register outcome
+        timestamp = int(time.time())
         if sent.ok and self.message_object:
             self.message_object.delivered = True
-        self.message_object.payload = payload
-        self.message_object.response = sent.json()
+        self.message_object.payload[timestamp] = payload
+        self.message_object.response[timestamp] = sent.json()
         self.message_object.save()
 
     def outgo_file_message(self, message):
-        #
         visitor_id = self.get_visitor_id()
-        url = self.connector.config['endpoint'] + "/sendFileFromUrl"
-        params = {
-            "access_token": self.connector.config["access_token"]
-        }
-        payload = {
-            'recipient': {
-                'id': visitor_id
-            },
-            'message': {
-                'attachment': {
-                    'type': 'image',
-                    'payload': {}
-                }
-            },
-            'filedata': ('bot.png', open('/app/bot.png', 'rb'))
-        }
-        r = requests.post("https://graph.facebook.com/v10.0/me/messages", params=params, json=data)
+        access_token = self.connector.config["access_token"]
+        mime = message["file"]["type"]
+        filename = message["attachments"][0]["title"]
 
+        # get rocketchat file
+        url = message["fileUpload"]["publicFilePath"]
+        get_file = requests.get(url)
+        if 'audio' in mime:
+            file_type = 'audio'
+        elif 'image' in mime:
+            file_type = 'image'
+        elif 'video' in mime:
+            file_type = 'video'    
+        else: 
+            file_type = 'file'        
+
+        params = {
+            "access_token": access_token
+        }
+        m = MultipartEncoder(
+            fields={
+                'recipient': json.dumps({"id":visitor_id}),
+                'message': json.dumps({"attachment": {"type": file_type, "payload": {"is_reusable": False}}}),
+                'filedata': (filename, get_file.content, mime)
+            }
+        )
+
+        sent = requests.post(
+            'https://graph.facebook.com/v10.0/me/messages',
+            data=m,
+            headers={'Content-Type': m.content_type},
+            params=params
+        )
+        payload = m.fields
+        payload['filedata'] = "FILE ATTACHED"
         if settings.DEBUG:
             print("PAYLOAD OUTGING FILE: ", payload)
-        session = self.get_request_session()
-        self.full_simulate_typing()
-        sent = session.post(url, json=payload)
+        timestamp = int(time.time())    
+        self.message_object.payload[timestamp] = payload
         if sent.ok:
-            self.message_object.payload = payload
             self.message_object.delivered = True
-            self.message_object.response = sent.json()
-            self.message_object.save()
+            self.message_object.response[timestamp] = sent.json()
+            if message["attachments"][0].get("description"):
+                formatted_message = {
+                    'u':{
+                        'name': message["u"]["name"]
+                    },
+                    'msg': message["attachments"][0].get("description")
+                }
+                self.outgo_text_message(formatted_message)
+        self.message_object.save()
+
+
+
