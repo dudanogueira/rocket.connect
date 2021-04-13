@@ -1,4 +1,4 @@
-exclude: 'docs|node_modules|migrations|.git|.tox|emojipy'
+exclude: 'docs|node_modules|migrations|.git|.tox|emojipy|.dot'
 default_stages: [commit]
 fail_fast: true
 
