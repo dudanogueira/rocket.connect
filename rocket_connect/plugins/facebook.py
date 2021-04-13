@@ -13,6 +13,7 @@ import requests
 import base64
 import time
 
+
 class Connector(ConnectorBase):
     '''
         Facebook Connector.
@@ -210,16 +211,16 @@ class Connector(ConnectorBase):
         elif 'image' in mime:
             file_type = 'image'
         elif 'video' in mime:
-            file_type = 'video'    
-        else: 
-            file_type = 'file'        
+            file_type = 'video'
+        else:
+            file_type = 'file'
 
         params = {
             "access_token": access_token
         }
         m = MultipartEncoder(
             fields={
-                'recipient': json.dumps({"id":visitor_id}),
+                'recipient': json.dumps({"id": visitor_id}),
                 'message': json.dumps({"attachment": {"type": file_type, "payload": {"is_reusable": False}}}),
                 'filedata': (filename, get_file.content, mime)
             }
@@ -235,20 +236,17 @@ class Connector(ConnectorBase):
         payload['filedata'] = "FILE ATTACHED"
         if settings.DEBUG:
             print("PAYLOAD OUTGING FILE: ", payload)
-        timestamp = int(time.time())    
+        timestamp = int(time.time())
         self.message_object.payload[timestamp] = payload
         if sent.ok:
             self.message_object.delivered = True
             self.message_object.response[timestamp] = sent.json()
             if message["attachments"][0].get("description"):
                 formatted_message = {
-                    'u':{
+                    'u': {
                         'name': message["u"]["name"]
                     },
                     'msg': message["attachments"][0].get("description")
                 }
                 self.outgo_text_message(formatted_message)
         self.message_object.save()
-
-
-

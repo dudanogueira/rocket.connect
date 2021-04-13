@@ -107,7 +107,7 @@ class Connector(object):
                 files=files
             )
             timestamp = int(time.time())
-            #byte_body = deliver.request.body.decode("ascii", "ignore") 
+            #byte_body = deliver.request.body.decode("ascii", "ignore")
             self.message_object.payload[timestamp] = {"data": "sent attached file to rocketchat"}
             self.message_object.response[timestamp] = deliver.json()
             self.message_object.save()

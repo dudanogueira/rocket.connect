@@ -102,7 +102,8 @@ class Connector(ConnectorBase):
                                     }
                                     deliver = self.outgo_text_message(message)
                                 if self.connector.config.get("convert_incoming_audio_to_text"):
-                                    deliver = self.outcome_text(room.room_id, self.connector.config.get("convert_incoming_audio_to_text"))
+                                    deliver = self.outcome_text(
+                                        room.room_id, self.connector.config.get("convert_incoming_audio_to_text"))
                             # decrypt media
                             data = self.decrypt_media()
                             # we  got data
