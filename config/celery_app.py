@@ -1,4 +1,5 @@
 import os
+import sys
 
 from celery import Celery
 
@@ -6,6 +7,8 @@ from celery import Celery
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.local")
 
 app = Celery("rocket_connect")
+
+sys.path.append(os.path.abspath("/app/rocket_connect"))
 
 # Using a string here means the worker doesn't have to serialize
 # the configuration object to child processes.
