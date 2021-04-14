@@ -8,6 +8,8 @@ RUN apt-get update \
   && apt-get install -y build-essential \
   # psycopg2 dependencies
   && apt-get install -y libpq-dev \
+  # QR TOOLS
+  && apt-get install -y libzbar0 libzbar-dev \
   # Translations dependencies
   && apt-get install -y gettext \
   # cleaning up unused files
