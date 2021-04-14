@@ -15,7 +15,8 @@ import sys
 import django
 
 if os.getenv("READTHEDOCS", default=False) == "True":
-    sys.path.append(os.path.abspath("../../"))
+    sys.path.append(os.path.abspath("../"))
+    sys.path.append(os.path.abspath("../rocket_connect"))
     os.environ["DJANGO_READ_DOT_ENV_FILE"] = "True"
     os.environ["USE_DOCKER"] = "no"
 else:
