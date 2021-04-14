@@ -4,7 +4,8 @@ Rocket Connect
 Rocket Connect *
 
 
-.. image:: https://img.shields.io/github/v/release/dudanogueira/rocket_connect?style=social   :alt: GitHub release (latest by date)
+.. image:: https://img.shields.io/github/v/release/dudanogueira/rocket_connect?style=plastic   :alt: GitHub release (latest by date)
+.. image:: https://img.shields.io/github/license/dudanogueira/rocket_connect?style=plastic   :alt: GitHub
 .. image:: https://github.com/dudanogueira/rocket_connect/actions/workflows/ci.yml/badge.svg?branch=master
      :target: https://github.com/dudanogueira/rocket_connect/actions/workflows/ci.yml
      :alt: Build Status     
