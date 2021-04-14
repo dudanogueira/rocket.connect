@@ -23,7 +23,7 @@ If everything went fine, you should have the following running services and expo
 * http://localhost:5555 - Flower, where you see how the tasks are running. User/Password: admin/admin
 * http://localhost:8025 - Mailhog - A nice mailserver
 * http://localhost:3010 - BrowserLess - A Browserless chrome instance
-http://localhost:8002/api-docs/ - WA-AUTOMATE API DOCS - Only Available after QR SCANNING
+* http://localhost:8002/api-docs/ - WA-AUTOMATE API DOCS - Only Available after QR SCANNING
 
 Scanning WA-AUTOMATE QR CODE
 ----------------------------------------------------------------------
