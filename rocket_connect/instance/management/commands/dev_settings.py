@@ -1,5 +1,5 @@
-from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
+from django.core.management.base import BaseCommand
 from instance.models import Server
 
 
@@ -29,8 +29,7 @@ class Command(BaseCommand):
             server.save()
         # crete default connector
         connector, connector_created = server.connectors.get_or_create(
-            name="wa-automate",
-            external_token="CONNECTOR_EXTERNAL_TOKEN"
+            name="wa-automate", external_token="CONNECTOR_EXTERNAL_TOKEN"
         )
         if connector_created:
             connector.connector_type = "waautomate"
@@ -39,12 +38,12 @@ class Command(BaseCommand):
             connector.config = {
                 "api_key": "super_secret_key",
                 "endpoint": "http://waautomate:8002",
-                "auto_answer_incoming_call": '''Sorry, this number is for text messages only.
-                    Please, call to (XX) XXXX-XXXX for voice support''',
+                "auto_answer_incoming_call": """Sorry, this number is for text messages only.
+                    Please, call to (XX) XXXX-XXXX for voice support""",
                 "convert_incoming_call_to_text": "User tried to call",
-                "auto_answer_on_audio_message": '''Sorry, this number do not support Audio Messages.
-                        Please, call to (XX) XXXX-XXXX for voice support''',
-                "convert_incoming_audio_to_text": "User sent audio"
+                "auto_answer_on_audio_message": """Sorry, this number do not support Audio Messages.
+                        Please, call to (XX) XXXX-XXXX for voice support""",
+                "convert_incoming_audio_to_text": "User sent audio",
             }
             connector.save()
 
@@ -59,55 +58,47 @@ class Command(BaseCommand):
             "password": "agent1",
             "username": "agent1",
         }
-        agent1 = rocket.users_create(
-            **data
-        )
-        if agent1.ok and agent1.json()['success']:
+        agent1 = rocket.users_create(**data)
+        if agent1.ok and agent1.json()["success"]:
             print("Agent 1 user created")
         # add agent1 as agent in omnichannel
-        aa = rocket.livechat_create_user(
-            user_type="agent",
-            username="agent1"
-        )
-        if aa.ok and aa.json()['success']:
+        aa = rocket.livechat_create_user(user_type="agent", username="agent1")
+        if aa.ok and aa.json()["success"]:
             print("Agent 1 added as agent")
             # add WA-DEPARTMENT
 
             new_department = {
                 "department": {
-                    "_id": 'department_test',
+                    "_id": "department_test",
                     "enabled": True,
                     "showOnRegistration": True,
                     "showOnOfflineForm": True,
                     "email": "wa-department@email.com",
                     "name": "WA-DEPARTMENT",
-                    "description": '''wa-automate department, as configured on \n
-                    WA Connector at Rocket Connect (http://127.0.0.1:8000/admin/instance/connector/1/change/)'''
+                    "description": """wa-automate department, as configured on \n
+                    WA Connector at Rocket Connect (http://127.0.0.1:8000/admin/instance/connector/1/change/)""",
                 },
-                "agents": [{
-                    "agentId": aa.json()['user']['_id'],
-                    "username": aa.json()['user']['username'],
-                    "count": 0,
-                    "order": 0
-                }]
+                "agents": [
+                    {
+                        "agentId": aa.json()["user"]["_id"],
+                        "username": aa.json()["user"]["username"],
+                        "count": 0,
+                        "order": 0,
+                    }
+                ],
             }
-            rocket.call_api_post(
-                "livechat/department",
-                **new_department
-            )
+            rocket.call_api_post("livechat/department", **new_department)
         # create bot
         data = {
             "email": "bot@bot.com",
             "name": "Bot",
             "password": "bot",
             "username": "bot",
-            "roles": ['bot'],
-            "verified": True
+            "roles": ["bot"],
+            "verified": True,
         }
-        bot = rocket.users_create(
-            **data
-        )
-        if bot.ok and bot.json()['success']:
+        bot = rocket.users_create(**data)
+        if bot.ok and bot.json()["success"]:
             print("Bot user created")
         # configure server webhook api
         configs = [

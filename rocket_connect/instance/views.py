@@ -1,12 +1,11 @@
-from django.shortcuts import get_object_or_404
-from instance.models import Connector, Server
-from envelope.models import LiveChatRoom
-# import it
-from django.http import JsonResponse
-from django.http import HttpResponse
-from django.views.decorators.csrf import csrf_exempt
-from django.conf import settings
 import json
+
+from django.conf import settings
+from django.http import HttpResponse, JsonResponse
+from django.shortcuts import get_object_or_404
+from django.views.decorators.csrf import csrf_exempt
+from envelope.models import LiveChatRoom
+from instance.models import Connector, Server
 
 
 @csrf_exempt
@@ -15,7 +14,10 @@ def connector_view(request, connector_id):
     if settings.DEBUG:
         if request.body:
             body = json.loads(request.body)
-            print("INCOMING > CONNECTOR NAME: REQUEST BODY: {0}: ".format(connector.name), body)
+            print(
+                "INCOMING > CONNECTOR NAME: REQUEST BODY: {0}: ".format(connector.name),
+                body,
+            )
     return_response = connector.intake(request)
     return return_response
 
@@ -25,22 +27,23 @@ def server_view(request, server_id):
     server = get_object_or_404(Server, external_token=server_id)
     # unauthorized access
     # if no server.secret_token, allow unprotected access
-    if server.secret_token and request.headers.get('X-Rocketchat-Livechat-Token') != server.secret_token:
-        return HttpResponse('Unauthorized', status=401)
+    if (
+        server.secret_token
+        and request.headers.get("X-Rocketchat-Livechat-Token") != server.secret_token
+    ):
+        return HttpResponse("Unauthorized", status=401)
     # income message, we have a body
     if request.body:
         raw_message = json.loads(request.body)
         if settings.DEBUG is True:
             print("INGOING", request.body)
         # roketchat test message
-        if raw_message['_id'] == "fasd6f5a4sd6f8a4sdf":
+        if raw_message["_id"] == "fasd6f5a4sd6f8a4sdf":
             return JsonResponse({})
         else:
             # process ingoing message
             try:
-                room = LiveChatRoom.objects.get(
-                    room_id=raw_message['_id']
-                )
+                room = LiveChatRoom.objects.get(room_id=raw_message["_id"])
                 print("Got Room:", room.id)
                 Connector = room.connector.get_connector_class()
                 connector = Connector(room.connector, request.body, "ingoing", request)
@@ -50,6 +53,6 @@ def server_view(request, server_id):
             except LiveChatRoom.DoesNotExist:
                 # todo: try to get the room from rocketchat, and recreated it
                 # maybesomething happened here.
-                return HttpResponse('Room Not Found', status=404)
+                return HttpResponse("Room Not Found", status=404)
 
     return JsonResponse({})
