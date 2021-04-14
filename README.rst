@@ -10,6 +10,9 @@ Rocket Connect *
      :target: https://github.com/ambv/black
      :alt: Black code style
 
+.. image:: https://github.com/dudanogueira/rocket_connect/actions/workflows/ci.yml/badge.svg?branch=master
+     :target: https://github.com/dudanogueira/rocket_connect/actions/workflows/ci.yml
+     :alt: Build Status
 
 :License: MIT
 
