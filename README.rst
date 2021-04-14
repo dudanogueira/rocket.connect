@@ -3,10 +3,11 @@ Rocket Connect
 
 Rocket Connect *
 
+
+.. image:: https://img.shields.io/github/v/release/dudanogueira/rocket_connect?style=social   :alt: GitHub release (latest by date)
 .. image:: https://github.com/dudanogueira/rocket_connect/actions/workflows/ci.yml/badge.svg?branch=master
      :target: https://github.com/dudanogueira/rocket_connect/actions/workflows/ci.yml
-     :alt: Build Status
-     
+     :alt: Build Status     
 .. image:: https://img.shields.io/badge/built%20with-Cookiecutter%20Django-ff69b4.svg?logo=cookiecutter
      :target: https://github.com/pydanny/cookiecutter-django/
      :alt: Built with Cookiecutter Django
