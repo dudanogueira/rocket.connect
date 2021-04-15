@@ -378,6 +378,14 @@ class Connector(object):
                 print("Closing Message...")
             self.room.open = False
             self.room.save()
+            self.post_close_room()
+
+    def post_close_room(self):
+        """
+        Method that runs after the room is closed
+        """
+        if settings.DEBUG:
+            print("Do stuff after the room is closed")
 
     def ingoing(self):
         """
@@ -394,7 +402,8 @@ class Connector(object):
         if self.message.get("type") == "LivechatSession":
             #
             # This message is sent at the end of the chat,
-            # with all the chats from the session. Not Sure Why.
+            # with all the chats from the session.
+            # if the Chat Close Hook is On
             if settings.DEBUG:
                 print("LivechatSession")
 
@@ -408,6 +417,12 @@ class Connector(object):
             # This message is sent when the message if Forwarded
             if settings.DEBUG:
                 print("LivechatSessionForwarded")
+
+        if self.message.get("type") == "LivechatSessionQueued":
+            #
+            # This message is sent when the message if Forwarded
+            if settings.DEBUG:
+                print("LivechatSessionQueued")
 
         if self.message.get("type") == "Message":
             message, created = self.register_message()

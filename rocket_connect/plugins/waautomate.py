@@ -325,8 +325,9 @@ class Connector(ConnectorBase):
             self.message_object.delivered = True
             self.send_seen()
         if self.message_object:
-            self.message_object.payload = payload
-            self.message_object.response = sent.json()
+            timestamp = int(time.time())
+            self.message_object.payload[timestamp] = payload
+            self.message_object.response[timestamp] = sent.json()
             self.message_object.save()
 
     def outgo_file_message(self, message):
@@ -357,3 +358,39 @@ class Connector(ConnectorBase):
             self.message_object.response = sent.json()
             self.message_object.save()
             self.send_seen()
+
+    def post_close_room(self, visitor_id=None):
+        # TODO: this should have a delay, as sometimes it doesn
+        # work. Maybe the delay can help
+        # TODO2: have some way to sync the open chat on phone with rooms
+        # on both rocketchat and rocketconnect
+        if not visitor_id:
+            visitor_id = self.get_visitor_id()
+
+        # what to do with a closed room
+        if self.connector.config.get("chat_after_close_action"):
+            action = self.connector.config.get("chat_after_close_action")
+
+            if action == "archive":
+                url = self.connector.config["endpoint"] + "/archiveChat"
+                payload = {"args": {"id": visitor_id, "archive": "true"}}
+
+            elif action == "delete":
+                payload = {"args": {"chatId": visitor_id}}
+                url = self.connector.config["endpoint"] + "/deleteChat"
+
+            session = self.get_request_session()
+            sent = session.post(url, json=payload)
+
+            if settings.DEBUG:
+                print("CHAT AFTER CLOSE ACTION: ", action)
+                print("PAYLOAD: ", payload)
+                print("URL: ", url)
+                print("RESPONSE: ", sent.json())
+
+            if self.message_object:
+                timestamp = int(time.time())
+                self.message_object.payload[timestamp] = payload
+                self.message_object.response[timestamp] = sent.json()
+                self.message_object.save()
+            return sent
