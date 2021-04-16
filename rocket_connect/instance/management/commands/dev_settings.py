@@ -31,21 +31,21 @@ class Command(BaseCommand):
         connector, connector_created = server.connectors.get_or_create(
             name="wa-automate", external_token="CONNECTOR_EXTERNAL_TOKEN"
         )
-        if connector_created:
-            connector.connector_type = "waautomate"
-            connector.department = "WA-DEPARTMENT"
-            connector.managers = "agent1"
-            connector.config = {
-                "api_key": "super_secret_key",
-                "endpoint": "http://waautomate:8002",
-                "auto_answer_incoming_call": """Sorry, this number is for text messages only.
-                    Please, call to (XX) XXXX-XXXX for voice support""",
-                "convert_incoming_call_to_text": "User tried to call",
-                "auto_answer_on_audio_message": """Sorry, this number do not support Audio Messages.
-                        Please, call to (XX) XXXX-XXXX for voice support""",
-                "convert_incoming_audio_to_text": "User sent audio",
-            }
-            connector.save()
+        connector.connector_type = "waautomate"
+        connector.department = "WA-DEPARTMENT"
+        connector.managers = "agent1"
+        connector.config = {
+            "api_key": "super_secret_key",
+            "endpoint": "http://waautomate:8002",
+            "auto_answer_incoming_call": "Sorry, this number is for text messages only! "
+            + "Please, call to (XX) XXXX-XXXX for voice support",
+            "convert_incoming_call_to_text": "User tried to call",
+            "auto_answer_on_audio_message": "Sorry, this number do not support Audio Messages! "
+            + "Please, call to (XX) XXXX-XXXX for voice support",
+            "convert_incoming_audio_to_text": "User sent audio",
+            "chat_after_close_action": "archive",
+        }
+        connector.save()
 
     def handle_rocketchat(self):
         server = Server.objects.first()
