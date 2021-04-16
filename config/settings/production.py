@@ -83,6 +83,11 @@ DEFAULT_FROM_EMAIL = env(
 SERVER_EMAIL = env("DJANGO_SERVER_EMAIL", default=DEFAULT_FROM_EMAIL)
 # https://docs.djangoproject.com/en/dev/ref/settings/#email-subject-prefix
 EMAIL_SUBJECT_PREFIX = env("DJANGO_EMAIL_SUBJECT_PREFIX", default="[Rocket Connect]")
+EMAIL_HOST = env("DJANGO_EMAIL_HOST", default="localhost")
+EMAIL_PORT = env("DJANGO_EMAIL_PORT", default=587)
+EMAIL_USE_TLS = env("DJANGO_EMAIL_USE_TLS", default=True)
+EMAIL_HOST_USER = env("DJANGO_EMAIL_HOST_USER", default="production_user")
+EMAIL_HOST_PASSWORD = env("DJANGO_EMAIL_HOST_PASSWORD", default="production_password")
 
 # ADMIN
 # ------------------------------------------------------------------------------
