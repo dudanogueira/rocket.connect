@@ -183,7 +183,7 @@ services:
     build:
       context: ./compose/local/waautomate
     command:  npx @open-wa/wa-automate --ev "http://django.docker:8000/connector/CONNECTOR_EXTERNAL_TOKEN/" --ef qr,STARTUP --kill-client-on-logout
-    restart: on-failure
+    restart: unless-stopped
     volumes:
       - local_waautomate_data:/usr/src/app/session_data
     links:

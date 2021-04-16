@@ -110,9 +110,14 @@ class Command(BaseCommand):
             ["Livechat_webhook_on_start", True],
             ["Livechat_webhook_on_close", True],
             ["Livechat_webhook_on_agent_message", True],
+            ["Livechat_webhook_on_chat_taken", True],
+            ["Livechat_webhook_on_chat_queued", True],
+            ["Livechat_webhook_on_forward", True],
+            ["Livechat_webhook_on_offline_msg", True],
             ["Accounts_TwoFactorAuthentication_Enabled", False],
             ["Accounts_TwoFactorAuthentication_By_Email_Enabled", False],
             ["API_Enable_Rate_Limiter", False],
+            ["Log_Level", "2"],
         ]
         for config in configs:
             rocket.settings_update(config[0], config[1])

@@ -22,6 +22,9 @@ COPY . .
 
 EXPOSE 8080
 
+HEALTHCHECK --interval=30s --timeout=20s --start-period=60s \
+    CMD node healthcheck.js
+
 COPY cli.config* ./
 RUN cat cli.config.json
 CMD ["npm", "run", "start"]

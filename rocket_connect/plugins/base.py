@@ -406,7 +406,6 @@ class Connector(object):
             # if the Chat Close Hook is On
             if settings.DEBUG:
                 print("LivechatSession")
-
         if self.message.get("type") == "LivechatSessionTaken":
             #
             # This message is sent when the message if taken
@@ -417,13 +416,11 @@ class Connector(object):
             # This message is sent when the message if Forwarded
             if settings.DEBUG:
                 print("LivechatSessionForwarded")
-
         if self.message.get("type") == "LivechatSessionQueued":
             #
             # This message is sent when the message if Forwarded
             if settings.DEBUG:
                 print("LivechatSessionQueued")
-
         if self.message.get("type") == "Message":
             message, created = self.register_message()
 
