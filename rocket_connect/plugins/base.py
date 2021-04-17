@@ -123,7 +123,7 @@ class Connector(object):
             self.message_object.save()
             # room can be closed on RC and open here
             r = deliver.json()
-            if r["error"] in ["room-closed", "invalid-room"]:
+            if r["error"] in ["room-closed", "invalid-room", "invalid-token"]:
                 self.room_close_and_reintake(self.room)
             return deliver
 
