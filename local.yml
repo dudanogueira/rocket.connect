@@ -178,14 +178,31 @@ services:
         USE_CHROME_STABLE: 'true'
         NODE_ENV: 'production'
 
-  waautomate:
+  waautomate1:
     # waautomate options ar at  ./compose/local/waautomate/cli.config.json
     build:
       context: ./compose/local/waautomate
-    command:  npx @open-wa/wa-automate --ev "http://django.docker:8000/connector/CONNECTOR_EXTERNAL_TOKEN/" --ef qr,STARTUP --kill-client-on-logout
+    command: npx @open-wa/wa-automate --ev "http://django.docker:8000/connector/CONNECTOR_EXTERNAL_TOKEN1/?ev=1"
     restart: unless-stopped
     volumes:
       - local_waautomate_data:/usr/src/app/session_data
+      - ./compose/local/waautomate/instance1/cli.config.json:/usr/src/app/cli.config.json
+    links:
+      - "django:django.docker"
+    depends_on:
+      - browser
+    ports:
+      - "8001:8002"
+
+  waautomate2:
+    # waautomate options ar at  ./compose/local/waautomate/cli.config.json
+    build:
+      context: ./compose/local/waautomate
+    command:  npx @open-wa/wa-automate --ev "http://django.docker:8000/connector/CONNECTOR_EXTERNAL_TOKEN2/?ev=2" -c instance2/cli.config.json
+    restart: unless-stopped
+    volumes:
+      - local_waautomate_data:/usr/src/app/session_data
+      - ./compose/local/waautomate/instance2/cli.config.json:/usr/src/app/cli.config.json
     links:
       - "django:django.docker"
     depends_on:

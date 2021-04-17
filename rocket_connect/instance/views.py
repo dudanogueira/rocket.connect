@@ -51,8 +51,8 @@ def server_view(request, server_id):
                 # todo: create task to out go message
                 connector.ingoing()
             except LiveChatRoom.DoesNotExist:
-                # todo: try to get the room from rocketchat, and recreated it
-                # maybesomething happened here.
+                # todo: Alert Admin that there was an attempt to message a non existing room
+                # todo: register this message somehow. RCHAT will try to deliver it a few times
                 return HttpResponse("Room Not Found", status=404)
 
     return JsonResponse({})

@@ -1,0 +1,12 @@
+{
+    "sessionId": "test_session_instance1",
+    "sessionDataPath": "session_data",
+    "webhook": [{
+        "url": "http://django.docker:8000/connector/CONNECTOR_EXTERNAL_TOKEN1/",
+        "events": ["onPlugged", "onMessage", "onBattery", "onIncomingCall", "onStateChanged", "onLogout", "onIncomingCall"]
+    }],
+    "stats": true,
+    "headful": false,
+    "disableSpins": true,
+    "browserWSEndpoint": "http://browser:3000"
+}
