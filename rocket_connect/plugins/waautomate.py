@@ -4,7 +4,7 @@ import time
 
 import requests
 from django.conf import settings
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 from instance import tasks
 
 from .base import Connector as ConnectorBase
@@ -43,6 +43,10 @@ class Connector(ConnectorBase):
             if not self.message.get("data", {}).get("isGroupMsg"):
                 # create message
                 message, created = self.register_message()
+                self.rocket = self.get_rocket_client()
+                if not self.rocket:
+                    return HttpResponse("Rocket Down!", status=503)
+
                 # get a room
                 room = self.get_room()
                 if room:
@@ -148,6 +152,9 @@ class Connector(ConnectorBase):
 
         # here we get regular events (Battery, Plug Status)
         if self.message.get("event") == "onBattery":
+            self.rocket = self.get_rocket_client()
+            if not self.rocket:
+                return HttpResponse("Rocket Down!", status=503)
             # this prevent some bogus request from wa after logout on this event
             if self.message.get("data") and int(self.message.get("data")):
                 text_message = ":battery:\n:satellite:  Battery level: {0}%".format(
@@ -157,6 +164,10 @@ class Connector(ConnectorBase):
 
         # here we get regular events (Battery, Plug Status)
         if self.message.get("event") == "onPlugged":
+            self.rocket = self.get_rocket_client()
+            if not self.rocket:
+                return HttpResponse("Rocket Down!", status=503)
+
             if self.message.get("data") is True:
                 text_message = ":radioactive:\n:satellite:  Device is charging"
                 self.outcome_admin_message(text_message)
@@ -166,6 +177,9 @@ class Connector(ConnectorBase):
 
         # when device logged out
         if self.message.get("event") == "onLogout":
+            self.rocket = self.get_rocket_client()
+            if not self.rocket:
+                return HttpResponse("Rocket Down!", status=503)
             text_message = (
                 ":warning::warning::warning::warning:\n:satellite: Device Logged Out!"
             )
@@ -177,6 +191,11 @@ class Connector(ConnectorBase):
 
         # state changed
         if self.message.get("event") == "onStateChanged":
+
+            self.rocket = self.get_rocket_client()
+            if not self.rocket:
+                return HttpResponse("Rocket Down!", status=503)
+
             text_message = ":information_source:\n:satellite: {0} > {1}: {2} ".format(
                 self.message.get("sessionId"),
                 self.message.get("event"),
@@ -187,6 +206,9 @@ class Connector(ConnectorBase):
         # incoming call
         if self.message.get("event") == "onIncomingCall":
             self.register_message()
+            self.rocket = self.get_rocket_client()
+            if not self.rocket:
+                return HttpResponse("Rocket Down!", status=503)
             self.get_room()
             if self.connector.config.get("auto_answer_incoming_call"):
                 message = {
@@ -223,6 +245,10 @@ class Connector(ConnectorBase):
         #   LAUNCH EVENTS AND QRCODE
         #
         if self.message.get("namespace") and self.message.get("data"):
+            # get rocket or return error
+            self.rocket = self.get_rocket_client()
+            if not self.rocket:
+                return HttpResponse("Rocket Down!", status=503)
             message = self.message
             # OPEN WA REDY. Get unread messages
             if "@OPEN-WA ready" in message.get("data"):
@@ -271,8 +297,11 @@ class Connector(ConnectorBase):
         payload = {"args": {"to": visitor_id, "on": active}}
         session = self.get_request_session()
         url = self.connector.config["endpoint"] + "/simulateTyping"
-        r = session.post(url, json=payload)
-        return r.json()
+        try:
+            r = session.post(url, json=payload)
+            return r.json()
+        except requests.ConnectionError:
+            return False
 
     def full_simulate_typing(self, visitor_id=None):
         self.simulate_typing(visitor_id=visitor_id, active=True)
@@ -320,14 +349,19 @@ class Connector(ConnectorBase):
         session = self.get_request_session()
         url = self.connector.config["endpoint"] + "/sendText"
         self.full_simulate_typing()
-        sent = session.post(url, json=payload)
-        if sent.ok and self.message_object:
+        timestamp = int(time.time())
+        try:
+            sent = session.post(url, json=payload)
             self.message_object.delivered = True
-            self.send_seen()
-        if self.message_object:
-            timestamp = int(time.time())
-            self.message_object.payload[timestamp] = payload
             self.message_object.response[timestamp] = sent.json()
+            self.send_seen()
+        except requests.ConnectionError:
+            self.message_object.delivered = False
+            if settings.DEBUG:
+                print("CONNECTOR DOWN: ", self.connector)
+        # save message object
+        if self.message_object:
+            self.message_object.payload[timestamp] = payload
             self.message_object.save()
 
     def outgo_file_message(self, message):

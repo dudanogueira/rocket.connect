@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block content %}
+<nav class="breadcrumb">
+    <a class="breadcrumb-item" href="{% url 'home' %}">home</a>
+    <span class="breadcrumb-item active">{{server}}</span>
+</nav>
+<h1>
+    {{server}} <span class="text-{{ server.enabled|yesno:'success,danger' }}">{{ server.enabled|yesno:"Active,Inactive" }}</span>
+</h1>
+<a href="{{server.url}}">{{server.url}}</a>
+{% if alive %}
+    <span class="badge badge-success">UP</span>
+    <span class="badge badge-info">Server version: {{info.info.version}}</span>
+{% else %}
+    <span class="badge badge-danger">Down!</span>
+{% endif %}
+{% for connector in connectors %}
+    <div class="card mb-3">
+        <div class="card-header">
+            <h2>
+                Connector: {{connector.name}} <span class="text-{{ connector.enabled|yesno:'success,danger' }}">{{ connector.enabled|yesno:"Active,Inactive" }}</span>
+            </h2>
+        </div>
+        <div class="card-body">
+            <h4 class="card-title">Statistics</h4>
+            <p class="card-text">
+                {{connector.total_messages}} Messages ({{connector.undelivered_messages}} Undelivered {% if connector.undelivered_messages %}<a href="?force_connector_delivery={{connector.external_token}}">force</a>{% endif %}) </a><br />
+                {{connector.total_rooms}} Rooms ({{connector.open_rooms}} Open)<br />
+                {% if connector.last_message%} Last Message: {{connector.last_message}}{% endif %}
+            </p>
+        </div>
+    </div>
+
+{% endfor %}
+
+{% endblock content %}

@@ -1,1 +1,24 @@
 {% extends "base.html" %}
+
+{% block content %}
+
+<nav class="breadcrumb">
+    <span class="breadcrumb-item active">home</span>
+</nav>
+
+{% if request.user.is_authenticated %}
+    {% if request.user.servers.all %}
+    <h1>Your Servers:</h1>
+    <ul>
+        {% for server in request.user.servers.all %}
+        <li><a href="{% url 'instance:server_detail' server.external_token %}">{{server}}</a></li>
+        {% endfor %}
+    </ul>
+    {% else %}
+        You have no servers configured
+    {% endif %}
+{% else %}
+    Register now.
+{% endif %}
+
+{% endblock content %}
