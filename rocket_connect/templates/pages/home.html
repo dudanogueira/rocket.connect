@@ -11,7 +11,16 @@
     <h1>Your Servers:</h1>
     <ul>
         {% for server in request.user.servers.all %}
-        <li><a href="{% url 'instance:server_detail' server.external_token %}">{{server}}</a></li>
+        <div class="card {% if server.enabled %}bg-success{% else %}bg-danger{% endif %}">
+            <div class="card-header">
+                {{server}}
+            </div>
+            <div class="card-body">
+                <p class="card-text">
+                    <a name="" id="" class="btn btn-primary" href="{% url 'instance:server_detail' server.external_token %}" role="button">details</a>
+                </p>
+            </div>
+        </div>
         {% endfor %}
     </ul>
     {% else %}
