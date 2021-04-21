@@ -27,19 +27,19 @@ class Command(BaseCommand):
             server.managers = "admin"
             server.external_token = "SERVER_EXTERNAL_TOKEN"
             server.save()
-        # crete default 2 connectors
+        # crete default 2 WA-automate connectors
         connectors2create = [
             {
                 "external_token": "CONNECTOR_EXTERNAL_TOKEN1",
                 "endpoint": "http://waautomate1:8002",
                 "name": "WA instance1",
-                "manager": "agent1",
+                "manager": "manager1,agent1",
             },
             {
                 "external_token": "CONNECTOR_EXTERNAL_TOKEN2",
                 "endpoint": "http://waautomate2:8002",
                 "name": "WA instance2",
-                "manager": "agent2",
+                "manager": "manager2,agent2",
             },
         ]
         for c2c in connectors2create:
@@ -68,6 +68,24 @@ class Command(BaseCommand):
             else:
                 print("CONNECTOR UPDATED: ", c2c)
 
+        # create default 1 facebook connector
+        connector, connector_created = server.connectors.get_or_create(
+            external_token="FACEBOOK_DEV_CONNECTOR"
+        )
+        connector.config = {
+            "verify_token": "verify_token",
+            "access_token": "generate this",
+        }
+        connector.name = "FACEBOOK CONNECTOR"
+        connector.connector_type = "facebook"
+        connector.managers = "agent1,manager1"
+        connector.department = "FACEBOOK-DEPARTMENT"
+        connector.save()
+        if connector_created:
+            print("CONNECTOR CREATED: ", connector)
+        else:
+            print("CONNECTOR UPDATED: ", connector)
+
     def handle_rocketchat(self):
         server = Server.objects.first()
         rocket = server.get_rocket_client()
@@ -93,14 +111,36 @@ class Command(BaseCommand):
                 # todo: add all agents to departaments
                 new_department = {
                     "department": {
-                        "_id": "department_test",
+                        "_id": "wa_automate_department",
                         "enabled": True,
                         "showOnRegistration": True,
                         "showOnOfflineForm": True,
                         "email": "wa-department@email.com",
                         "name": "WA-DEPARTMENT",
-                        "description": """wa-automate department, as configured on \n
-                        WA Connector at Rocket Connect (http://127.0.0.1:8000/admin/instance/connector/1/change/)""",
+                        "description": """wa-automate department created by dev_settings""",
+                    },
+                    "agents": [
+                        {
+                            "agentId": aa[user].json()["user"]["_id"],
+                            "username": aa[user].json()["user"]["username"],
+                            "count": 0,
+                            "order": 0,
+                        }
+                    ],
+                }
+                rocket.call_api_post("livechat/department", **new_department)
+                #
+                # ADD FACEBOOK DEPARTMENT
+                #
+                new_department = {
+                    "department": {
+                        "_id": "facebook_department",
+                        "enabled": True,
+                        "showOnRegistration": True,
+                        "showOnOfflineForm": True,
+                        "email": "facebook@email.com",
+                        "name": "FACEBOOK-DEPARTMENT",
+                        "description": """facebook department created by dev_settings""",
                     },
                     "agents": [
                         {

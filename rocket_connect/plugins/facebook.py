@@ -24,23 +24,32 @@ class Connector(ConnectorBase):
         this method will process the incoming messages
         and ajust what necessary, to output to rocketchat
         """
-        mode = self.request.GET.get("hub.mode")
-        verify_token = self.request.GET.get("hub.verify_token")
+        self.get_rocket_client()
+        # it can be a reintake, and no request is provided
+        # so it will not be a verification step
+        if self.request:
+            mode = self.request.GET.get("hub.mode")
+            verify_token = self.request.GET.get("hub.verify_token")
 
-        # facebook subscription
-        if self.request.GET:
-            if mode == "subscribe" and verify_token == self.connector.config.get(
-                "verify_token"
-            ):
-                challenge = self.request.GET.get("hub.challenge")
-                text_message = """:white_check_mark: :white_check_mark: :white_check_mark:\n
-                :satellite:  Endpoint Sucessfuly verified by Facebook"""
-                self.outcome_admin_message(text_message)
-                return HttpResponse(challenge)
-            else:
-                text_message = ":warning: :warning: :warning: \n:satellite:  Error while verifying endpoint by Facebook"
-                self.outcome_admin_message(text_message)
-                return HttpResponseForbidden()
+            # facebook subscription
+            if self.request.GET:
+                if mode == "subscribe" and verify_token == self.connector.config.get(
+                    "verify_token"
+                ):
+                    if settings.DEBUG:
+                        print("VERIFYING FACEBOOK ENDPOINT")
+                    challenge = self.request.GET.get("hub.challenge")
+                    text_message = """:white_check_mark: :white_check_mark: :white_check_mark:\n
+                    :satellite:  Endpoint Sucessfuly verified by Facebook"""
+                    self.outcome_admin_message(text_message)
+                    return HttpResponse(challenge)
+                else:
+                    text_message = (
+                        ":warning: :warning: :warning: \n "
+                        + "satellite:  Error while verifying endpoint by Facebook"
+                    )
+                    self.outcome_admin_message(text_message)
+                    return HttpResponseForbidden()
 
         # POST REQUEST
         if self.message.get("object") == "page":
@@ -155,13 +164,8 @@ class Connector(ConnectorBase):
         message_body = self.message["entry"][0]["messaging"][0]["message"]["text"]
         return message_body
 
-    def outgo_text_message(self, message):
+    def outgo_text_message(self, message, agent_name=None):
         visitor_id = self.get_visitor_id()
-        if message.get("u", {}):
-            agent_name = message.get("u", {}).get("name", {})
-        else:
-            agent_name = None
-
         if agent_name:
             content = "*[" + agent_name + "]*\n" + message["msg"]
         else:
@@ -181,7 +185,7 @@ class Connector(ConnectorBase):
         self.message_object.response[timestamp] = sent.json()
         self.message_object.save()
 
-    def outgo_file_message(self, message):
+    def outgo_file_message(self, message, agent_name):
         visitor_id = self.get_visitor_id()
         access_token = self.connector.config["access_token"]
         mime = message["file"]["type"]
@@ -235,5 +239,6 @@ class Connector(ConnectorBase):
                     "u": {"name": message["u"]["name"]},
                     "msg": message["attachments"][0].get("description"),
                 }
-                self.outgo_text_message(formatted_message)
+                agent_name = self.get_agent_name(message)
+                self.outgo_text_message(formatted_message, agent_name)
         self.message_object.save()

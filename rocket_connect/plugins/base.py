@@ -125,7 +125,8 @@ class Connector(object):
             # room can be closed on RC and open here
             r = deliver.json()
             # TODO: when sending a message already sent, rocket doesnt return a identifiable message
-            if r["error"] in ["room-closed", "invalid-room", "invalid-token"]:
+            # file a bug, and test it more
+            if r.get("error", "") in ["room-closed", "invalid-room", "invalid-token"]:
                 self.room_close_and_reintake(self.room)
             return deliver
 
@@ -157,11 +158,15 @@ class Connector(object):
 
     def outcome_admin_message(self, text):
         managers = self.connector.get_managers()
-        if self.rocket:
+        if self.get_rocket_client():
             im_room = self.rocket.im_create(username="", usernames=managers)
             response = im_room.json()
+            if settings.DEBUG:
+                print("CREATE ADMIN ROOM TO OUTCOME", im_room.json())
             text_message = ":rocket:CONNECT {0}".format(text)
             if response["success"]:
+                if settings.DEBUG:
+                    print("SENDING ADMIN MESSAGE")
                 self.rocket.chat_post_message(
                     alias=self.connector.name,
                     text=text_message,
