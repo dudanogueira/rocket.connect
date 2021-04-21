@@ -436,13 +436,21 @@ class Connector(object):
 
             # prepare message to be sent to client
             for message in self.message.get("messages", []):
+                agent_name = self.get_agent_name(message)
                 if message.get("attachments", {}):
                     # send file
-                    self.outgo_file_message(message)
+                    self.outgo_file_message(message, agent_name=agent_name)
                 else:
-                    self.outgo_text_message(message)
+                    self.outgo_text_message(message, agent_name=agent_name)
 
                 # closing message
                 if message.get("closingMessage"):
                     # TODO: add custom closing message
                     self.close_room()
+
+    def get_agent_name(self, message):
+        agent_name = message.get("u", {}).get("name", {})
+        return self.change_agent_name(agent_name)
+
+    def change_agent_name(self, agent_name):
+        return agent_name

@@ -329,13 +329,8 @@ class Connector(ConnectorBase):
                 new_connector.send_seen(message["from"])
         return r.json().get("response", {})
 
-    def outgo_text_message(self, message):
+    def outgo_text_message(self, message, agent_name=None):
         # message may not have an agent
-        if message.get("u", {}):
-            agent_name = message.get("u", {}).get("name", {})
-        else:
-            agent_name = None
-
         if agent_name:
             content = "*[" + agent_name + "]*\n" + message["msg"]
         else:
@@ -364,7 +359,7 @@ class Connector(ConnectorBase):
             self.message_object.payload[timestamp] = payload
             self.message_object.save()
 
-    def outgo_file_message(self, message):
+    def outgo_file_message(self, message, agent_name=None):
         # if its audio, treat different
         ppt = False
         if message["file"]["type"] == "audio/mpeg":
@@ -428,3 +423,13 @@ class Connector(ConnectorBase):
                 self.message_object.response[timestamp] = sent.json()
                 self.message_object.save()
             return sent
+
+    def change_agent_name(self, agent_name):
+        """
+        SHow only first and last name of those how has 3 parts name
+        """
+        parts = agent_name.split(" ")
+        if len(parts) >= 2:
+            return " ".join([parts[0], parts[-1]])
+        else:
+            return agent_name
