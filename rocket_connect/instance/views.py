@@ -13,7 +13,9 @@ from instance.models import Connector, Server
 
 @csrf_exempt
 def connector_endpoint(request, connector_id):
-    connector = get_object_or_404(Connector, external_token=connector_id)
+    connector = get_object_or_404(
+        Connector, external_token=connector_id, enabled=True, server__enabled=True
+    )
     if settings.DEBUG:
         if request.body:
             body = json.loads(request.body)

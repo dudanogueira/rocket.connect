@@ -8,12 +8,10 @@
 
 {% if request.user.is_authenticated %}
     {% if request.user.servers.all %}
-    <h1>Your Servers:</h1>
-    <ul>
         {% for server in request.user.servers.all %}
         <div class="card {% if server.enabled %}bg-success{% else %}bg-danger{% endif %}">
             <div class="card-header">
-                {{server}}
+                <h1>{{server}}</h1>
             </div>
             <div class="card-body">
                 <p class="card-text">
@@ -22,7 +20,6 @@
             </div>
         </div>
         {% endfor %}
-    </ul>
     {% else %}
         You have no servers configured
     {% endif %}
