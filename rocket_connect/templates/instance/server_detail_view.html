@@ -11,7 +11,7 @@
 <a href="{{server.url}}">{{server.url}}</a>
 {% if alive %}
     <span class="badge badge-success">UP</span>
-    <span class="badge badge-info">Server version: {{info.info.version}}</span>
+    <span class="badge badge-info">Version: {{info.info.version}}</span>
 {% else %}
     <span class="badge badge-danger">Down!</span>
 {% endif %}
@@ -25,9 +25,10 @@
         <div class="card-body">
             <h4 class="card-title">Statistics</h4>
             <p class="card-text">
+                {{connector.total_visitors}} Unique visitors<br />
                 {{connector.total_messages}} Messages ({{connector.undelivered_messages}} Undelivered {% if connector.undelivered_messages %}<a href="?force_connector_delivery={{connector.external_token}}">force</a>{% endif %}) </a><br />
                 {{connector.total_rooms}} Rooms ({{connector.open_rooms}} Open)<br />
-                {% if connector.last_message%} Last Message: {{connector.last_message}}{% endif %}
+                {% if connector.last_message%} Last Message: {{connector.last_message}} ({{connector.last_message|timesince}}){% endif %}
             </p>
         </div>
     </div>

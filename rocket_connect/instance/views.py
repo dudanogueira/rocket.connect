@@ -108,6 +108,7 @@ def server_detail_view(request, server_id):
         open_rooms=Count("rooms__id", Q(rooms__open=True), distinct=True),
         total_rooms=Count("rooms__id", distinct=True),
         last_message=Max("messages__created"),
+        total_visitors=Count("rooms__token", distinct=True),
     )
     context = {"server": server, "connectors": connectors, "alive": alive, "info": info}
     return render(request, "instance/server_detail_view.html", context)
