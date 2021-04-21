@@ -74,21 +74,21 @@ class Command(BaseCommand):
         # general settings are defined at docker env
         # create agents
 
-        for agent in ["agent1", "agent2"]:
+        for user in ["agent1", "agent2"]:
             data = {
-                "email": agent + "@agent1.com",
-                "name": agent,
-                "password": agent,
-                "username": agent,
+                "email": user + "@email.com",
+                "name": user,
+                "password": user,
+                "username": user,
             }
             agent1 = rocket.users_create(**data)
             if agent1.ok and agent1.json()["success"]:
-                print("Agent created: ", agent)
+                print("Agent created: ", user)
             # add agent1 as agent in omnichannel
             aa = {}
-            aa[agent] = rocket.livechat_create_user(user_type="agent", username=agent)
-            if aa[agent] and aa[agent].json()["success"]:
-                print("added as agent to livechat", agent)
+            aa[user] = rocket.livechat_create_user(user_type="agent", username=user)
+            if aa[user] and aa[user].json()["success"]:
+                print("added as agent to livechat", user)
                 # add WA-DEPARTMENT
                 # todo: add all agents to departaments
                 new_department = {
@@ -104,15 +104,32 @@ class Command(BaseCommand):
                     },
                     "agents": [
                         {
-                            "agentId": aa[agent].json()["user"]["_id"],
-                            "username": aa[agent].json()["user"]["username"],
+                            "agentId": aa[user].json()["user"]["_id"],
+                            "username": aa[user].json()["user"]["username"],
                             "count": 0,
                             "order": 0,
                         }
                     ],
                 }
                 rocket.call_api_post("livechat/department", **new_department)
+
+        for user in ["manager1", "manager2"]:
+            data = {
+                "email": user + "@email.com",
+                "name": user + " Full Name",
+                "password": user,
+                "username": user,
+            }
+            agent1 = rocket.users_create(**data)
+            if agent1.ok and agent1.json()["success"]:
+                print("Manager created: ", user)
+            # add user as Manager in omnichannel
+            aa = {}
+            aa[user] = rocket.livechat_create_user(user_type="manager", username=user)
+
+        #
         # create bot
+        #
         data = {
             "email": "bot@bot.com",
             "name": "Bot",
