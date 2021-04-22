@@ -316,7 +316,8 @@ class Connector(object):
             envelope_id=self.get_message_id(), type=self.type
         )
         self.message_object.raw_message = self.message
-        self.message_object.room = self.room
+        if not self.message_object.room:
+            self.message_object.room = self.room
         self.message_object.save()
         if settings.DEBUG:
             if created:

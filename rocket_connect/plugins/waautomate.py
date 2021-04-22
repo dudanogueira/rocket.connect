@@ -191,17 +191,21 @@ class Connector(ConnectorBase):
 
         # state changed
         if self.message.get("event") == "onStateChanged":
+            # for some reason, some times, the lib sends this very frequently
+            # https://github.com/open-wa/wa-automate-nodejs/issues/949
+            if self.message.get("data") not in ["TIMEOUT", "CONNECTED"]:
+                self.rocket = self.get_rocket_client()
+                if not self.rocket:
+                    return HttpResponse("Rocket Down!", status=503)
 
-            self.rocket = self.get_rocket_client()
-            if not self.rocket:
-                return HttpResponse("Rocket Down!", status=503)
-
-            text_message = ":information_source:\n:satellite: {0} > {1}: {2} ".format(
-                self.message.get("sessionId"),
-                self.message.get("event"),
-                self.message.get("data"),
-            )
-            self.outcome_admin_message(text_message)
+                text_message = (
+                    ":information_source:\n:satellite: {0} > {1}: {2} ".format(
+                        self.message.get("sessionId"),
+                        self.message.get("event"),
+                        self.message.get("data"),
+                    )
+                )
+                self.outcome_admin_message(text_message)
 
         # incoming call
         if self.message.get("event") == "onIncomingCall":
