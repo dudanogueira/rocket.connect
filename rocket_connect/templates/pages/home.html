@@ -24,7 +24,7 @@
         You have no servers configured
     {% endif %}
 {% else %}
-    Register now.
+    Register now. Or <a href="{% url 'account_login' %}?next=/">Login</a>
 {% endif %}
 
 {% endblock content %}

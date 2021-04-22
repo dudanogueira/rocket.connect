@@ -13,20 +13,30 @@ class Command(BaseCommand):
         admin.set_password("admin")
         admin.is_superuser = True
         admin.is_staff = True
+        admin.email = "admin@admin.com"
         admin.save()
+        # create email to avoid asking at first login
+        email, created = admin.emailaddress_set.get_or_create(email="admin@admin.com")
+        email.verified = True
+        email.primary = True
+        email.save()
         # create default server and default connector
         server, server_created = Server.objects.get_or_create(
             name="rocketchat_dev_server"
         )
         if server_created:
-            server.url = "http://rocketchat:3000"
-            server.admin_user = "admin"
-            server.admin_password = "admin"
-            server.bot_user = "bot"
-            server.bot_password = "bot"
-            server.managers = "admin"
-            server.external_token = "SERVER_EXTERNAL_TOKEN"
-            server.save()
+            print("SERVER CREATED")
+        else:
+            print("SERVER UPDATED")
+        server.url = "http://rocketchat:3000"
+        server.admin_user = "admin"
+        server.admin_password = "admin"
+        server.bot_user = "bot"
+        server.bot_password = "bot"
+        server.managers = "admin"
+        server.external_token = "SERVER_EXTERNAL_TOKEN"
+        server.owners.add(admin)
+        server.save()
         # crete default 2 WA-automate connectors
         connectors2create = [
             {
