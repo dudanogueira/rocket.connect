@@ -5,8 +5,9 @@ from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.urls import include, path, re_path
 from django.views import defaults as default_views
 from django.views.generic import TemplateView
-from instance.views import connector_view, server_view
 from rest_framework.authtoken.views import obtain_auth_token
+
+from rocket_connect.instance import views
 
 urlpatterns = [
     path("", TemplateView.as_view(template_name="pages/home.html"), name="home"),
@@ -18,9 +19,10 @@ urlpatterns = [
     # User management
     path("users/", include("rocket_connect.users.urls", namespace="users")),
     path("accounts/", include("allauth.urls")),
+    path("instance/", include("rocket_connect.instance.urls", namespace="instance")),
     # Your stuff: custom urls includes go here
-    re_path(r"^connector/(?P<connector_id>\w+)/?$", connector_view),
-    re_path(r"^server/(?P<server_id>\w+)/?$", server_view),
+    re_path(r"^connector/(?P<connector_id>\w+)/?$", views.connector_endpoint),
+    re_path(r"^server/(?P<server_id>\w+)/?$", views.server_endpoint),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 if settings.DEBUG:
     # Static file serving when using Gunicorn + Uvicorn for local web socket development

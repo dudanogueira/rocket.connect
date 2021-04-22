@@ -1,5 +1,7 @@
 import uuid
 
+from django.apps import apps
+from django.conf import settings
 from django.db import models
 from rocketchat_API.rocketchat import RocketChat
 
@@ -41,8 +43,52 @@ class Server(models.Model):
             return ",".join(managers)
         return managers
 
+    def get_open_rooms(self):
+        rocket = self.get_rocket_client()
+        rooms = rocket.livechat_rooms(open="true")
+        if rooms.ok:
+            return rooms.json()["rooms"]
+        else:
+            return []
+
+    def sync_open_rooms(self, default_connector=None, filter_token=None):
+        """This method will get the open rooms, filter by a word in token
+        and recreate the rooms binded to the default connector.
+        The idea is to help on a migration where the actual open rooms has no
+        reference at Rocket Connect
+        """
+        rooms = self.get_open_rooms()
+        for room in rooms:
+            if filter_token:
+                # pass if do not match filter
+                if filter_token not in room.get("v", {}).get("token"):
+                    pass
+                else:
+                    LiveChatRoom = apps.get_model("envelope.LiveChatRoom")
+                    room_item, created = LiveChatRoom.objects.get_or_create(
+                        connector=default_connector,
+                        token=room.get("v", {}).get("token"),
+                        room_id=room.get("_id", {}),
+                    )
+                    room_item.open = True
+                    room_item.save()
+                    if created:
+                        print("ROOM CREATED:", room["v"]["token"])
+                    else:
+                        print("ROOM UPDATED:", room["v"]["token"])
+
+    def force_delivery(self):
+        """
+        this method will force the intake of every undelivered message
+        """
+        for connector in self.connectors.all():
+            connector.force_delivery()
+
     uuid = models.UUIDField(default=uuid.uuid4, editable=False)
-    external_token = models.CharField(max_length=50, default=random_string)
+    owners = models.ManyToManyField(
+        settings.AUTH_USER_MODEL, related_name="servers", blank=True
+    )
+    external_token = models.CharField(max_length=50, default=random_string, unique=True)
     secret_token = models.CharField(max_length=50, null=True, blank=True)
     name = models.CharField(max_length=50)
     enabled = models.BooleanField(default=True)
@@ -120,8 +166,17 @@ class Connector(models.Model):
             return ",".join(managers)
         return managers
 
+    def force_delivery(self):
+        messages = self.messages.filter(delivered=False)
+        for message in messages:
+            c = message.get_connector()
+            if c.type == "incoming":
+                c.incoming()
+            else:
+                c.ingoing()
+
     uuid = models.UUIDField(default=uuid.uuid4, editable=False)
-    external_token = models.CharField(max_length=50, default=random_string)
+    external_token = models.CharField(max_length=50, default=random_string, unique=True)
     name = models.CharField(
         max_length=50, help_text="Connector Name, ex: LAB PHONE (+55 33 9 99851212)"
     )
@@ -139,6 +194,7 @@ class Connector(models.Model):
     config = models.JSONField(
         blank=True, null=True, help_text="Connector General configutarion"
     )
+    enabled = models.BooleanField(default=True)
     # meta
     created = models.DateTimeField(
         blank=True, auto_now_add=True, verbose_name="Created"

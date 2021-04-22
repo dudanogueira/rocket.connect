@@ -2,7 +2,6 @@ import json
 import uuid
 
 from django.db import models
-from instance.models import Connector
 
 
 class LiveChatRoom(models.Model):
@@ -15,7 +14,7 @@ class LiveChatRoom(models.Model):
 
     uuid = models.UUIDField(default=uuid.uuid4, editable=False)
     connector = models.ForeignKey(
-        Connector, on_delete=models.CASCADE, related_name="rooms"
+        "instance.Connector", on_delete=models.CASCADE, related_name="rooms"
     )
     token = models.CharField(max_length=50, blank=True, null=True)
     room_id = models.CharField(max_length=50, blank=True, null=True)
@@ -56,7 +55,7 @@ class Message(models.Model):
         null=True,
     )
     connector = models.ForeignKey(
-        Connector, on_delete=models.CASCADE, related_name="messages"
+        "instance.Connector", on_delete=models.CASCADE, related_name="messages"
     )
     raw_message = models.JSONField(
         blank=True, null=True, help_text="the message that first came to be connected"
@@ -68,7 +67,7 @@ class Message(models.Model):
         default=dict,
     )
     response = models.JSONField(blank=True, null=True, default=dict)
-    delivered = models.BooleanField(null=True)
+    delivered = models.BooleanField(default=False)
     # meta
     created = models.DateTimeField(
         blank=True, auto_now_add=True, verbose_name="Created"

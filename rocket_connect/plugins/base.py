@@ -93,14 +93,15 @@ class Connector(object):
             url = "{0}/api/v1/livechat/upload/{1}".format(
                 self.connector.server.url, room_id
             )
-            print(url)
             deliver = requests.post(url, headers=headers, files=files)
             timestamp = int(time.time())
             self.message_object.payload[timestamp] = {
                 "data": "sent attached file to rocketchat"
             }
             self.message_object.response[timestamp] = deliver.json()
+            self.message_object.delivered = deliver.ok
             self.message_object.save()
+
             return deliver
 
     def outcome_text(self, room_id, text):
@@ -123,7 +124,9 @@ class Connector(object):
             self.message_object.save()
             # room can be closed on RC and open here
             r = deliver.json()
-            if r["error"] in ["room-closed", "invalid-room"]:
+            # TODO: when sending a message already sent, rocket doesnt return a identifiable message
+            # file a bug, and test it more
+            if r.get("error", "") in ["room-closed", "invalid-room", "invalid-token"]:
                 self.room_close_and_reintake(self.room)
             return deliver
 
@@ -154,17 +157,21 @@ class Connector(object):
         return img_str
 
     def outcome_admin_message(self, text):
-        rocket = self.get_rocket_client(bot=True)
         managers = self.connector.get_managers()
-        im_room = rocket.im_create(username="", usernames=managers)
-        response = im_room.json()
-        text_message = ":rocket:CONNECT {0}".format(text)
-        if response["success"]:
-            rocket.chat_post_message(
-                alias=self.connector.name,
-                text=text_message,
-                room_id=response["room"]["rid"],
-            )
+        if self.get_rocket_client():
+            im_room = self.rocket.im_create(username="", usernames=managers)
+            response = im_room.json()
+            if settings.DEBUG:
+                print("CREATE ADMIN ROOM TO OUTCOME", im_room.json())
+            text_message = ":rocket:CONNECT {0}".format(text)
+            if response["success"]:
+                if settings.DEBUG:
+                    print("SENDING ADMIN MESSAGE")
+                self.rocket.chat_post_message(
+                    alias=self.connector.name,
+                    text=text_message,
+                    room_id=response["room"]["rid"],
+                )
 
     def get_visitor_name(self):
         try:
@@ -254,8 +261,7 @@ class Connector(object):
             # get the visitor json
             visitor_json = self.get_visitor_json()
             # get the visitor object
-            rocket = self.get_rocket_client()
-            visitor_object = rocket.livechat_register_visitor(
+            visitor_object = self.rocket.livechat_register_visitor(
                 visitor=visitor_json, token=connector_token
             )
             response = visitor_object.json()
@@ -264,7 +270,7 @@ class Connector(object):
             # we got a new room
             # this is where you can hook some "welcoming features"
             if response["success"]:
-                rc_room = rocket.livechat_room(token=connector_token)
+                rc_room = self.rocket.livechat_room(token=connector_token)
                 rc_room_response = rc_room.json()
                 if settings.DEBUG:
                     print("REGISTERING ROOM, ", rc_room_response)
@@ -354,8 +360,17 @@ class Connector(object):
         # this will prevent multiple client initiation at the same
         # Classe initiation
         if not self.rocket:
-            self.rocket = self.connector.server.get_rocket_client(bot=bot)
+            try:
+                self.rocket = self.connector.server.get_rocket_client(bot=bot)
+            except requests.exceptions.ConnectionError:
+                # do something when rocketdown
+                self.rocket_down()
+                self.rocket = False
         return self.rocket
+
+    def rocket_down(self):
+        if settings.DEBUG:
+            print("DO SOMETHING FOR WHEN ROCKETCHAT SERVER IS DOWN")
 
     def joypixel_to_unicode(self, content):
         return emojipy.Emoji().shortcode_to_unicode(content)
@@ -426,13 +441,21 @@ class Connector(object):
 
             # prepare message to be sent to client
             for message in self.message.get("messages", []):
+                agent_name = self.get_agent_name(message)
                 if message.get("attachments", {}):
                     # send file
-                    self.outgo_file_message(message)
+                    self.outgo_file_message(message, agent_name=agent_name)
                 else:
-                    self.outgo_text_message(message)
+                    self.outgo_text_message(message, agent_name=agent_name)
 
                 # closing message
                 if message.get("closingMessage"):
                     # TODO: add custom closing message
                     self.close_room()
+
+    def get_agent_name(self, message):
+        agent_name = message.get("u", {}).get("name", {})
+        return self.change_agent_name(agent_name)
+
+    def change_agent_name(self, agent_name):
+        return agent_name

@@ -27,68 +27,149 @@ class Command(BaseCommand):
             server.managers = "admin"
             server.external_token = "SERVER_EXTERNAL_TOKEN"
             server.save()
-        # crete default connector
+        # crete default 2 WA-automate connectors
+        connectors2create = [
+            {
+                "external_token": "CONNECTOR_EXTERNAL_TOKEN1",
+                "endpoint": "http://waautomate1:8002",
+                "name": "WA instance1",
+                "manager": "manager1,agent1",
+            },
+            {
+                "external_token": "CONNECTOR_EXTERNAL_TOKEN2",
+                "endpoint": "http://waautomate2:8002",
+                "name": "WA instance2",
+                "manager": "manager2,agent2",
+            },
+        ]
+        for c2c in connectors2create:
+
+            connector, connector_created = server.connectors.get_or_create(
+                external_token=c2c["external_token"]
+            )
+            connector.name = c2c["name"]
+            connector.connector_type = "waautomate"
+            connector.department = "WA-DEPARTMENT"
+            connector.managers = c2c["manager"]
+            connector.config = {
+                "api_key": "super_secret_key",
+                "endpoint": c2c["endpoint"],
+                "auto_answer_incoming_call": "Sorry, this number is for text messages only! "
+                + "Please, call to (XX) XXXX-XXXX for voice support",
+                "convert_incoming_call_to_text": "User tried to call",
+                "auto_answer_on_audio_message": "Sorry, this number do not support Audio Messages! "
+                + "Please, call to (XX) XXXX-XXXX for voice support",
+                "convert_incoming_audio_to_text": "User sent audio",
+                "chat_after_close_action": "archive",
+            }
+            connector.save()
+            if connector_created:
+                print("CONNECTOR CREATED: ", c2c)
+            else:
+                print("CONNECTOR UPDATED: ", c2c)
+
+        # create default 1 facebook connector
         connector, connector_created = server.connectors.get_or_create(
-            name="wa-automate", external_token="CONNECTOR_EXTERNAL_TOKEN"
+            external_token="FACEBOOK_DEV_CONNECTOR"
         )
-        connector.connector_type = "waautomate"
-        connector.department = "WA-DEPARTMENT"
-        connector.managers = "agent1"
         connector.config = {
-            "api_key": "super_secret_key",
-            "endpoint": "http://waautomate:8002",
-            "auto_answer_incoming_call": "Sorry, this number is for text messages only! "
-            + "Please, call to (XX) XXXX-XXXX for voice support",
-            "convert_incoming_call_to_text": "User tried to call",
-            "auto_answer_on_audio_message": "Sorry, this number do not support Audio Messages! "
-            + "Please, call to (XX) XXXX-XXXX for voice support",
-            "convert_incoming_audio_to_text": "User sent audio",
-            "chat_after_close_action": "archive",
+            "verify_token": "verify_token",
+            "access_token": "generate this",
         }
+        connector.name = "FACEBOOK CONNECTOR"
+        connector.connector_type = "facebook"
+        connector.managers = "agent1,manager1"
+        connector.department = "FACEBOOK-DEPARTMENT"
         connector.save()
+        if connector_created:
+            print("CONNECTOR CREATED: ", connector)
+        else:
+            print("CONNECTOR UPDATED: ", connector)
 
     def handle_rocketchat(self):
         server = Server.objects.first()
         rocket = server.get_rocket_client()
         # general settings are defined at docker env
-        # create agent1
-        data = {
-            "email": "agent1@agent1.com",
-            "name": "Agent 1",
-            "password": "agent1",
-            "username": "agent1",
-        }
-        agent1 = rocket.users_create(**data)
-        if agent1.ok and agent1.json()["success"]:
-            print("Agent 1 user created")
-        # add agent1 as agent in omnichannel
-        aa = rocket.livechat_create_user(user_type="agent", username="agent1")
-        if aa.ok and aa.json()["success"]:
-            print("Agent 1 added as agent")
-            # add WA-DEPARTMENT
+        # create agents
 
-            new_department = {
-                "department": {
-                    "_id": "department_test",
-                    "enabled": True,
-                    "showOnRegistration": True,
-                    "showOnOfflineForm": True,
-                    "email": "wa-department@email.com",
-                    "name": "WA-DEPARTMENT",
-                    "description": """wa-automate department, as configured on \n
-                    WA Connector at Rocket Connect (http://127.0.0.1:8000/admin/instance/connector/1/change/)""",
-                },
-                "agents": [
-                    {
-                        "agentId": aa.json()["user"]["_id"],
-                        "username": aa.json()["user"]["username"],
-                        "count": 0,
-                        "order": 0,
-                    }
-                ],
+        for user in ["agent1", "agent2"]:
+            data = {
+                "email": user + "@email.com",
+                "name": user,
+                "password": user,
+                "username": user,
             }
-            rocket.call_api_post("livechat/department", **new_department)
+            agent1 = rocket.users_create(**data)
+            if agent1.ok and agent1.json()["success"]:
+                print("Agent created: ", user)
+            # add agent1 as agent in omnichannel
+            aa = {}
+            aa[user] = rocket.livechat_create_user(user_type="agent", username=user)
+            if aa[user] and aa[user].json()["success"]:
+                print("added as agent to livechat", user)
+                # add WA-DEPARTMENT
+                # todo: add all agents to departaments
+                new_department = {
+                    "department": {
+                        "_id": "wa_automate_department",
+                        "enabled": True,
+                        "showOnRegistration": True,
+                        "showOnOfflineForm": True,
+                        "email": "wa-department@email.com",
+                        "name": "WA-DEPARTMENT",
+                        "description": """wa-automate department created by dev_settings""",
+                    },
+                    "agents": [
+                        {
+                            "agentId": aa[user].json()["user"]["_id"],
+                            "username": aa[user].json()["user"]["username"],
+                            "count": 0,
+                            "order": 0,
+                        }
+                    ],
+                }
+                rocket.call_api_post("livechat/department", **new_department)
+                #
+                # ADD FACEBOOK DEPARTMENT
+                #
+                new_department = {
+                    "department": {
+                        "_id": "facebook_department",
+                        "enabled": True,
+                        "showOnRegistration": True,
+                        "showOnOfflineForm": True,
+                        "email": "facebook@email.com",
+                        "name": "FACEBOOK-DEPARTMENT",
+                        "description": """facebook department created by dev_settings""",
+                    },
+                    "agents": [
+                        {
+                            "agentId": aa[user].json()["user"]["_id"],
+                            "username": aa[user].json()["user"]["username"],
+                            "count": 0,
+                            "order": 0,
+                        }
+                    ],
+                }
+                rocket.call_api_post("livechat/department", **new_department)
+
+        for user in ["manager1", "manager2"]:
+            data = {
+                "email": user + "@email.com",
+                "name": user + " Full Name",
+                "password": user,
+                "username": user,
+            }
+            agent1 = rocket.users_create(**data)
+            if agent1.ok and agent1.json()["success"]:
+                print("Manager created: ", user)
+            # add user as Manager in omnichannel
+            aa = {}
+            aa[user] = rocket.livechat_create_user(user_type="manager", username=user)
+
+        #
         # create bot
+        #
         data = {
             "email": "bot@bot.com",
             "name": "Bot",
