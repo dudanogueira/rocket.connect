@@ -7,7 +7,7 @@ Run the development stack
 To run the development stack, you must haver docker and docker compose properly installed. You should run
     ::
     
-        docker-compose -f local.yml up
+        docker-compose -f local.yml up -d
 
 
 We have created a nice management command to setup everything for you:
@@ -33,4 +33,14 @@ If you access Rocket Chat, as admin, you should see new direct messages popping 
 .. figure:: wa-launch-messages.png
 
 At the end, you should see the QR CODE, that should be scanned with the device you want to PAIR.
+
+Inside RocketChat
+----------------------------------------------------------------------
+
+To receive medias, its necessary to change the URL inside RocketChat.
+
+Go to:
+Administration -> General -> Site URL and put your IP address or valid URL.
+
+
 
