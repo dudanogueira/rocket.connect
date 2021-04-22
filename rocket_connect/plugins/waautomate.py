@@ -144,9 +144,22 @@ class Connector(ConnectorBase):
                     # TEXT ONLY MESSAGE
                     #
                     else:
-                        deliver = self.outcome_text(
-                            room.room_id, self.get_message_body()
-                        )
+                        if self.message.get("data", {}).get("quotedMsg"):
+                            if (
+                                self.message.get("data", {})
+                                .get("quotedMsg")
+                                .get("type")
+                                == "chat"
+                            ):
+                                message = "_ IN RESPONSE TO: {0} _\n {1}".format(
+                                    self.message.get("data", {})
+                                    .get("quotedMsg")
+                                    .get("body"),
+                                    self.get_message_body(),
+                                )
+                        else:
+                            message = self.get_message_body()
+                        deliver = self.outcome_text(room.room_id, message)
                         if settings.DEBUG:
                             print("DELIVER OF TEXT MESSAGE:", deliver.ok)
 
