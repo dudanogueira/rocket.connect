@@ -8,5 +8,6 @@
     "stats": true,
     "headful": false,
     "disableSpins": true,
-    "browserWSEndpoint": "http://browser:3000"
+    "browserWSEndpoint": "http://browser:3000",
+    "noKillOnLogout": false
 }

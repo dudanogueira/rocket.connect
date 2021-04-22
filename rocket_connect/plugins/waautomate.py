@@ -334,19 +334,59 @@ class Connector(ConnectorBase):
         return r.json().get("response", {})
 
     def outgo_text_message(self, message, agent_name=None):
-        # message may not have an agent
-        if agent_name:
-            content = "*[" + agent_name + "]*\n" + message["msg"]
+        # rocketchat reply message
+        quoted_message = None
+        if message["msg"][0:3] == "[ ]":
+            if settings.DEBUG:
+                print("MESSAGE IS REPLY")
+            # rocketchat reply messages be like:
+            # '[ ](http://127.0.0.1:3000/live/X4LBZsCGETBzDxfM2?msg=LbpTduzFvJnrctk85) asdasdas
+            # message id is, like, LbpTduzFvJnrctk85
+            message_id = message["msg"].split(")")[0].split("=")[1]
+            try:
+                # try to get message from RC
+                quoted_message = self.connector.messages.get(envelope_id=message_id)
+                content = message["msg"].split(")")[1].strip()
+                # define the message id.
+                # if its ingoing (from RC to WA), the correct ID will be at the response
+                if quoted_message.type == "ingoing":
+                    quoted_message_id = quoted_message.response[
+                        next(iter(quoted_message.response))
+                    ]["response"]
+                else:
+                    # otherwise, its the envelope_id
+                    quoted_message_id = message_id
+
+            except self.connector.messages.model.DoesNotExist:
+                pass
         else:
             content = message["msg"]
+
+        # message may not have an agent
+        if agent_name:
+            content = "*[" + agent_name + "]*\n" + content
+
         # replace emojis
+        if quoted_message:
+            url = self.connector.config["endpoint"] + "/reply"
+            payload = {
+                "args": {
+                    "to": self.get_visitor_id(),
+                    "content": content,
+                    "sendSeen": True,
+                    "quotedMsgId": quoted_message_id,
+                }
+            }
+        else:
+            payload = {"args": {"to": self.get_visitor_id(), "content": content}}
+            url = self.connector.config["endpoint"] + "/sendText"
+
         content = self.joypixel_to_unicode(content)
-        payload = {"args": {"to": self.get_visitor_id(), "content": content}}
         if settings.DEBUG:
             print("outgo payload", payload)
 
         session = self.get_request_session()
-        url = self.connector.config["endpoint"] + "/sendText"
+
         self.full_simulate_typing()
         timestamp = int(time.time())
         try:
@@ -374,21 +414,24 @@ class Connector(ConnectorBase):
                 "url": message["fileUpload"]["publicFilePath"],
                 "filename": message["attachments"][0]["title"],
                 "caption": message["attachments"][0].get("description"),
-                "waitForId": False,
+                "waitForId": True,
                 "withoutPreview": False,
                 "ptt": ppt,
             }
         }
         if settings.DEBUG:
-            print("PAYLOAD OUTGING FILE: ", payload)
+            print("PAYLOAD OUTGOING FILE: ", payload)
         session = self.get_request_session()
         url = self.connector.config["endpoint"] + "/sendFileFromUrl"
         self.full_simulate_typing()
         sent = session.post(url, json=payload)
         if sent.ok:
-            self.message_object.payload = payload
+            timestamp = int(time.time())
+            if settings.DEBUG:
+                print("RESPONSE OUTGOING FILE: ", sent.json())
+            self.message_object.payload[timestamp] = payload
             self.message_object.delivered = True
-            self.message_object.response = sent.json()
+            self.message_object.response[timestamp] = sent.json()
             self.message_object.save()
             self.send_seen()
 
