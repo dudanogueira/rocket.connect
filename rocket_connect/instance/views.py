@@ -99,6 +99,7 @@ def server_detail_view(request, server_id):
         # TODO: display message
         # TODO: do as task
         connector.force_delivery()
+        return redirect(reverse("instance:server_detail", args=[server.external_token]))
 
     connectors = server.connectors.distinct().annotate(
         undelivered_messages=Count(
