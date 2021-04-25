@@ -68,19 +68,21 @@ class Connector(ConnectorBase):
                         # we  got data
                         # HERE we send the media file
                         #
+                        # if caption, send it too
                         if data:
-                            file_sent = self.outcome_file(data, room.room_id, mime)
+                            file_sent = self.outcome_file(
+                                data,
+                                room.room_id,
+                                mime,
+                                description=self.message.get("data", {}).get(
+                                    "caption", None
+                                ),
+                            )
                         else:
                             file_sent = False
                         # if file was sent
                         if file_sent.ok:
                             self.message_object.delivered = True
-                        # if caption, send it too
-                        if self.message.get("data", {}).get("caption"):
-                            caption = self.message.get("data", {}).get("caption")
-                            deliver = self.outcome_text(
-                                text=caption, room_id=room.room_id
-                            )
 
                     #
                     # PTT / OGG / VOICE OVER WHATSAPP
@@ -145,18 +147,44 @@ class Connector(ConnectorBase):
                     #
                     else:
                         if self.message.get("data", {}).get("quotedMsg"):
-                            if (
+                            quote_type = (
                                 self.message.get("data", {})
                                 .get("quotedMsg")
                                 .get("type")
-                                == "chat"
-                            ):
-                                message = "_ IN RESPONSE TO: {0} _\n {1}".format(
+                            )
+                            if settings.DEBUG:
+                                print("MESSAGE IS A REPLY. TYPE: ", quote_type)
+                            if quote_type == "chat":
+                                quoted_body = (
                                     self.message.get("data", {})
                                     .get("quotedMsg")
-                                    .get("body"),
+                                    .get("body")
+                                )
+                                message = ":arrow_forward:  IN RESPONSE TO: {0} \n:envelope: {1}"
+                                message = message.format(
+                                    quoted_body,
                                     self.get_message_body(),
                                 )
+                            elif quote_type in ["document", "image", "ptt"]:
+                                message = "DOCUMENT RESENT:\n {0}".format(
+                                    self.get_message_body()
+                                )
+                                quoted_id = self.message.get("data", {}).get(
+                                    "quotedMsg"
+                                )["id"]
+                                quoted_mime = self.message.get("data", {}).get(
+                                    "quotedMsg"
+                                )["mimetype"]
+                                data = self.decrypt_media(quoted_id)
+                                # we  got data
+                                # HERE we send the media file
+                                #
+                                if data:
+                                    file_sent = self.outcome_file(
+                                        data, room.room_id, quoted_mime
+                                    )
+                                else:
+                                    file_sent = False
                         else:
                             message = self.get_message_body()
                         deliver = self.outcome_text(room.room_id, message)
@@ -351,15 +379,15 @@ class Connector(ConnectorBase):
         quoted_message = None
         if message["msg"][0:3] == "[ ]":
             if settings.DEBUG:
-                print("MESSAGE IS REPLY")
+                print("MESSAGE IS REPLY:", message)
             # rocketchat reply messages be like:
             # '[ ](http://127.0.0.1:3000/live/X4LBZsCGETBzDxfM2?msg=LbpTduzFvJnrctk85) asdasdas
             # message id is, like, LbpTduzFvJnrctk85
             message_id = message["msg"].split(")")[0].split("=")[1]
+            content = message["msg"].split(")")[1].strip()
             try:
                 # try to get message from RC
                 quoted_message = self.connector.messages.get(envelope_id=message_id)
-                content = message["msg"].split(")")[1].strip()
                 # define the message id.
                 # if its ingoing (from RC to WA), the correct ID will be at the response
                 if quoted_message.type == "ingoing":
@@ -372,6 +400,7 @@ class Connector(ConnectorBase):
 
             except self.connector.messages.model.DoesNotExist:
                 pass
+                # TODO: Alert agent that the reply did not work
         else:
             content = message["msg"]
 
