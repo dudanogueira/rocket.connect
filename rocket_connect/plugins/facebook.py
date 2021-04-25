@@ -127,13 +127,16 @@ class Connector(ConnectorBase):
         data = requests.get(url)
         if settings.DEBUG:
             print("GETTING FACEBOOK CONTACT: ", url)
-            print(
-                "GOT: ",
-            )
+            print("GOT: ", data.json())
         if data.ok:
             visitor_name = "{0} {1}".format(
                 data.json()["first_name"], data.json()["last_name"]
             )
+        else:
+            if settings.DEBUG:
+                print("COULD NOT CONNECTO TO FACEBOOK GRAPH API")
+            visitor_name = self.get_visitor_token()
+
         visitor_username = self.get_visitor_username()
         visitor_phone = ""
         visitor_token = self.get_visitor_token()
