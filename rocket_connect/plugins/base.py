@@ -73,7 +73,7 @@ class Connector(object):
                     description="Scan this QR Code at your Whatsapp Phone:",
                 )
 
-    def outcome_file(self, base64_data, room_id, mime, filename=None):
+    def outcome_file(self, base64_data, room_id, mime, filename=None, description=None):
         if settings.DEBUG:
             print("OUTCOMING FILE TO ROCKETCHAT")
         # prepare payload
@@ -89,15 +89,22 @@ class Connector(object):
         with tempfile.NamedTemporaryFile(suffix=extension) as tmp:
             tmp.write(filedata)
             headers = {"x-visitor-token": self.get_visitor_token()}
+            # TODO: its possible to set the description, by sending a field called description
+            # TODO: open an issue to be able to change the ID of the uploaded file like a message allows
             files = {"file": (filename, open(tmp.name, "rb"), mime)}
+            data = {}
+            if description:
+                data["description"] = description
             url = "{0}/api/v1/livechat/upload/{1}".format(
                 self.connector.server.url, room_id
             )
-            deliver = requests.post(url, headers=headers, files=files)
+            deliver = requests.post(url, headers=headers, files=files, data=data)
             timestamp = int(time.time())
             self.message_object.payload[timestamp] = {
                 "data": "sent attached file to rocketchat"
             }
+            if settings.DEBUG:
+                print("OUTCOME FILE RESPONSE: ", deliver.json())
             self.message_object.response[timestamp] = deliver.json()
             self.message_object.delivered = deliver.ok
             self.message_object.save()
@@ -302,6 +309,8 @@ class Connector(object):
         self.incoming()
 
     def room_send_text(self, room_id, text):
+        if settings.DEBUG:
+            print("SENDING MESSAGE TO ROOM ID {0}: {1}".format(room_id, text))
         rocket = self.get_rocket_client()
         response = rocket.livechat_message(
             token=self.get_visitor_token(),
@@ -309,6 +318,8 @@ class Connector(object):
             msg=text,
             _id=self.get_message_id(),
         )
+        if settings.DEBUG:
+            print("MESSAGE SENT. RESPONSE: ", response.json())
         return response
 
     def register_message(self):
@@ -377,9 +388,11 @@ class Connector(object):
         return emojipy.Emoji().shortcode_to_unicode(content)
 
     # API METHODS
-    def decrypt_media(self):
+    def decrypt_media(self, message_id=None):
+        if not message_id:
+            message_id = self.get_message_id()
         url_decrypt = "{0}/decryptMedia".format(self.config["endpoint"])
-        payload = {"args": {"message": self.get_message_id()}}
+        payload = {"args": {"message": message_id}}
         s = self.get_request_session()
         decrypted_data_request = s.post(url_decrypt, json=payload)
         # get decrypted data
