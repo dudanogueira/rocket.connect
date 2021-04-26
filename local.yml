@@ -26,6 +26,11 @@ services:
       - ./.envs/.local/.postgres
     ports:
       - "8000:8000"
+    healthcheck:
+      test: curl --fail http://localhost:8000
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
     command: /start
 
@@ -78,6 +83,8 @@ services:
       - postgres
       - mailhog
     ports: []
+    healthcheck:
+      disable: true
     command: /start-celeryworker
 
   celerybeat:
@@ -89,6 +96,8 @@ services:
       - postgres
       - mailhog
     ports: []
+    healthcheck:
+      disable: true
     command: /start-celerybeat
 
   flower:
@@ -97,6 +106,11 @@ services:
     container_name: flower
     ports:
       - "5555:5555"
+    healthcheck:
+      test: curl --fail http://localhost:5555
+      interval: 30s
+      timeout: 10s
+      retries: 3
     command: /start-flower
 
   rocketchat:

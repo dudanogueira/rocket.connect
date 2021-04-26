@@ -165,7 +165,7 @@ class Connector(object):
 
     def outcome_admin_message(self, text):
         managers = self.connector.get_managers()
-        if self.get_rocket_client():
+        if self.get_rocket_client(bot=True):
             im_room = self.rocket.im_create(username="", usernames=managers)
             response = im_room.json()
             if settings.DEBUG:

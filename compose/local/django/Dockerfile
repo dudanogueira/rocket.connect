@@ -12,6 +12,8 @@ RUN apt-get update \
   && apt-get install -y gettext \
   # QR TOOLS
   && apt-get install -y libzbar0 libzbar-dev \
+  # misc dependencies
+  && apt-get install -y curl \
   # cleaning up unused files
   && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false \
   && rm -rf /var/lib/apt/lists/*

@@ -29,6 +29,7 @@
         <div class="card-body">
             <h4 class="card-title">Statistics</h4>
             <p class="card-text">
+                Endpoint: https://THIS-SERVER/connector/{{connector.external_token}}/<br />
                 {{connector.total_visitors}} Unique visitors<br />
                 {{connector.total_messages}} Messages ({{connector.undelivered_messages}} Undelivered {% if connector.undelivered_messages %}<a href="?force_connector_delivery={{connector.external_token}}">force</a>{% endif %}) </a><br />
                 {{connector.total_rooms}} Rooms ({{connector.open_rooms}} Open)<br />

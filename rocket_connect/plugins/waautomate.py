@@ -522,3 +522,8 @@ class Connector(ConnectorBase):
             return " ".join([parts[0], parts[-1]])
         else:
             return agent_name
+
+    def get_visitor_name(self):
+        pushname = self.message.get("data", {}).get("sender", {}).get("pushname", None)
+        name = self.message.get("data", {}).get("sender", {}).get("name", None)
+        return pushname or name
