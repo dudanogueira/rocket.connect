@@ -9,6 +9,7 @@ from django.shortcuts import get_object_or_404, redirect, render, reverse
 from django.views.decorators.csrf import csrf_exempt
 from envelope.models import LiveChatRoom
 from instance.models import Connector, Server
+from rocketchat_API.APIExceptions.RocketExceptions import RocketAuthenticationException
 
 
 @csrf_exempt
@@ -84,13 +85,17 @@ def server_endpoint(request, server_id):
 def server_detail_view(request, server_id):
     server = get_object_or_404(Server.objects, external_token=server_id)
     # try to get the client
+    auth_error = False
+    alive = False
+    info = None
     try:
         client = server.get_rocket_client()
         alive = True
         info = client.info().json()
     except requests.ConnectionError:
-        alive = False
-        info = None
+        pass
+    except RocketAuthenticationException:
+        auth_error = True
     if request.GET.get("force_connector_delivery"):
         connector = get_object_or_404(
             server.connectors,
@@ -113,5 +118,11 @@ def server_detail_view(request, server_id):
         last_message=Max("messages__created"),
         total_visitors=Count("rooms__token", distinct=True),
     )
-    context = {"server": server, "connectors": connectors, "alive": alive, "info": info}
+    context = {
+        "server": server,
+        "connectors": connectors,
+        "alive": alive,
+        "info": info,
+        "auth_error": auth_error,
+    }
     return render(request, "instance/server_detail_view.html", context)

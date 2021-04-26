@@ -14,6 +14,10 @@
     <span class="badge badge-info">Version: {{info.info.version}}</span>
 {% else %}
     <span class="badge badge-danger">Down!</span>
+    {% if auth_error %}
+    <span class="badge badge-danger">AUTH ERROR!</span>
+    {% endif %}
+
 {% endif %}
 {% for connector in connectors %}
     <div class="card mb-3">
