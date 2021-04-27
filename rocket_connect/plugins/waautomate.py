@@ -528,4 +528,5 @@ class Connector(ConnectorBase):
         name = self.message.get("data", {}).get("sender", {}).get("name", None)
         name = pushname or name
         if not name:
-            return self.message.get("data", {}).get("sender", {}).get("id", None)
+            name = self.message.get("data", {}).get("sender", {}).get("id", None)
+        return name
