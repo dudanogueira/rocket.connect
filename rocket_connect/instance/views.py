@@ -60,7 +60,7 @@ def server_endpoint(request, server_id):
         #
         # roketchat test message
         #
-        if raw_message["_id"] == "fasd6f5a4sd6f8a4sdf":
+        if raw_message.get("_id") == "fasd6f5a4sd6f8a4sdf":
             return JsonResponse({})
         else:
             # process ingoing message
