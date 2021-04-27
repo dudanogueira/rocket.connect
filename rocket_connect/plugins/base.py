@@ -170,7 +170,7 @@ class Connector(object):
             response = im_room.json()
             if settings.DEBUG:
                 print("CREATE ADMIN ROOM TO OUTCOME", im_room.json())
-            text_message = ":rocket:CONNECT {0}".format(text)
+            text_message = ":rocket: CONNECT {0}".format(text)
             if response["success"]:
                 if settings.DEBUG:
                     print("SENDING ADMIN MESSAGE")
