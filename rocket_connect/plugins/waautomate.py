@@ -526,4 +526,6 @@ class Connector(ConnectorBase):
     def get_visitor_name(self):
         pushname = self.message.get("data", {}).get("sender", {}).get("pushname", None)
         name = self.message.get("data", {}).get("sender", {}).get("name", None)
-        return pushname or name
+        name = pushname or name
+        if not name:
+            return self.message.get("data", {}).get("sender", {}).get("id", None)
