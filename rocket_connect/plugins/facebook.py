@@ -245,3 +245,13 @@ class Connector(ConnectorBase):
                 agent_name = self.get_agent_name(message)
                 self.outgo_text_message(formatted_message, agent_name)
         self.message_object.save()
+
+    def change_agent_name(self, agent_name):
+        """
+        SHow only first and last name of those who has 3+ name parts
+        """
+        parts = agent_name.split(" ")
+        if len(parts) >= 2:
+            return " ".join([parts[0], parts[-1]])
+        else:
+            return agent_name
