@@ -515,7 +515,7 @@ class Connector(ConnectorBase):
 
     def change_agent_name(self, agent_name):
         """
-        SHow only first and last name of those how has 3 parts name
+        SHow only first and last name of those who has 3+ name parts
         """
         parts = agent_name.split(" ")
         if len(parts) >= 2:

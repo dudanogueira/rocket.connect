@@ -58,7 +58,7 @@
         <button class="navbar-toggler navbar-toggler-right" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
           <span class="navbar-toggler-icon"></span>
         </button>
-        <a class="navbar-brand" href="{% url 'home' %}">Rocket Connect</a>
+        <a class="navbar-brand" href="{% url 'home' %}">Rocket Connect {% if request.user.is_authenticated %}<small>v{{ROCKET_CONNECT_VERSION}}</small>{%endif%}</a>
 
         <div class="collapse navbar-collapse" id="navbarSupportedContent">
           <ul class="navbar-nav mr-auto">
@@ -75,8 +75,14 @@
               </li>
               <li class="nav-item">
                 {# URL provided by django-allauth/account/urls.py #}
-                <a class="nav-link" href="{% url 'account_logout' %}">{% trans "Sign Out" %}</a>
+                <a class="nav-link text-danger" href="{% url 'account_logout' %}">{% trans "Sign Out" %}</a>
               </li>
+              {% if request.user.is_staff %}
+              <li class="nav-item">
+                {# URL provided by django-allauth/account/urls.py #}
+                <a class="nav-link" href="{% url 'admin:index' %}">{% trans "Admin" %}</a>
+              </li>
+              {% endif %}
             {% else %}
               <li class="nav-item">
                 {# URL provided by django-allauth/account/urls.py #}
