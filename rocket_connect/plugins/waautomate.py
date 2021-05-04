@@ -524,9 +524,23 @@ class Connector(ConnectorBase):
             return agent_name
 
     def get_visitor_name(self):
+        token = self.message.get("data", {}).get("sender", {}).get("id", None)
         pushname = self.message.get("data", {}).get("sender", {}).get("pushname", None)
         name = self.message.get("data", {}).get("sender", {}).get("name", None)
         name = pushname or name
         if not name:
-            name = self.message.get("data", {}).get("sender", {}).get("id", None)
+            # try to get visitor name from api
+            # some times it doesn't get the name from the incoming
+            # message
+            payload = {"args": {"contactId": token}}
+            url = self.connector.config["endpoint"] + "/getContact"
+            session = self.get_request_session()
+            sent = session.post(url, json=payload)
+            if sent.ok:
+                push_name = sent.json().get("response", {}).get("pushname")
+                if push_name:
+                    name = push_name
+            else:
+                # last fallback, use id as name, as rocketchat requires a name.
+                name = self.message.get("data", {}).get("sender", {}).get("id", None)
         return name
