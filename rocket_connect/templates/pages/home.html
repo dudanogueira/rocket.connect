@@ -15,7 +15,7 @@
             </div>
             <div class="card-body">
                 <p class="card-text">
-                    <a name="" id="" class="btn btn-primary" href="{% url 'instance:server_detail' server.external_token %}" role="button">details</a>
+                    <a name="" id="" class="btn btn-primary" href="{% url 'instance:server_detail' server.external_token %}" role="button">{{server.connectors.count}} Connectors</a>
                 </p>
             </div>
         </div>
