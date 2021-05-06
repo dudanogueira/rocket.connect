@@ -2,6 +2,7 @@ import json
 
 import requests
 from django.conf import settings
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Max, Q
 from django.http import HttpResponse, JsonResponse
@@ -101,9 +102,25 @@ def server_detail_view(request, server_id):
             server.connectors,
             external_token=request.GET.get("force_connector_delivery"),
         )
-        # TODO: display message
         # TODO: do as task
-        connector.force_delivery()
+        undelivered_messages = connector.messages.filter(delivered=False)
+        for message in undelivered_messages:
+            message.force_delivery()
+            if message.delivered:
+                messages.success(
+                    request,
+                    "Sucess! Message #{0} was delivered at connector {1}".format(
+                        message.id, message.connector.name
+                    ),
+                )
+            else:
+                messages.error(
+                    request,
+                    "Error! Could not deliver Message #{0} at connector {1}".format(
+                        message.id, message.connector.name
+                    ),
+                )
+
         return redirect(reverse("instance:server_detail", args=[server.external_token]))
 
     connectors = server.connectors.distinct().annotate(
