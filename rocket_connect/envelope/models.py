@@ -44,6 +44,14 @@ class Message(models.Model):
         message = json.dumps(self.raw_message)
         return Connector(self.connector, message, self.type)
 
+    def force_delivery(self):
+        c = self.get_connector()
+        if c.type == "incoming":
+            c.incoming()
+        else:
+            c.ingoing()
+        return c.delivered
+
     uuid = models.UUIDField(default=uuid.uuid4, editable=False)
     type = models.CharField(max_length=50, choices=STAGE_CHOICES, default="incoming")
     envelope_id = models.CharField(max_length=100)

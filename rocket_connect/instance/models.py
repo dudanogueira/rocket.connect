@@ -169,11 +169,7 @@ class Connector(models.Model):
     def force_delivery(self):
         messages = self.messages.filter(delivered=False)
         for message in messages:
-            c = message.get_connector()
-            if c.type == "incoming":
-                c.incoming()
-            else:
-                c.ingoing()
+            message.force_delivery()
 
     uuid = models.UUIDField(default=uuid.uuid4, editable=False)
     external_token = models.CharField(max_length=50, default=random_string, unique=True)
