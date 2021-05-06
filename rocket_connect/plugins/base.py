@@ -109,6 +109,12 @@ class Connector(object):
             self.message_object.delivered = deliver.ok
             self.message_object.save()
 
+            if self.connector.config.get(
+                "outcome_attachment_description_as_new_message", True
+            ):
+                if description:
+                    self.outcome_text(room_id, description)
+
             return deliver
 
     def outcome_text(self, room_id, text):

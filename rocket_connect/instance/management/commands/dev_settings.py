@@ -71,6 +71,8 @@ class Command(BaseCommand):
                 + "Please, call to (XX) XXXX-XXXX for voice support",
                 "convert_incoming_audio_to_text": "User sent audio",
                 "chat_after_close_action": "archive",
+                "outcome_message_with_quoted_message": False,
+                "outcome_attachment_description_as_new_message": False,
             }
             connector.save()
             if connector_created:

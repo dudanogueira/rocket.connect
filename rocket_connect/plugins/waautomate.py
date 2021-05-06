@@ -94,7 +94,12 @@ class Connector(ConnectorBase):
                         if self.message.get("data", {}).get("type") == "sticker":
                             if settings.DEBUG:
                                 print("STICKER! ")
-                                self.room_send_text(room.room_id, "User sent sticker")
+                                send_sticker_message = self.room_send_text(
+                                    room.room_id, "User sent sticker"
+                                )
+                                if send_sticker_message.ok:
+                                    self.message_object.delivered = True
+                                    self.message_object.save()
                         else:
                             mime = self.message.get("data", {}).get("mimetype")
                             if "audio/ogg" in mime:
@@ -160,11 +165,16 @@ class Connector(ConnectorBase):
                                     .get("quotedMsg")
                                     .get("body")
                                 )
-                                message = ":arrow_forward:  IN RESPONSE TO: {0} \n:envelope: {1}"
-                                message = message.format(
-                                    quoted_body,
-                                    self.get_message_body(),
-                                )
+                                if self.connector.config.get(
+                                    "outcome_message_with_quoted_message", True
+                                ):
+                                    message = ":arrow_forward:  IN RESPONSE TO: {0} \n:envelope: {1}"
+                                    message = message.format(
+                                        quoted_body,
+                                        self.get_message_body(),
+                                    )
+                                else:
+                                    message = self.get_message_body()
                             elif quote_type in ["document", "image", "ptt"]:
                                 message = "DOCUMENT RESENT:\n {0}".format(
                                     self.get_message_body()
@@ -543,4 +553,5 @@ class Connector(ConnectorBase):
             else:
                 # last fallback, use id as name, as rocketchat requires a name.
                 name = self.message.get("data", {}).get("sender", {}).get("id", None)
-        return name
+        # for some reason, the business account is not getting the name correctly
+        return name or token
