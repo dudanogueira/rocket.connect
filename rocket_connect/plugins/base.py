@@ -89,7 +89,6 @@ class Connector(object):
         with tempfile.NamedTemporaryFile(suffix=extension) as tmp:
             tmp.write(filedata)
             headers = {"x-visitor-token": self.get_visitor_token()}
-            # TODO: its possible to set the description, by sending a field called description
             # TODO: open an issue to be able to change the ID of the uploaded file like a message allows
             files = {"file": (filename, open(tmp.name, "rb"), mime)}
             data = {}
@@ -431,8 +430,6 @@ class Connector(object):
         if self.message.get("type") == "LivechatSessionStart":
             if settings.DEBUG:
                 print("LivechatSessionStart")
-            # todo: mark as seen
-            # todo: simulate typing
             # some welcome message may fit here
         if self.message.get("type") == "LivechatSession":
             #
