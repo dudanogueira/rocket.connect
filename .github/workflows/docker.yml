@@ -21,7 +21,7 @@ jobs:
       -
         name: Docker meta
         id: meta
-        uses: crazy-max/ghaction-docker-meta@v2
+        uses: crazy-max/ghaction-docker-meta@v3
         with:
           images: dudanogueira/rocket.connect
       -
