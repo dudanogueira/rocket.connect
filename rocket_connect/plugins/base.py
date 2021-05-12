@@ -267,6 +267,16 @@ class Connector(object):
                 connector=self.connector, token=connector_token, open=True
             )
             print("get_room, got: ", room)
+        except LiveChatRoom.MultipleObjectsReturned:
+            # this should not happen. Mitigation for issue #12
+            # TODO: replicate error at development
+            return (
+                LiveChatRoom.objects.filter(
+                    connector=self.connector, token=connector_token, open=True
+                )
+                .order_by("-created")
+                .last()
+            )
         except LiveChatRoom.DoesNotExist:
             print("get_room, didnt get for: ", connector_token)
             # room not available, let's create one.
