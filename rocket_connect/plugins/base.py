@@ -53,6 +53,8 @@ class Connector(object):
         rocket = self.get_rocket_client(bot=True)
         # create im for managers
         managers = self.connector.get_managers()
+        if settings.DEBUG:
+            print("GOT MANAGERS: ", managers)
         im_room = rocket.im_create(username="", usernames=managers)
         response = im_room.json()
         if response["success"]:
@@ -170,6 +172,8 @@ class Connector(object):
 
     def outcome_admin_message(self, text):
         managers = self.connector.get_managers()
+        if settings.DEBUG:
+            print("GOT MANAGERS: ", managers)
         if self.get_rocket_client(bot=True):
             im_room = self.rocket.im_create(username="", usernames=managers)
             response = im_room.json()

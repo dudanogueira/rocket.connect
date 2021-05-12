@@ -41,7 +41,7 @@ class Server(models.Model):
         managers.append(self.bot_user)
         if as_string:
             return ",".join(managers)
-        return managers
+        return list(set(managers))
 
     def get_open_rooms(self):
         rocket = self.get_rocket_client()
@@ -162,6 +162,7 @@ class Connector(models.Model):
         if self.managers:
             connector_managers = self.managers.split(",")
             managers.extend(connector_managers)
+        managers = list(set(managers))
         if as_string:
             return ",".join(managers)
         return managers
