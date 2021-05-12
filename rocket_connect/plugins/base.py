@@ -221,11 +221,9 @@ class Connector(object):
         department = self.connector.department
 
         visitor = {
-            "name": visitor_name,
             "username": visitor_username,
             "token": visitor_token,
             "phone": visitor_phone,
-            "department": department,
             "customFields": [
                 {
                     "key": "whatsapp_name",
@@ -239,8 +237,12 @@ class Connector(object):
                 },
             ],
         }
-        if not department:
-            del visitor["department"]
+        if department:
+            visitor["department"] = department
+        if visitor_name and not self.connector.config.get(
+            "supress_visitor_name", False
+        ):
+            visitor["name"] = visitor_name
         if settings.DEBUG:
             print("GOT VISITOR JSON: ", visitor)
 
