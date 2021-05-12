@@ -239,6 +239,11 @@ class Connector(object):
                 },
             ],
         }
+        if not department:
+            del visitor["department"]
+        if settings.DEBUG:
+            print("GOT VISITOR JSON: ", visitor)
+
         return visitor
 
     def get_incoming_visitor_id(self):
