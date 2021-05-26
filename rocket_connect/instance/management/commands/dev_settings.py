@@ -73,6 +73,7 @@ class Command(BaseCommand):
                 "chat_after_close_action": "archive",
                 "outcome_message_with_quoted_message": False,
                 "outcome_attachment_description_as_new_message": False,
+                "supress_visitor_name": False,
             }
             connector.save()
             if connector_created:

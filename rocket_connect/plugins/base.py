@@ -243,6 +243,7 @@ class Connector(object):
             "supress_visitor_name", False
         ):
             visitor["name"] = visitor_name
+
         if settings.DEBUG:
             print("GOT VISITOR JSON: ", visitor)
 
