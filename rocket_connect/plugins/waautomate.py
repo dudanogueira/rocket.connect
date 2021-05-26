@@ -546,7 +546,7 @@ class Connector(ConnectorBase):
             url = self.connector.config["endpoint"] + "/getContact"
             session = self.get_request_session()
             sent = session.post(url, json=payload)
-            if sent.ok:
+            if sent.ok and sent.json():
                 push_name = sent.json().get("response", {}).get("pushname")
                 if push_name:
                     name = push_name

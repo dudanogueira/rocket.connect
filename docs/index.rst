@@ -13,6 +13,7 @@ Welcome to Rocket Connect's documentation!
    howto
    howitworks
    connectors
+   deploy
 
 
 
