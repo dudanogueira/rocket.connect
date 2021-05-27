@@ -8,6 +8,8 @@ volumes:
   local_rocket_db_config: {}
   local_rocket_db_dump: {}
   local_waautomate_data: {}
+  local_venom_simple_api_data: {}
+  nodemodules: {}
 
 services:
   django: &django
@@ -223,3 +225,11 @@ services:
       - browser
     ports:
       - "8002:8002"
+
+  venom_simple_api1:
+    build:
+        context: ./compose/local/venom_simple_api
+    volumes:
+      - local_venom_simple_api_data:/usr/src/app/tokens
+      - ./compose/local/venom_simple_api:/usr/src/app
+      - nodemodules:/usr/src/app/node_modules

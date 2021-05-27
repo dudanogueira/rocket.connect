@@ -44,12 +44,21 @@ class Command(BaseCommand):
                 "endpoint": "http://waautomate1:8002",
                 "name": "WA instance1",
                 "manager": "manager1,agent1",
+                "connector_type": "waautomate",
             },
             {
                 "external_token": "CONNECTOR_EXTERNAL_TOKEN2",
                 "endpoint": "http://waautomate2:8002",
                 "name": "WA instance2",
                 "manager": "manager2,agent2",
+                "connector_type": "waautomate",
+            },
+            {
+                "external_token": "VENOM_CONNECTOR",
+                "endpoint": "http://venom_simple_api1:8092",
+                "name": "VENOM DEV CONNECTOR",
+                "manager": "manager1,agent1",
+                "connector_type": "venom_simple_api",
             },
         ]
         for c2c in connectors2create:
@@ -58,7 +67,7 @@ class Command(BaseCommand):
                 external_token=c2c["external_token"]
             )
             connector.name = c2c["name"]
-            connector.connector_type = "waautomate"
+            connector.connector_type = c2c["connector_type"]
             connector.department = "WA-DEPARTMENT"
             connector.managers = c2c["manager"]
             connector.config = {

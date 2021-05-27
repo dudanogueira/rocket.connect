@@ -26,4 +26,4 @@ Run the `full development stack <https://rocketconnect.readthedocs.io/en/latest/
 Deploy it yourself!
 ---------------
 
-Want to deploy? `We have a cookie for you! <https://rocketconnect.readthedocs.io/en/latest/deploy.html>`_
+Want to deploy? `We have a cookie for you! <https://github.com/dudanogueira/rocketconnect.cookiecutter>`_
