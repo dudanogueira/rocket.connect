@@ -123,19 +123,26 @@ def server_detail_view(request, server_id):
 
         return redirect(reverse("instance:server_detail", args=[server.external_token]))
 
-    connectors = server.connectors.distinct().annotate(
-        undelivered_messages=Count(
-            "messages__id",
-            Q(messages__delivered=False) | Q(messages__delivered=None),
-            distinct=True,
-        ),
-        total_messages=Count("messages__id", distinct=True),
-        open_rooms=Count("rooms__id", Q(rooms__open=True), distinct=True),
-        total_rooms=Count("rooms__id", distinct=True),
-        last_message=Max("messages__created"),
-        total_visitors=Count("rooms__token", distinct=True),
+    connectors = (
+        server.connectors.distinct()
+        .annotate(
+            undelivered_messages=Count(
+                "messages__id",
+                Q(messages__delivered=False) | Q(messages__delivered=None),
+                distinct=True,
+            ),
+            # total_messages=Count("messages__id", distinct=True),
+            # open_rooms=Count("rooms__id", Q(rooms__open=True), distinct=True),
+            # total_rooms=Count("rooms__id", distinct=True),
+            last_message=Max("messages__created"),
+            # total_visitors=Count("rooms__token", distinct=True),
+        )
+        .order_by("-id")
     )
+    uri = request.build_absolute_uri()
+    base_uri = uri.replace(request.get_full_path(), "")
     context = {
+        "base_uri": base_uri,
         "server": server,
         "connectors": connectors,
         "alive": alive,

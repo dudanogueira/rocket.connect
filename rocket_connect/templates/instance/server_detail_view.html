@@ -19,6 +19,7 @@
     {% endif %}
 
 {% endif %}
+
 {% for connector in connectors %}
     <div class="card mb-3">
         <div class="card-header">
@@ -29,10 +30,8 @@
         <div class="card-body">
             <h4 class="card-title">Statistics</h4>
             <p class="card-text">
-                Endpoint: https://THIS-SERVER/connector/{{connector.external_token}}/<br />
-                {{connector.total_visitors}} Unique visitors<br />
-                {{connector.total_messages}} Messages ({{connector.undelivered_messages}} Undelivered {% if connector.undelivered_messages %}<a href="?force_connector_delivery={{connector.external_token}}">force</a>{% endif %}) </a><br />
-                {{connector.total_rooms}} Rooms ({{connector.open_rooms}} Open)<br />
+                Endpoint: {{base_uri}}/connector/{{connector.external_token}}/<br />
+                {{connector.undelivered_messages}} Undelivered Messages {% if connector.undelivered_messages %}<a class="btn btn-danger btn-sm" href="?force_connector_delivery={{connector.external_token}}">force</a>{% endif %} </a><br />
                 {% if connector.last_message%} Last Message: {{connector.last_message}} ({{connector.last_message|timesince}}){% endif %}
             </p>
         </div>
