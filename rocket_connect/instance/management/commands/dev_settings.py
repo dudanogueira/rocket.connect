@@ -74,6 +74,7 @@ class Command(BaseCommand):
                 "outcome_message_with_quoted_message": False,
                 "outcome_attachment_description_as_new_message": False,
                 "supress_visitor_name": False,
+                "force_close_message": "This is a default closing message per connector.",
             }
             connector.save()
             if connector_created:

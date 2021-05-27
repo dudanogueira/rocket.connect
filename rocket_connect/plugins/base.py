@@ -425,7 +425,9 @@ class Connector(object):
         # get decrypted data
         data = None
         if decrypted_data_request.ok:
-            data = decrypted_data_request.json()["response"].split(",")[1]
+            response = decrypted_data_request.json().get("response", None)
+            if response:
+                data = response.split(",")[1]
         return data
 
     def close_room(self):
@@ -481,16 +483,22 @@ class Connector(object):
             # prepare message to be sent to client
             for message in self.message.get("messages", []):
                 agent_name = self.get_agent_name(message)
-                if message.get("attachments", {}):
-                    # send file
-                    self.outgo_file_message(message, agent_name=agent_name)
-                else:
-                    self.outgo_text_message(message, agent_name=agent_name)
-
                 # closing message
                 if message.get("closingMessage"):
-                    # TODO: add custom closing message
-                    self.close_room()
+                    if self.connector.config.get(
+                        "force_close_message",
+                    ):
+                        message["msg"] = self.connector.config["force_close_message"]
+                    if message.get("msg"):
+                        self.outgo_text_message(message, agent_name=agent_name)
+                        self.close_room()
+                else:
+                    # regular message, maybe with attach
+                    if message.get("attachments", {}):
+                        # send file
+                        self.outgo_file_message(message, agent_name=agent_name)
+                    else:
+                        self.outgo_text_message(message, agent_name=agent_name)
 
     def get_agent_name(self, message):
         agent_name = message.get("u", {}).get("name", {})
