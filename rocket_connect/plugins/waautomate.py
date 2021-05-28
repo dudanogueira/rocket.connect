@@ -1,6 +1,7 @@
 import json
 import random
 import time
+import urllib.parse as urlparse
 
 import requests
 from django.conf import settings
@@ -470,7 +471,7 @@ class Connector(ConnectorBase):
             self.connector.server.url
             + message["attachments"][0]["title_link"]
             + "?"
-            + message["fileUpload"]["publicFilePath"].split("?")[1]
+            + urlparse.urlparse(message["fileUpload"]["publicFilePath"]).query
         )
 
         payload = {
