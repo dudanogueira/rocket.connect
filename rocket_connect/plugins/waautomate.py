@@ -460,10 +460,23 @@ class Connector(ConnectorBase):
         ppt = False
         if message["file"]["type"] == "audio/mpeg":
             ppt = True
+
+        # to avoid some networking problems,
+        # we use the same url as the configured one, as some times
+        # the url to get the uploaded file may be different
+        # eg: the publicFilePath is public, but waautomate is running inside
+        # docker
+        file_url = (
+            self.connector.server.url
+            + message["attachments"][0]["title_link"]
+            + "?"
+            + message["fileUpload"]["publicFilePath"].split("?")[1]
+        )
+
         payload = {
             "args": {
                 "to": self.get_visitor_id(),
-                "url": message["fileUpload"]["publicFilePath"],
+                "url": file_url,
                 "filename": message["attachments"][0]["title"],
                 "caption": message["attachments"][0].get("description"),
                 "waitForId": True,
