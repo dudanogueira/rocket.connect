@@ -79,11 +79,11 @@ class Connector(ConnectorBase):
                                     "caption", None
                                 ),
                             )
+                            if file_sent.ok:
+                                self.message_object.delivered = True
+                                self.message_object.save()
                         else:
                             file_sent = False
-                        # if file was sent
-                        if file_sent.ok:
-                            self.message_object.delivered = True
 
                     #
                     # PTT / OGG / VOICE OVER WHATSAPP
