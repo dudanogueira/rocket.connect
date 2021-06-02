@@ -23,12 +23,29 @@ class Server(models.Model):
         this will return a working ROCKETCHAT_API instance
         """
         if bot:
-            user = self.bot_user
-            pwd = self.bot_password
+            if self.bot_user_id and self.bot_user_token:
+                rocket = RocketChat(
+                    auth_token=self.bot_user_token,
+                    user_id=self.bot_user_id,
+                    server_url=self.url,
+                )
+            else:
+                rocket = RocketChat(
+                    self.bot_user, self.bot_password, server_url=self.url
+                )
         else:
-            user = self.admin_user
-            pwd = self.admin_password
-        rocket = RocketChat(user, pwd, server_url=self.url)
+            if self.admin_user_id and self.admin_user_token:
+                rocket = RocketChat(
+                    auth_token=self.admin_user_token,
+                    user_id=self.admin_user_id,
+                    server_url=self.url,
+                )
+
+            else:
+                rocket = RocketChat(
+                    self.admin_user, self.admin_password, server_url=self.url
+                )
+
         return rocket
 
     def get_managers(self, as_string=True):
@@ -95,8 +112,13 @@ class Server(models.Model):
     url = models.CharField(max_length=150)
     admin_user = models.CharField(max_length=50)
     admin_password = models.CharField(max_length=50)
+    admin_user_id = models.CharField(max_length=50, blank=True)
+    admin_user_token = models.CharField(max_length=50, blank=True)
     bot_user = models.CharField(max_length=50)
     bot_password = models.CharField(max_length=50)
+    bot_user_id = models.CharField(max_length=50, blank=True)
+    bot_user_token = models.CharField(max_length=50, blank=True)
+
     managers = models.CharField(
         max_length=50, help_text="separate users with comma, eg: user1,user2,user3"
     )
