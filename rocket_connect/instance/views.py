@@ -1,3 +1,4 @@
+import datetime
 import json
 
 import requests
@@ -5,6 +6,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Max, Q
+from django.db.models.functions import TruncDay
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render, reverse
 from django.views.decorators.csrf import csrf_exempt
@@ -150,3 +152,55 @@ def server_detail_view(request, server_id):
         "auth_error": auth_error,
     }
     return render(request, "instance/server_detail_view.html", context)
+
+
+@login_required(login_url="/accounts/login/")
+@must_be_yours
+def connector_analyze_messages(request, server_id, connector_id):
+    connector = get_object_or_404(
+        Connector.objects, server__external_token=server_id, external_token=connector_id
+    )
+    if request.GET.get("date") or request.GET.get("action"):
+        date = datetime.datetime.strptime(request.GET.get("date"), "%Y-%m-%d")
+        undelivered_messages = connector.messages.filter(
+            created__date=date, delivered=False
+        )
+        if request.GET.get("action") == "force_delivery":
+            for message in undelivered_messages:
+                message.force_delivery()
+                if message.delivered:
+                    messages.success(
+                        request,
+                        "Sucess! Message #{0} was delivered at connector {1}".format(
+                            message.id, connector.name
+                        ),
+                    )
+                else:
+                    messages.error(
+                        request,
+                        "Error! Could not deliver Message #{0} at connector {1}".format(
+                            message.id, connector.name
+                        ),
+                    )
+        if request.GET.get("action") == "mark_as_delivered":
+            undelivered_messages.update(delivered=True)
+        return redirect(
+            reverse(
+                "instance:connector_force_delivery",
+                args=[connector.server.external_token, connector.external_token],
+            )
+        )
+
+    messages_undelivered_by_date = (
+        connector.messages.filter(delivered=False)
+        .annotate(date=TruncDay("created"))
+        .values("date")
+        .annotate(created_count=Count("id"))
+        .order_by("-date")
+    )
+
+    context = {
+        "connector": connector,
+        "messages_undelivered_by_date": messages_undelivered_by_date,
+    }
+    return render(request, "instance/connector_force_delivery_view.html", context)

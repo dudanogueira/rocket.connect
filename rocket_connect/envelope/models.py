@@ -50,7 +50,7 @@ class Message(models.Model):
             c.incoming()
         else:
             c.ingoing()
-        return self.delivered
+        return c.message_object.delivered
 
     uuid = models.UUIDField(default=uuid.uuid4, editable=False)
     type = models.CharField(max_length=50, choices=STAGE_CHOICES, default="incoming")

@@ -17,8 +17,8 @@
     {% if auth_error %}
     <span class="badge badge-danger">AUTH ERROR!</span>
     {% endif %}
-
 {% endif %}
+<span class="badge badge-secondary">endpoint: {{base_uri}}/server/{{server.external_token}}/</span>
 
 {% for connector in connectors %}
     <div class="card mb-3">
@@ -28,10 +28,9 @@
             </h2>
         </div>
         <div class="card-body">
-            <h4 class="card-title">Statistics</h4>
+            <a class="btn btn-primary btn-bg" href="{% url 'instance:connector_analyze_messages' connector.server.external_token connector.external_token %}">analyze</a><br />
             <p class="card-text">
                 Endpoint: {{base_uri}}/connector/{{connector.external_token}}/<br />
-                {{connector.undelivered_messages}} Undelivered Messages {% if connector.undelivered_messages %}<a class="btn btn-danger btn-sm" href="?force_connector_delivery={{connector.external_token}}">force</a>{% endif %} </a><br />
                 {% if connector.last_message%} Last Message: {{connector.last_message}} ({{connector.last_message|timesince}}){% endif %}
             </p>
         </div>
