@@ -156,10 +156,12 @@ def server_detail_view(request, server_id):
 
 @login_required(login_url="/accounts/login/")
 @must_be_yours
-def connector_analyze_messages(request, server_id, connector_id):
+def connector_analyze(request, server_id, connector_id):
     connector = get_object_or_404(
         Connector.objects, server__external_token=server_id, external_token=connector_id
     )
+    undelivered_messages = None
+    date = None
     if request.GET.get("date") or request.GET.get("action"):
         date = datetime.datetime.strptime(request.GET.get("date"), "%Y-%m-%d")
         undelivered_messages = connector.messages.filter(
@@ -184,23 +186,31 @@ def connector_analyze_messages(request, server_id, connector_id):
                     )
         if request.GET.get("action") == "mark_as_delivered":
             undelivered_messages.update(delivered=True)
-        return redirect(
-            reverse(
-                "instance:connector_force_delivery",
-                args=[connector.server.external_token, connector.external_token],
+        if request.GET.get("action") == "show":
+            # we want to show the messages, so just pass
+            # as the other actions will redirect
+            pass
+        else:
+            return redirect(
+                reverse(
+                    "instance:connector_analyze",
+                    args=[connector.server.external_token, connector.external_token],
+                )
             )
-        )
 
     messages_undelivered_by_date = (
         connector.messages.filter(delivered=False)
         .annotate(date=TruncDay("created"))
         .values("date")
         .annotate(created_count=Count("id"))
+        .annotate(room_count=Count("room__room_id", distinct=True))
         .order_by("-date")
     )
 
     context = {
         "connector": connector,
         "messages_undelivered_by_date": messages_undelivered_by_date,
+        "undelivered_messages": undelivered_messages,
+        "date": date,
     }
-    return render(request, "instance/connector_force_delivery_view.html", context)
+    return render(request, "instance/connector_analyze.html", context)
