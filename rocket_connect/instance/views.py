@@ -169,11 +169,11 @@ def connector_analyze(request, server_id, connector_id):
         )
         if request.GET.get("action") == "force_delivery":
             for message in undelivered_messages:
-                message.force_delivery()
-                if message.delivered:
+                delivery_happened = message.force_delivery()
+                if delivery_happened:
                     messages.success(
                         request,
-                        "Sucess! Message #{0} was delivered at connector {1}".format(
+                        "Success! Message #{0} was delivered at connector {1}".format(
                             message.id, connector.name
                         ),
                     )
