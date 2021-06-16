@@ -211,10 +211,9 @@ services:
     ports:
       - "8001:8002"
 
-  venom_simple_api1:
+  wppconnect:
     build:
-        context: ./compose/local/venom_simple_api
-    volumes:
-      - local_venom_simple_api_data:/usr/src/app/tokens
-      - ./compose/local/venom_simple_api:/usr/src/app
-      - nodemodules:/usr/src/app/node_modules
+        context: ./compose/local/wppconnect
+    entrypoint: docker-entrypoint.sh yarn dev
+    ports:
+      - "21465:21465"
