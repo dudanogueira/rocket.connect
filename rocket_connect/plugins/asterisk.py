@@ -6,6 +6,12 @@ from asterisk.models import Call
 
 from .base import Connector as ConnectorBase
 
+# TODO:
+# - register and relate transfered calls (previous calls)
+# - count how many transfers occurred
+# - Detect unanswered direct calls
+# - Detect voice mail
+
 
 class Connector(ConnectorBase):
     def incoming(self):
