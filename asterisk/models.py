@@ -18,6 +18,7 @@ class Call(models.Model):
     queue = models.CharField(max_length=50, null=True, blank=True)
     agent = models.CharField(max_length=50, null=True, blank=True)
     caller = models.CharField(max_length=50, blank=True, null=True)
+    caller_left_queue = models.BooleanField(default=False)
     # metadata
     created = models.DateTimeField(
         blank=True, auto_now_add=True, verbose_name="Created"
