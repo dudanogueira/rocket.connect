@@ -25,11 +25,12 @@ def main():
         secret=ASTERISK_PASSWORD,
     )
 
+    @manager.register_event("QueueCallerLeave")
     @manager.register_event("AgentCalled")
     @manager.register_event("AgentConnect")
     @manager.register_event("AgentComplete")
     @manager.register_event("AgentDump")
-    @manager.register_event("AgentRingNoAnswer")
+    # @manager.register_event("AgentRingNoAnswer")
     # @manager.register_event('MessageWaiting')
     # @manager.register_event('UserEvent')
     async def callback_agent(manager, message):
@@ -37,7 +38,7 @@ def main():
 
     @manager.register_event("Hangup")
     async def callback_hangup(manager, message):
-        # hangup from queue
+        # hangup from queue, external only
         if message.context == "ext-queues":
             fire(message)
 
