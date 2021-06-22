@@ -24,12 +24,12 @@ class CallAdmin(admin.ModelAdmin):
         "updated",
     )
     list_filter = (
-        "previous_call",
         "answered",
         "hangup",
         "created",
         "updated",
     )
+    date_hierarchy = "created"
     inlines = [
         MessagesInline,
     ]
