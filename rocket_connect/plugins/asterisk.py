@@ -82,7 +82,7 @@ class Connector(ConnectorBase):
                 try:
                     linked_call = Call.objects.get(unique_id=linked_id)
                     self.call.previous_call = linked_call
-                except Call.objects.DoesNotExist:
+                except Call.DoesNotExist:
                     pass
 
         self.call.caller = self.message.get("CallerIDNum")
