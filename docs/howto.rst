@@ -85,5 +85,5 @@ we will always try to deliver all clients to test with.
 For WA-AUTOMATE, the dev environment has two wa-automate containers, using the same browser container. This command will restart all that stack, and kick off the initialize settings
     ::
     
-        docker-compose -f local.yml restart waautomate1 browser
+        docker-compose -f local.yml restart waautomate browser
 

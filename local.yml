@@ -195,7 +195,7 @@ services:
         USE_CHROME_STABLE: 'true'
         NODE_ENV: 'production'
 
-  waautomate1:
+  waautomate:
     # waautomate options ar at  ./compose/local/waautomate/cli.config.json
     build:
       context: ./compose/local/waautomate
