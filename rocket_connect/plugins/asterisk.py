@@ -1,18 +1,17 @@
 import datetime
+import json
 
 import pytz
+from asterisk.models import Call
 from django.conf import settings
 from django.http import JsonResponse
 from django.template import Context, Template
-
-from asterisk.models import Call
 
 from .base import Connector as ConnectorBase
 
 # TODO:
 # - count how many transfers occurred
 # - Detect unanswered direct calls
-# - Detect voice mail
 
 
 class Connector(ConnectorBase):
@@ -62,6 +61,15 @@ class Connector(ConnectorBase):
                 call, created = self.get_call()
                 # register message
                 call.messages.create(json=self.message)
+
+        # voicemail
+        if unique_id and self.message.get("Event") in [
+            "MessageWaiting",
+        ]:
+            # only of caller id
+            if self.message.get("CallerIDNum"):
+                self.hook_voicemail()
+
         return JsonResponse({})
 
     def get_call(self):
@@ -95,9 +103,7 @@ class Connector(ConnectorBase):
         # identify the notify list
 
         notify_map = []
-        caller_leave_message = self.call.messages.create(json=self.message)
-        print("DEBUG! CREATING CALL MESSAGE: ", self.message)
-        print("DEBUG! call message id ", caller_leave_message.id)
+        self.call.messages.create(json=self.message)
         if self.connector.config.get("queue_notify_map"):
             queue = self.message.get("Queue")
             # wild card
@@ -119,9 +125,9 @@ class Connector(ConnectorBase):
                 tzinfo=pytz.utc
             )
             local_dt = local_tz.normalize(utc_dt.astimezone(local_tz))
-            waitseconds = (
-                datetime.datetime.now(pytz.timezone(self.timezone)) - self.call.created
-            )
+            waitseconds = datetime.datetime.now(pytz.timezone(self.timezone)).replace(
+                microsecond=0
+            ) - self.call.created.replace(microsecond=0)
             # render the temaplate with the call info
             enriched_message = self.message
             enriched_message["now"] = datetime.datetime.now(
@@ -130,9 +136,10 @@ class Connector(ConnectorBase):
             enriched_message["call_initiated"] = local_dt
             enriched_message["waitseconds"] = waitseconds
             context = Context(enriched_message)
-            template = Template(self.config.get("queue_notify_template"))
+            template = Template(self.config.get("notify_abandoned_queue_template"))
             rendered_template = template.render(context)
             for notify in notify_map:
+                print("DEBUG! NOTIFY LOOK:, ", notify)
                 # get rocket client at self.rocket as bot
                 self.get_rocket_client(bot=True)
 
@@ -147,7 +154,7 @@ class Connector(ConnectorBase):
                     post = self.rocket.chat_post_message(
                         channel=notify, text=rendered_template
                     )
-                    if post.json.get("error") == "error-not-allowed":
+                    if post.json().get("error") == "error-not-allowed":
                         # bot may not be at the channel. Send as admin
                         rocket = self.get_rocket_client(bot=True)
                         post = rocket.chat_post_message(
@@ -164,3 +171,32 @@ class Connector(ConnectorBase):
                     self.rocket.chat_post_message(
                         channel=room_id, text=rendered_template
                     )
+
+    def hook_voicemail(self):
+        extension = self.message.get("Mailbox").split("@")[0]
+        # get user extension custom field
+        extension_field = self.config.get("extension_user_custom_field", "ramal")
+        self.get_rocket_client(bot=True)
+        # search user by extension
+        query = {"customFields": {extension_field: extension}}
+        users_with_extension = self.rocket.users_list(query=json.dumps(query))
+        # render the template message
+        enriched_message = self.message
+        enriched_message["extension"] = extension
+        enriched_message["now"] = datetime.datetime.now(pytz.timezone(self.timezone))
+        context = Context(enriched_message)
+        default_template = "You've got a new Voicemail from Caller {{CallerIDNum}} at extension {{extension}} and "
+        +"time {{now|date:'SHORT_DATETIME_FORMAT'}}. You have now {{New}} new message{{New|pluralize}} and {{Old}} "
+        +"old{{New|pluralize}}"
+        template = Template(
+            self.config.get("notify_voicemail_template", default_template)
+        )
+        rendered_template = template.render(context)
+        users_found = users_with_extension.json().get("users")
+        if users_found:
+            # send message to user, if found any
+            for user in users_found:
+                room = self.rocket.im_create(username=user["username"])
+                room_id = room.json()["room"]["rid"]
+                print("ROOM ID ", room_id)
+                self.rocket.chat_post_message(channel=room_id, text=rendered_template)

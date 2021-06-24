@@ -46,20 +46,6 @@ class Command(BaseCommand):
                 "manager": "manager1,agent1",
                 "connector_type": "waautomate",
             },
-            {
-                "external_token": "CONNECTOR_EXTERNAL_TOKEN2",
-                "endpoint": "http://waautomate2:8002",
-                "name": "WA instance2",
-                "manager": "manager2,agent2",
-                "connector_type": "waautomate",
-            },
-            {
-                "external_token": "VENOM_CONNECTOR",
-                "endpoint": "http://venom_simple_api1:8092",
-                "name": "VENOM DEV CONNECTOR",
-                "manager": "manager1,agent1",
-                "connector_type": "venom_simple_api",
-            },
         ]
         for c2c in connectors2create:
 
@@ -90,6 +76,29 @@ class Command(BaseCommand):
                 print("CONNECTOR CREATED: ", c2c)
             else:
                 print("CONNECTOR UPDATED: ", c2c)
+
+        # create default asterisk
+        connector, connector_created = server.connectors.get_or_create(
+            external_token="ASTERISK_CONNECTOR"
+        )
+        connector.config = {
+            "queue_notify_map": {"*": "admin", "5002": "agent1,agent2,#general"},
+            "userevent_context_filter": ["satisfacao-atendimento"],
+            "notify_voicemail_template": "You've got a new Voicemail from Caller {{CallerIDNum}} at extension "
+            + "{{extension}} and time {{now|date:'SHORT_DATETIME_FORMAT'}}. You have now {{New}} new "
+            + "message{{New|pluralize}} and {{Old}} old{{New|pluralize}}",
+            "notify_abandoned_queue_template": "A Queue Call was abandoned by the caller just now "
+            + "({{now|date:'SHORT_DATETIME_FORMAT'}}). Caller: {{CallerIDName}} <{{CallerIDNum}}> at Queue {{Queue}}."
+            + "The position at queue was {{Position}} and the caller waited for {{waitseconds}}",
+        }
+        connector.name = "ASTERISK CONNECTOR"
+        connector.connector_type = "asterisk"
+        connector.managers = "agent1,manager1"
+        connector.save()
+        if connector_created:
+            print("CONNECTOR CREATED: ", connector)
+        else:
+            print("CONNECTOR UPDATED: ", connector)
 
         # create default 1 facebook connector
         connector, connector_created = server.connectors.get_or_create(

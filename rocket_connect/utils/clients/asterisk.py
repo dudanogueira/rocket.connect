@@ -31,7 +31,7 @@ def main():
     @manager.register_event("AgentComplete")
     @manager.register_event("AgentDump")
     # @manager.register_event("AgentRingNoAnswer")
-    # @manager.register_event('MessageWaiting')
+    @manager.register_event("MessageWaiting")
     # @manager.register_event('UserEvent')
     async def callback_agent(manager, message):
         fire(message)
