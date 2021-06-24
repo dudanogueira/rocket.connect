@@ -41,7 +41,7 @@ class Command(BaseCommand):
         connectors2create = [
             {
                 "external_token": "CONNECTOR_EXTERNAL_TOKEN1",
-                "endpoint": "http://waautomate1:8002",
+                "endpoint": "http://waautomate:8002",
                 "name": "WA instance1",
                 "manager": "manager1,agent1",
                 "connector_type": "waautomate",
