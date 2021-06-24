@@ -17,10 +17,14 @@ Rocket Connect - An agnostic connector for Rocket Chat
      :alt: Black code style
 
 
-Come develope with us!
+Come develop with us!
 ---------------
 
 Run the `full development stack <https://rocketconnect.readthedocs.io/en/latest/howto.html#run-the-development-stack>`_ with Rocket Connect, Rocket Chat and WA-AUTOMATE
+
+Support
+------
+Come hangup with us at our telegram channel: https://t.me/RocketConnector
 
 
 Deploy it yourself!
