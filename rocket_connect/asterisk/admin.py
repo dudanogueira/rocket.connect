@@ -14,6 +14,7 @@ class CallAdmin(admin.ModelAdmin):
     list_display = (
         "id",
         "unique_id",
+        "caller_left_queue",
         "previous_call",
         "answered",
         "hangup",
@@ -24,6 +25,7 @@ class CallAdmin(admin.ModelAdmin):
         "updated",
     )
     list_filter = (
+        "caller_left_queue",
         "answered",
         "hangup",
         "created",
