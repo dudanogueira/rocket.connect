@@ -185,9 +185,11 @@ class Connector(ConnectorBase):
         enriched_message["extension"] = extension
         enriched_message["now"] = datetime.datetime.now(pytz.timezone(self.timezone))
         context = Context(enriched_message)
-        default_template = "You've got a new Voicemail from Caller {{CallerIDNum}} at extension {{extension}} and "
-        +"time {{now|date:'SHORT_DATETIME_FORMAT'}}. You have now {{New}} new message{{New|pluralize}} and {{Old}} "
-        +"old{{New|pluralize}}"
+        default_template = (
+            "You've got a new Voicemail from Caller {{CallerIDNum}} at extension {{extension}} and "
+            + "time {{now|date:'SHORT_DATETIME_FORMAT'}}. You have now {{New}} new message{{New|pluralize}} and {{Old}}"
+            + " old{{New|pluralize}}"
+        )
         template = Template(
             self.config.get("notify_voicemail_template", default_template)
         )
