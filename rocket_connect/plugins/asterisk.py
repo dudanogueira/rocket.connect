@@ -167,10 +167,11 @@ class Connector(ConnectorBase):
                             self.message,
                         )
                     room = self.rocket.im_create(username=notify)
-                    room_id = room.json()["room"]["rid"]
-                    self.rocket.chat_post_message(
-                        channel=room_id, text=rendered_template
-                    )
+                    if room:
+                        room_id = room.json()["room"]["rid"]
+                        self.rocket.chat_post_message(
+                            channel=room_id, text=rendered_template
+                        )
 
     def hook_voicemail(self):
         extension = self.message.get("Mailbox").split("@")[0]
