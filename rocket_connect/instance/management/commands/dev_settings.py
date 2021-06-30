@@ -77,7 +77,9 @@ class Command(BaseCommand):
             else:
                 print("CONNECTOR UPDATED: ", c2c)
 
+        #
         # create default asterisk
+        #
         connector, connector_created = server.connectors.get_or_create(
             external_token="ASTERISK_CONNECTOR"
         )
@@ -94,6 +96,29 @@ class Command(BaseCommand):
         connector.name = "ASTERISK CONNECTOR"
         connector.connector_type = "asterisk"
         connector.managers = "agent1,manager1"
+        connector.save()
+        if connector_created:
+            print("CONNECTOR CREATED: ", connector)
+        else:
+            print("CONNECTOR UPDATED: ", connector)
+
+        #
+        # create default wppconnect
+        #
+
+        connector, connector_created = server.connectors.get_or_create(
+            external_token="WPP_EXTERNAL_TOKEN"
+        )
+        connector.config = {
+            "webhook": "http://django:8000/connector/WPP_EXTERNAL_TOKEN/",
+            "endpoint": "http://wppconnect:21465",
+            "secret_key": "My53cr3tKY",
+            "instance_name": "test",
+        }
+        connector.name = "WPPCONNECT CONNECTOR"
+        connector.connector_type = "wppconnect"
+        connector.managers = "agent1,manager1"
+        connector.department = "WPPCONNECT-DEPARTMENT"
         connector.save()
         if connector_created:
             print("CONNECTOR CREATED: ", connector)
@@ -173,6 +198,29 @@ class Command(BaseCommand):
                         "email": "facebook@email.com",
                         "name": "FACEBOOK-DEPARTMENT",
                         "description": """facebook department created by dev_settings""",
+                    },
+                    "agents": [
+                        {
+                            "agentId": aa[user].json()["user"]["_id"],
+                            "username": aa[user].json()["user"]["username"],
+                            "count": 0,
+                            "order": 0,
+                        }
+                    ],
+                }
+                rocket.call_api_post("livechat/department", **new_department)
+                #
+                # ADD WPPCONNECT DEPARTMENT
+                #
+                new_department = {
+                    "department": {
+                        "_id": "wppconnect_department",
+                        "enabled": True,
+                        "showOnRegistration": True,
+                        "showOnOfflineForm": True,
+                        "email": "wppconnect@email.com",
+                        "name": "WPPCONNECT-DEPARTMENT",
+                        "description": """wppconect department created by dev_settings""",
                     },
                     "agents": [
                         {

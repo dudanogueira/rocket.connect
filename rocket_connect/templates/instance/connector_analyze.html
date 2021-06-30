@@ -10,6 +10,32 @@
     {{connector}} <span class="text-{{ connector.enabled|yesno:'success,danger' }}">{{ connector.enabled|yesno:"Active,Inactive" }}</span>
 </h1>
 
+{% if connector.connector_type == "wppconnect" %}
+
+    <a name="" id="" class="btn btn-primary" href="?connector=wppconnect&connector_action=status_session" role="button">get status</a>
+    <a name="" id="" class="btn btn-primary" href="?connector=wppconnect&connector_action=initialize" role="button">initialize</a>
+
+    {% if connector_action_response %}
+
+    <div class="card">
+        <div class="card-body">
+            <h4 class="card-title">Saída do Retorno</h4>
+            <p class="card-text">
+                {% if connector_action_response.initialize.qrcode %}
+                <img src="{{connector_action_response.initialize.qrcode}}" alt="QRCODE" />
+                {% endif %}
+                {% if connector_action_response.status_session.qrcode %}
+                <img src="{{connector_action_response.status_session.qrcode}}" alt="QRCODE" />
+                {% endif %}
+                <pre>{{connector_action_response|pprint}}</pre>
+            </p>
+        </div>
+    </div>
+    {% endif %}
+
+{% endif %}
+
+
 
 <table class="table">
     <thead>

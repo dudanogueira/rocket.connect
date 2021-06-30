@@ -1,29 +1,24 @@
 {
-    "secretKey": "My53cr3tKY",
+    "secretKey": "THISISMYSECURETOKEN",
     "host": "http://localhost",
     "port": "21465",
     "startAllSession": true,
     "webhook": {
-        "url": "http://django:8000/connector/WPP_EXTERNAL_TOKEN/",
-        "autoDownload": true,
-        "readMessage": false,
-        "allUnreadOnStart": true
+      "url": null,
+      "autoDownload": true,
+      "readMessage": true,
+      "allUnreadOnStart": false
     },
     "archive": {
-        "enable": true,
-        "waitTime": 10,
-        "daysToArchive": 45
+      "enable": true,
+      "waitTime": 10,
+      "daysToArchive": 45
     },
     "log": {
-        "level": "error",
-        "logger": [
-            "console",
-            "file"
-        ]
+      "level": "error",
+      "logger": [ "console", "file" ]
     },
     "createOptions": {
-        "browserArgs": [
-            "--no-sandbox"
-        ]
+      "browserArgs": ["--disable-web-security", "--no-sandbox", "--disable-web-security", "--aggressive-cache-discard", "--disable-cache", "--disable-application-cache", "--disable-offline-load-stale-cache", "--disk-cache-size=0", "--disable-background-networking", "--disable-default-apps", "--disable-extensions", "--disable-sync", "--disable-translate", "--hide-scrollbars", "--metrics-recording-only", "--mute-audio", "--no-first-run", "--safebrowsing-disable-auto-update", "--ignore-certificate-errors", "--ignore-ssl-errors", "--ignore-certificate-errors-spki-list"]
     }
-}
+  }

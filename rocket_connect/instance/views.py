@@ -24,8 +24,9 @@ def connector_endpoint(request, connector_id):
         if request.body:
             body = json.loads(request.body)
             print(
-                "INCOMING > CONNECTOR NAME: REQUEST BODY: {0}: ".format(connector.name),
-                body,
+                "INCOMING > CONNECTOR NAME: {0} REQUEST BODY: {1}".format(
+                    connector.name, body
+                )
             )
     return_response = connector.intake(request)
     return return_response
@@ -162,11 +163,20 @@ def connector_analyze(request, server_id, connector_id):
     )
     undelivered_messages = None
     date = None
+    connector_action_response = {}
+
+    if request.GET.get("connector_action") == "status_session":
+        connector_action_response["status_session"] = connector.status_session()
+
+    if request.GET.get("connector_action") == "initialize":
+        connector_action_response["initialize"] = connector.initialize()
+
     if request.GET.get("date") or request.GET.get("action"):
-        date = datetime.datetime.strptime(request.GET.get("date"), "%Y-%m-%d")
-        undelivered_messages = connector.messages.filter(
-            created__date=date, delivered=False
-        )
+        if request.GET.get("date"):
+            date = datetime.datetime.strptime(request.GET.get("date"), "%Y-%m-%d")
+            undelivered_messages = connector.messages.filter(
+                created__date=date, delivered=False
+            )
         if request.GET.get("action") == "force_delivery":
             for message in undelivered_messages:
                 delivery_happened = message.force_delivery()
@@ -212,5 +222,6 @@ def connector_analyze(request, server_id, connector_id):
         "messages_undelivered_by_date": messages_undelivered_by_date,
         "undelivered_messages": undelivered_messages,
         "date": date,
+        "connector_action_response": connector_action_response,
     }
     return render(request, "instance/connector_analyze.html", context)

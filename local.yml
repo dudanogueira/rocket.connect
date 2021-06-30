@@ -212,8 +212,10 @@ services:
       - "8001:8002"
 
   wppconnect:
-    build:
-        context: ./compose/local/wppconnect
-    entrypoint: docker-entrypoint.sh yarn dev
+    image: wppconnect/server-cli:1.7.1
+    #entrypoint: wppserver --config "/home/node/app/config.json"
+    entrypoint: wppserver --log-level DEBUG --startAllSession --secretKey My53cr3tKY --port 21465
+    volumes:
+      - ./compose/local/wppconnect/config.json:/home/node/app/config.json
     ports:
       - "21465:21465"
