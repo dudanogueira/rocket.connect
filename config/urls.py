@@ -7,7 +7,11 @@ from django.views import defaults as default_views
 from django.views.generic import TemplateView
 from rest_framework.authtoken.views import obtain_auth_token
 
+from rocket_connect import __version__ as ROCKET_CONNECT_VERSION
 from rocket_connect.instance import views
+
+admin.site.site_header = "Rocket Connect " + ROCKET_CONNECT_VERSION
+admin.site.site_title = "Rocket Connect " + ROCKET_CONNECT_VERSION
 
 urlpatterns = [
     path("", TemplateView.as_view(template_name="pages/home.html"), name="home"),
