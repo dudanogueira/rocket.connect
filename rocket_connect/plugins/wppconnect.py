@@ -110,11 +110,24 @@ class Connector(ConnectorBase):
                     return HttpResponse("Rocket Down!", status=503)
                 # get room
                 room = self.get_room()
-                # deliver text message
-                message = self.get_message_body()
-                deliver = self.outcome_text(room.room_id, message)
-                if settings.DEBUG:
-                    print("DELIVER OF TEXT MESSAGE:", deliver.ok)
+                if not self.message.get("isMedia"):
+                    # deliver text message
+                    message = self.get_message_body()
+                    deliver = self.outcome_text(room.room_id, message)
+                    if settings.DEBUG:
+                        print("DELIVER OF TEXT MESSAGE:", deliver.ok)
+                else:
+                    # media type
+                    mime = self.message.get("mimetype")
+                    file_sent = self.outcome_file(
+                        self.message.get("body"),
+                        room.room_id,
+                        mime,
+                        description=self.message.get("caption", None),
+                    )
+                    if file_sent.ok:
+                        self.message_object.delivered = True
+                        self.message_object.save()
 
         return JsonResponse({})
 
