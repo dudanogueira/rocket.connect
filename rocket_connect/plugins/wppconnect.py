@@ -1,3 +1,7 @@
+import base64
+import time
+import urllib.parse as urlparse
+
 import requests
 from django.conf import settings
 from django.http import HttpResponse, JsonResponse
@@ -187,3 +191,44 @@ class Connector(ConnectorBase):
         )
         r = session.post(url, json=payload)
         return r.json()
+
+    def outgo_file_message(self, message, agent_name=None):
+        # if its audio, treat different
+        # ppt = False
+        # if message["file"]["type"] == "audio/mpeg":
+        #     ppt = True
+
+        # to avoid some networking problems,
+        # we use the same url as the configured one, as some times
+        # the url to get the uploaded file may be different
+        # eg: the publicFilePath is public, but waautomate is running inside
+        # docker
+        file_url = (
+            self.connector.server.url
+            + message["attachments"][0]["title_link"]
+            + "?"
+            + urlparse.urlparse(message["fileUpload"]["publicFilePath"]).query
+        )
+        content = base64.b64encode(requests.get(file_url).content).decode("utf-8")
+        mime = self.message["messages"][0]["fileUpload"]["type"]
+        payload = {
+            "phone": self.get_visitor_id(),
+            "base64": "data:{0};base64,{1}".format(mime, content),
+            "isGroup": False,
+        }
+        if settings.DEBUG:
+            print("PAYLOAD OUTGOING FILE: ", payload)
+        session = self.get_request_session()
+        url = self.connector.config["endpoint"] + "/api/{0}/send-file-base64".format(
+            self.connector.config["instance_name"]
+        )
+        sent = session.post(url, json=payload)
+        if sent.ok:
+            timestamp = int(time.time())
+            if settings.DEBUG:
+                print("RESPONSE OUTGOING FILE: ", sent.json())
+            self.message_object.payload[timestamp] = payload
+            self.message_object.delivered = True
+            self.message_object.response[timestamp] = sent.json()
+            self.message_object.save()
+            # self.send_seen()
