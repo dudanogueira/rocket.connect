@@ -223,6 +223,7 @@ class Connector(object):
         visitor_phone = self.get_visitor_phone()
         visitor_token = self.get_visitor_token()
         department = self.connector.department
+        connector_name = self.connector.name
 
         visitor = {
             "username": visitor_username,
@@ -238,6 +239,11 @@ class Connector(object):
                     "key": "whatsapp_number",
                     "value": visitor_phone,
                     "overwrite": False,
+                },
+                {
+                    "key": "connector_name",
+                    "value": connector_name,
+                    "overwrite": True,
                 },
             ],
         }

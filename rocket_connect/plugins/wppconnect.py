@@ -1,5 +1,6 @@
 import requests
-from django.http import JsonResponse
+from django.conf import settings
+from django.http import HttpResponse, JsonResponse
 
 from .base import Connector as ConnectorBase
 
@@ -92,7 +93,59 @@ class Connector(ConnectorBase):
         this method will process the incoming messages
         and ajust what necessary, to output to rocketchat
         """
+        # qr code
         if self.message.get("event") == "qrcode":
             base64_fixed_code = self.message.get("qrcode")
             self.outcome_qrbase64(base64_fixed_code)
+
+        # message
+        elif self.message.get("event") == "onmessage":
+            # direct messages only
+            if not self.message.get("isGroupMsg"):
+                # register message
+                message, created = self.register_message()
+                # get rocket client
+                self.get_rocket_client()
+                if not self.rocket:
+                    return HttpResponse("Rocket Down!", status=503)
+                # get room
+                room = self.get_room()
+                # deliver text message
+                message = self.get_message_body()
+                deliver = self.outcome_text(room.room_id, message)
+                if settings.DEBUG:
+                    print("DELIVER OF TEXT MESSAGE:", deliver.ok)
+
         return JsonResponse({})
+
+    def get_incoming_message_id(self):
+        return self.message.get("id")
+
+    def get_incoming_visitor_id(self):
+        return self.message.get("chatId")
+
+    def get_visitor_name(self):
+        name = self.message.get("sender", {}).get("name")
+        if not name:
+            name = self.message.get("chatId")
+        return name
+
+    def get_visitor_phone(self):
+        try:
+            visitor_phone = self.message.get("from").split("@")[0]
+        except IndexError:
+            visitor_phone = "553199999999"
+        return visitor_phone
+
+    def get_visitor_username(self):
+        try:
+            visitor_username = "whatsapp:{0}".format(
+                # works for wa-automate
+                self.message.get("from")
+            )
+        except IndexError:
+            visitor_username = "channel:visitor-username"
+        return visitor_username
+
+    def get_message_body(self):
+        return self.message.get("body")
