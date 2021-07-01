@@ -149,3 +149,28 @@ class Connector(ConnectorBase):
 
     def get_message_body(self):
         return self.message.get("body")
+
+    def get_request_session(self):
+        s = requests.Session()
+        s.headers = {"content-type": "application/json"}
+        token = self.connector.config.get("token", {}).get("token")
+        if token:
+            s.headers.update({"Authorization": "Bearer {0}".format(token)})
+        return s
+
+    def outgo_text_message(self, message, agent_name=None):
+        content = message["msg"]
+        content = self.joypixel_to_unicode(content)
+        # message may not have an agent
+        if agent_name:
+            content = "*[" + agent_name + "]*\n" + content
+
+        payload = {"phone": self.get_visitor_id(), "message": content, "isGroup": False}
+        session = self.get_request_session()
+        # TODO: Simulate typing
+        # See: https://github.com/wppconnect-team/wppconnect-server/issues/59
+        url = self.connector.config["endpoint"] + "/api/{0}/send-message".format(
+            self.connector.config["instance_name"]
+        )
+        r = session.post(url, json=payload)
+        return r.json()
