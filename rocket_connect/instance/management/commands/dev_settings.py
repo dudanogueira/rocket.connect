@@ -114,6 +114,7 @@ class Command(BaseCommand):
             "endpoint": "http://wppconnect:21465",
             "secret_key": "My53cr3tKY",
             "instance_name": "test",
+            "outcome_attachment_description_as_new_message": True,
         }
         connector.name = "WPPCONNECT CONNECTOR"
         connector.connector_type = "wppconnect"

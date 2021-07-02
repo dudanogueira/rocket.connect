@@ -114,7 +114,10 @@ class Connector(ConnectorBase):
                     return HttpResponse("Rocket Down!", status=503)
                 # get room
                 room = self.get_room()
-                if not self.message.get("isMedia"):
+                if not self.message.get("isMedia") and self.message.get("type") not in [
+                    "document",
+                    "ptt",
+                ]:
                     # deliver text message
                     message = self.get_message_body()
                     deliver = self.outcome_text(room.room_id, message)
