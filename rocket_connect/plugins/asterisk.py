@@ -24,15 +24,15 @@ class Connector(ConnectorBase):
             "AgentConnect",
             "UserEvent",
         ]:
-            call, created = self.get_call()
+            self.get_call()
             # if AgentConnect, it got answered
             if self.message.get("Event") == "AgentConnect":
-                call.answered = datetime.datetime.now(pytz.timezone(self.timezone))
+                self.call.answered = datetime.datetime.now(pytz.timezone(self.timezone))
                 # remove hangup
                 # call.hangup = None
-                call.save()
+                self.call.save()
                 # register message
-                call.messages.create(json=self.message)
+                self.call.messages.create(json=self.message)
         # hangups
         if unique_id and self.message.get("Event") in [
             "Hangup",
@@ -51,6 +51,14 @@ class Connector(ConnectorBase):
                 ):
                     self.call.caller_left_queue = True
                     self.hook_queue_caller_leave()
+                # answered (sometimes it doesnt get ConnectedLineNum)
+                if (
+                    self.message.get("Event") == "QueueCallerLeave"
+                    and self.message.get("ConnectedLineNum") != "<unknown>"
+                ):
+                    self.call.answered = datetime.datetime.now(
+                        pytz.timezone(self.timezone)
+                    )
                 self.call.save()
 
         # user events
@@ -58,9 +66,9 @@ class Connector(ConnectorBase):
             if self.message.get("Context") in self.config.get(
                 "userevent_context_filter"
             ):
-                call, created = self.get_call()
+                self.call, created = self.get_call()
                 # register message
-                call.messages.create(json=self.message)
+                self.call.messages.create(json=self.message)
 
         # voicemail
         if unique_id and self.message.get("Event") in [
@@ -76,6 +84,9 @@ class Connector(ConnectorBase):
         unique_id = self.message.get("Uniqueid")
         linked_id = self.message.get("Linkedid")
         self.call, created = Call.objects.get_or_create(unique_id=unique_id)
+        # for debug, register all messages
+        if settings.DEBUG:
+            self.call.messages.create(json=self.message)
         if created:
             # check if the recently created call has a linked one
             if unique_id != linked_id:
