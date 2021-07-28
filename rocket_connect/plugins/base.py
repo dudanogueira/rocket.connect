@@ -436,6 +436,8 @@ class Connector(object):
         data = None
         if decrypted_data_request.ok:
             response = decrypted_data_request.json().get("response", None)
+            if settings.DEBUG:
+                print("DECRYPTED DATA: ", response)
             if response:
                 data = response.split(",")[1]
         return data
