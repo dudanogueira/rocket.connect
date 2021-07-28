@@ -21,6 +21,6 @@ class LiveChatRoomAdmin(admin.ModelAdmin):
 class MessageAdmin(admin.ModelAdmin):
     search_fields = ("envelope_id",)
     list_display = ("id", "envelope_id", "type", "delivered", "connector", "created")
-    list_filter = ("connector", "delivered", "created", "updated")
+    list_filter = ("connector", "delivered", "type", "created", "updated")
     ordering = ("-created",)
     date_hierarchy = "created"
