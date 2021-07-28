@@ -179,13 +179,30 @@ class Connector(models.Model):
     def intake(self, request):
         """
         this method will intake the raw message, and apply the connector logic
+        it will also get the secondary_connectors attached to the connector
+        and run it as well
         """
         # get connector
         Connector = self.get_connector_class()
         # initiate with raw message
         connector = Connector(self, request.body, "incoming", request)
         # income message
-        return connector.incoming()
+        main_incoming = connector.incoming()
+        # secondary connectors
+        for secondary_connector in self.secondary_connectors.all():
+            SConnector = secondary_connector.get_connector_class()
+            sconnector = SConnector(
+                secondary_connector, request.body, "incoming", request
+            )
+            # log it
+            connector.logger_info(
+                "RUNING SECONDARY CONNECTOR *{0}* WITH BODY {1}:".format(
+                    sconnector.connector, request.body
+                )
+            )
+            sconnector.incoming()
+        # return main incoming
+        return main_incoming
 
     def outtake(self, message):
         # get connector
@@ -235,6 +252,7 @@ class Connector(models.Model):
     config = models.JSONField(
         blank=True, null=True, help_text="Connector General configutarion"
     )
+    secondary_connectors = models.ManyToManyField("self", blank=True)
     enabled = models.BooleanField(default=True)
     # meta
     created = models.DateTimeField(

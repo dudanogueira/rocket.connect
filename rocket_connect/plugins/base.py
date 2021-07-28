@@ -1,5 +1,6 @@
 import base64
 import json
+import logging
 import mimetypes
 import random
 import string
@@ -11,6 +12,8 @@ import qrcode
 import requests
 import zbarlight
 from django.conf import settings
+from django.db import IntegrityError
+from django.http import JsonResponse
 from envelope.models import LiveChatRoom
 from PIL import Image
 
@@ -21,8 +24,6 @@ class Connector(object):
     def __init__(self, connector, message, type, request=None):
         self.connector = connector
         self.type = type
-        if settings.DEBUG:
-            print("TYPE: ", self.type)
         self.config = self.connector.config
         # get timezone
         self.timezone = (
@@ -37,16 +38,23 @@ class Connector(object):
         self.message_object = None
         self.rocket = None
         self.room = None
+        self.logger = logging.getLogger("teste")
+
+    def logger_info(self, message):
+        self.logger.info(
+            "{0} > {1} > {2}".format(self.connector, self.type.upper(), message)
+        )
 
     def incoming(self):
         """
         this method will process the incoming messages
         and ajust what necessary, to output to rocketchat
         """
-        print(
-            "INTAKING. PLUGIN BASE, CONNECTOR {0}, MESSAGE {1}".format(
-                self.connector.name, self.message
-            )
+        self.logger_info("INCOMING MESSAGE: {0}".format(self.message))
+        return JsonResponse(
+            {
+                "connector": self.connector.name,
+            }
         )
 
     def outcome_qrbase64(self, qrbase64):
@@ -360,19 +368,28 @@ class Connector(object):
         return response
 
     def register_message(self):
-        self.message_object, created = self.connector.messages.get_or_create(
-            envelope_id=self.get_message_id(), type=self.type
-        )
-        self.message_object.raw_message = self.message
-        if not self.message_object.room:
-            self.message_object.room = self.room
-        self.message_object.save()
-        if settings.DEBUG:
+        try:
+            self.message_object, created = self.connector.messages.get_or_create(
+                envelope_id=self.get_message_id(), type=self.type
+            )
+            self.message_object.raw_message = self.message
+            if not self.message_object.room:
+                self.message_object.room = self.room
+            self.message_object.save()
             if created:
-                print("NEW MESSAGE REGISTERED: ", self.message_object.id)
+                self.logger_info(
+                    "NEW MESSAGE REGISTERED: {0}".format(self.message_object.id)
+                )
             else:
-                print("EXISTING MESSAGE: ", self.message_object.id)
-        return self.message_object, created
+                self.logger_info(
+                    "EXISTING MESSAGE REGISTERED: {0}".format(self.message_object.id)
+                )
+            return self.message_object, created
+        except IntegrityError:
+            self.logger_info(
+                "CANNOT CREATE THIS MESSAGE AGAIN: {0}".format(self.get_message_id())
+            )
+            return "", False
 
     def get_message_id(self):
         if self.type == "incoming":
@@ -462,6 +479,7 @@ class Connector(object):
         this method will process the outcoming messages
         comming from Rocketchat, and deliver to the connector
         """
+        self.logger_info("Processing ingoing message: {0}".format(self.message))
         # Session start
         if self.message.get("type") == "LivechatSessionStart":
             if settings.DEBUG:
@@ -518,3 +536,15 @@ class Connector(object):
 
     def change_agent_name(self, agent_name):
         return agent_name
+
+    def outgo_text_message(self, message, agent_name=None):
+        """
+        this method should be overwritten to send the message back to the client
+        """
+        if agent_name:
+            self.logger_info(
+                "OUTGOING MESSAGE {0} FROM AGENT {1}".format(message, agent_name)
+            )
+        else:
+            self.logger_info("OUTGOING MESSAGE {0}".format(message))
+        return True

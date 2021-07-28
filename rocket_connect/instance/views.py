@@ -20,14 +20,6 @@ def connector_endpoint(request, connector_id):
     connector = get_object_or_404(
         Connector, external_token=connector_id, enabled=True, server__enabled=True
     )
-    if settings.DEBUG:
-        if request.body:
-            body = json.loads(request.body)
-            print(
-                "INCOMING > CONNECTOR NAME: {0} REQUEST BODY: {1}".format(
-                    connector.name, body
-                )
-            )
     return_response = connector.intake(request)
     return return_response
 
@@ -70,12 +62,23 @@ def server_endpoint(request, server_id):
             # process ingoing message
             try:
                 room = LiveChatRoom.objects.get(room_id=raw_message["_id"])
-                print("Got Room:", room.id)
                 Connector = room.connector.get_connector_class()
                 connector = Connector(room.connector, request.body, "ingoing", request)
                 connector.room = room
-                # todo: create task to out go message
+                # call primary connector
                 connector.ingoing()
+                # call secondary connectors for ingoing
+                for secondary_connector in room.connector.secondary_connectors.all():
+                    SConnector = secondary_connector.get_connector_class()
+                    sconnector = SConnector(
+                        secondary_connector, request.body, "ingoing", request
+                    )
+                    connector.logger_info(
+                        "RUNING SECONDARY CONNECTOR *{0}* WITH BODY {1}:".format(
+                            sconnector.connector, request.body
+                        )
+                    )
+                    sconnector.ingoing()
             except LiveChatRoom.DoesNotExist:
                 # todo: Alert Admin that there was an attempt to message a non existing room
                 # todo: register this message somehow. RCHAT will try to deliver it a few times
