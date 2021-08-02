@@ -117,7 +117,7 @@ services:
     command: /start-flower
 
   rocketchat:
-    image: rocketchat/rocket.chat:3.15.0
+    image: rocketchat/rocket.chat:3.16.4
     command: >
       bash -c
         "for i in `seq 1 30`; do
@@ -212,10 +212,10 @@ services:
       - "8001:8002"
 
   wppconnect:
-    image: wppconnect/server-cli:1.7.1
+    image: wppconnect/server-cli:latest
     #entrypoint: wppserver --config "/home/node/app/config.json"
     entrypoint: wppserver --log-level DEBUG --startAllSession --secretKey My53cr3tKY --port 21465
-    volumes:
-      - ./compose/local/wppconnect/config.json:/home/node/app/config.json
+    #volumes:
+    # - ./compose/local/wppconnect/config.json:/home/node/app/config.json
     ports:
       - "21465:21465"
