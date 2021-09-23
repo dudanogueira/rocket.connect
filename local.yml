@@ -199,11 +199,17 @@ services:
     # waautomate options ar at  ./compose/local/waautomate/cli.config.json
     build:
       context: ./compose/local/waautomate
-    command: npx @open-wa/wa-automate --ev "http://django.docker:8000/connector/CONNECTOR_EXTERNAL_TOKEN1/?ev=1" --no-kill-on-logout
+    command: npx @open-wa/wa-automate
+      --ev "http://django.docker:8000/connector/CONNECTOR_EXTERNAL_TOKEN1/?ev=1"
+      --no-kill-on-logout
+      --api-host 'http://127.0.0.1:8081'
+      --browserWSEndpoint 'http://browser:3000'
+      -w 'http://django.docker:8000/connector/CONNECTOR_EXTERNAL_TOKEN1/'
+      --sessionId waautomate1
     restart: unless-stopped
     volumes:
       - local_waautomate_data:/usr/src/app/session_data
-      - ./compose/local/waautomate/instance1/cli.config.json:/usr/src/app/cli.config.json
+      - ./compose/local/waautomate/instance1/cli.config.json:/usr/src/app/ccli.config.json
     links:
       - "django:django.docker"
     depends_on:
