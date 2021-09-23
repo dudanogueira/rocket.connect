@@ -82,7 +82,8 @@ def server_endpoint(request, server_id):
             except LiveChatRoom.DoesNotExist:
                 # todo: Alert Admin that there was an attempt to message a non existing room
                 # todo: register this message somehow. RCHAT will try to deliver it a few times
-                return HttpResponse("Room Not Found", status=404)
+                # do not answer 404 as rocketchat will keep trying do deliver
+                return HttpResponse("Room Not Found", status=200)
 
     return JsonResponse({})
 
