@@ -62,7 +62,7 @@ def server_endpoint(request, server_id):
         else:
             # process ingoing message
             try:
-                room = LiveChatRoom.objects.filter(room_id=raw_message["_id"])
+                room = LiveChatRoom.objects.get(room_id=raw_message["_id"])
             except LiveChatRoom.DoesNotExist:
                 # todo: Alert Admin that there was an attempt to message a non existing room
                 # todo: register this message somehow. RCHAT will try to deliver it a few times
