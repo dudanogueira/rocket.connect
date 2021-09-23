@@ -5,6 +5,7 @@ import requests
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import MultipleObjectsReturned
 from django.db.models import Count, Max, Q
 from django.db.models.functions import TruncDay
 from django.http import HttpResponse, JsonResponse
@@ -61,29 +62,34 @@ def server_endpoint(request, server_id):
         else:
             # process ingoing message
             try:
-                room = LiveChatRoom.objects.get(room_id=raw_message["_id"])
-                Connector = room.connector.get_connector_class()
-                connector = Connector(room.connector, request.body, "ingoing", request)
-                connector.room = room
-                # call primary connector
-                connector.ingoing()
-                # call secondary connectors for ingoing
-                for secondary_connector in room.connector.secondary_connectors.all():
-                    SConnector = secondary_connector.get_connector_class()
-                    sconnector = SConnector(
-                        secondary_connector, request.body, "ingoing", request
-                    )
-                    connector.logger_info(
-                        "RUNING SECONDARY CONNECTOR *{0}* WITH BODY {1}:".format(
-                            sconnector.connector, request.body
-                        )
-                    )
-                    sconnector.ingoing()
+                room = LiveChatRoom.objects.filter(room_id=raw_message["_id"])
             except LiveChatRoom.DoesNotExist:
                 # todo: Alert Admin that there was an attempt to message a non existing room
                 # todo: register this message somehow. RCHAT will try to deliver it a few times
                 # do not answer 404 as rocketchat will keep trying do deliver
                 return HttpResponse("Room Not Found", status=200)
+            except MultipleObjectsReturned:
+                # this situation hangs RocketChat forever
+                room = LiveChatRoom.objects.filter(room_id=raw_message["_id"]).first()
+
+            # now, with a room, or at least one of them, let's keep it going
+            Connector = room.connector.get_connector_class()
+            connector = Connector(room.connector, request.body, "ingoing", request)
+            connector.room = room
+            # call primary connector
+            connector.ingoing()
+            # call secondary connectors for ingoing
+            for secondary_connector in room.connector.secondary_connectors.all():
+                SConnector = secondary_connector.get_connector_class()
+                sconnector = SConnector(
+                    secondary_connector, request.body, "ingoing", request
+                )
+                connector.logger_info(
+                    "RUNING SECONDARY CONNECTOR *{0}* WITH BODY {1}:".format(
+                        sconnector.connector, request.body
+                    )
+                )
+                sconnector.ingoing()
 
     return JsonResponse({})
 
