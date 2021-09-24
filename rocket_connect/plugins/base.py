@@ -116,11 +116,13 @@ class Connector(object):
             self.message_object.payload[timestamp] = {
                 "data": "sent attached file to rocketchat"
             }
-            if settings.DEBUG:
-                print("OUTCOME FILE RESPONSE: ", deliver.json())
-            self.message_object.response[timestamp] = deliver.json()
-            self.message_object.delivered = deliver.ok
-            self.message_object.save()
+            if deliver.ok:
+                if settings.DEBUG and deliver.ok:
+                    print("teste, ", deliver)
+                    print("OUTCOME FILE RESPONSE: ", deliver.json())
+                self.message_object.response[timestamp] = deliver.json()
+                self.message_object.delivered = deliver.ok
+                self.message_object.save()
 
             if self.connector.config.get(
                 "outcome_attachment_description_as_new_message", True
