@@ -5,7 +5,6 @@ import requests
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.core.exceptions import MultipleObjectsReturned
 from django.db.models import Count, Max, Q
 from django.db.models.functions import TruncDay
 from django.http import HttpResponse, JsonResponse
@@ -68,7 +67,7 @@ def server_endpoint(request, server_id):
                 # todo: register this message somehow. RCHAT will try to deliver it a few times
                 # do not answer 404 as rocketchat will keep trying do deliver
                 return HttpResponse("Room Not Found", status=200)
-            except MultipleObjectsReturned:
+            except LiveChatRoom.MultipleObjectsReturned:
                 # this situation hangs RocketChat forever
                 room = LiveChatRoom.objects.filter(room_id=raw_message["_id"]).first()
 
