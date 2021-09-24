@@ -117,7 +117,7 @@ services:
     command: /start-flower
 
   rocketchat:
-    image: rocketchat/rocket.chat:3.16.4
+    image: rocketchat/rocket.chat:3.18.1
     command: >
       bash -c
         "for i in `seq 1 30`; do
@@ -171,7 +171,7 @@ services:
       - mongo
 
   browser:
-      image: browserless/chrome:1.46-chrome-stable
+      image: browserless/chrome:1.48.0-chrome-stable
       hostname: browser
       ports:
         - "3010:3000"
