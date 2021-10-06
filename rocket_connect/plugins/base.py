@@ -186,9 +186,12 @@ class Connector(object):
 
     def outcome_admin_message(self, text):
         managers = self.connector.get_managers()
+        managers_channel = self.connector.get_managers_channel(as_string=False)
         if settings.DEBUG:
             print("GOT MANAGERS: ", managers)
+            print("GOT CHANNELS: ", managers_channel)
         if self.get_rocket_client(bot=True):
+            # send to the managers
             im_room = self.rocket.im_create(username="", usernames=managers)
             response = im_room.json()
             if settings.DEBUG:
@@ -201,6 +204,11 @@ class Connector(object):
                     alias=self.connector.name,
                     text=text_message,
                     room_id=response["room"]["rid"],
+                )
+            # send to managers channel
+            for manager_channel in managers_channel:
+                self.rocket.chat_post_message(
+                    text=text_message, channel=manager_channel
                 )
 
     def get_visitor_name(self):

@@ -50,15 +50,24 @@ class Server(models.Model):
 
     def get_managers(self, as_string=True):
         """
-        this method will return the managers (user1,user2,user3)
+        this method will return the managers (user1,user2,user3,#channel1,#channel2)
         and the bot. The final result should be:
-        'manager1,manager2,manager3,bot_user'
+        user1,user2,user3
+        Obs: it will remove all channels
         """
-        managers = self.managers.split(",")
+        # remove the channels
+        managers = [i for i in self.managers.split(",") if i[0] != "#"]
         managers.append(self.bot_user)
         if as_string:
             return ",".join(managers)
         return list(set(managers))
+
+    def get_managers_channel(self, as_string=True):
+        # keep only the channels
+        managers_channel = [i for i in self.managers.split(",") if i[0] == "#"]
+        if as_string:
+            return ",".join(managers_channel)
+        return list(set(managers_channel))
 
     def get_open_rooms(self):
         rocket = self.get_rocket_client()
@@ -120,7 +129,8 @@ class Server(models.Model):
     bot_user_token = models.CharField(max_length=50, blank=True)
 
     managers = models.CharField(
-        max_length=50, help_text="separate users with comma, eg: user1,user2,user3"
+        max_length=50,
+        help_text="separate users or channels with comma, eg: user1,user2,user3,#channel1,#channel2",
     )
     # meta
     created = models.DateTimeField(
@@ -217,11 +227,27 @@ class Connector(models.Model):
         this method will return the managers both from server and
         connector (user1,user2,user3) or ['user1', 'user2, 'usern']
         and the bot. The final result should be:
-        a string or a list
+        a string or a list, without the channels
         """
         managers = self.server.get_managers(as_string=False)
         if self.managers:
-            connector_managers = self.managers.split(",")
+            connector_managers = [i for i in self.managers.split(",") if i[0] != "#"]
+            managers.extend(connector_managers)
+        managers = list(set(managers))
+        if as_string:
+            return ",".join(managers)
+        return managers
+
+    def get_managers_channel(self, as_string=True):
+        """
+        this method will return the managers channel both from server and
+        connector (user1,user2,user3) or ['user1', 'user2, 'usern']
+        and the bot. The final result should be:
+        a string or a list, without the channels
+        """
+        managers = self.server.get_managers_channel(as_string=False)
+        if self.managers:
+            connector_managers = [i for i in self.managers.split(",") if i[0] == "#"]
             managers.extend(connector_managers)
         managers = list(set(managers))
         if as_string:
@@ -247,7 +273,7 @@ class Connector(models.Model):
         max_length=50,
         blank=True,
         null=True,
-        help_text="separate users with comma, eg: user1,user2,user3",
+        help_text="separate users or channels with comma, eg: user1,user2,user3,#channel1,#channel2",
     )
     config = models.JSONField(
         blank=True, null=True, help_text="Connector General configutarion"
