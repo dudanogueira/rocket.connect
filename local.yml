@@ -117,7 +117,7 @@ services:
     command: /start-flower
 
   rocketchat:
-    image: rocketchat/rocket.chat:3.18.1
+    image: rocketchat/rocket.chat:4.0.1
     command: >
       bash -c
         "for i in `seq 1 30`; do
@@ -146,13 +146,14 @@ services:
       - OVERWRITE_SETTING_Show_Setup_Wizard=completed
       - OVERWRITE_SETTING_API_Enable_Rate_Limiter=false
       - CREATE_TOKENS_FOR_USERS=true
+      - OVERWRITE_SETTING_Accounts_SystemBlockedUsernameList=administrator,system,user
     depends_on:
       - mongo
     ports:
       - 3000:3000
 
   mongo:
-    image: mongo:4.0
+    image: mongo:4.2
     restart: unless-stopped
     ports:
       - 27017:27017
@@ -160,12 +161,12 @@ services:
       - local_rocket_db:/data/db
       - local_rocket_db_config:/data/configdb
       - local_rocket_db_dump:/dump
-    command: mongod --smallfiles --oplogSize 128 --replSet rs0 --storageEngine=mmapv1
+    command: mongod --oplogSize 128 --replSet rs0 --storageEngine=wiredTiger
     labels:
       - "traefik.enable=false"
 
   mongo-init-replica:
-    image: mongo:4.0
+    image: mongo:4.2
     command: 'bash -c "for i in `seq 1 30`; do mongo mongo/rocketchat --eval \"rs.initiate({ _id: ''rs0'', members: [ { _id: 0, host: ''localhost:27017'' } ]})\" && s=$$? && break || s=$$?; echo \"Tried $$i times. Waiting 5 secs...\"; sleep 5; done; (exit $$s)"'
     depends_on:
       - mongo
@@ -218,10 +219,7 @@ services:
       - "8001:8002"
 
   wppconnect:
-    image: wppconnect/server-cli:latest
-    #entrypoint: wppserver --config "/home/node/app/config.json"
-    entrypoint: wppserver --log-level DEBUG --startAllSession --secretKey My53cr3tKY --port 21465
-    #volumes:
-    # - ./compose/local/wppconnect/config.json:/home/node/app/config.json
+    image: wppconnect/server-cli:main
+    command: wppserver --log-level DEBUG --secretKey My53cr3tKY --port 21465
     ports:
       - "21465:21465"

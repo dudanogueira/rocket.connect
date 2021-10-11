@@ -105,8 +105,8 @@ def server_detail_view(request, server_id):
         client = server.get_rocket_client()
         alive = True
         info = client.info().json()
-    except requests.ConnectionError:
-        pass
+    except (requests.ConnectionError, json.JSONDecodeError):
+        alive = False
     except RocketAuthenticationException:
         auth_error = True
     if request.GET.get("force_connector_delivery"):

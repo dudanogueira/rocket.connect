@@ -45,6 +45,11 @@ class Connector(object):
             "{0} > {1} > {2}".format(self.connector, self.type.upper(), message)
         )
 
+    def logger_error(self, message):
+        self.logger.error(
+            "{0} > {1} > {2}".format(self.connector, self.type.upper(), message)
+        )
+
     def incoming(self):
         """
         this method will process the incoming messages
@@ -68,24 +73,52 @@ class Connector(object):
         if settings.DEBUG:
             print("GOT MANAGERS: ", managers)
         im_room = rocket.im_create(username="", usernames=managers)
-        response = im_room.json()
-        if response["success"]:
-            # send qrcode
-            try:
-                data = qrbase64.split(",")[1]
-            except IndexError:
-                data = qrbase64
-            imgdata = base64.b64decode(str.encode(data))
-            with tempfile.NamedTemporaryFile(suffix=".png") as tmp:
-                tmp.write(imgdata)
+        im_room_created = im_room.json()
+
+        # send qrcode
+        try:
+            data = qrbase64.split(",")[1]
+        except IndexError:
+            data = qrbase64
+        imgdata = base64.b64decode(str.encode(data))
+        with tempfile.NamedTemporaryFile(suffix=".png") as tmp:
+            tmp.write(imgdata)
+            if im_room_created["success"]:
                 rocket.rooms_upload(
-                    rid=response["room"]["rid"],
+                    rid=im_room_created["room"]["rid"],
                     file=tmp.name,
                     msg=":rocket: Connect > *Connector Name*: {0}".format(
                         self.connector.name
                     ),
                     description="Scan this QR Code at your Whatsapp Phone:",
                 )
+            # out come qr to room
+            managers_channel = self.connector.get_managers_channel(as_string=False)
+            for channel in managers_channel:
+                # get room id
+                room_infos = rocket.rooms_info(room_name=channel.replace("#", ""))
+                if room_infos.ok:
+                    rid = room_infos.json().get("room", {}).get("_id", None)
+                    if rid:
+                        send_qr_code = rocket.rooms_upload(
+                            rid=rid,
+                            file=tmp.name,
+                            msg=":rocket: Connect > *Connector Name*: {0}".format(
+                                self.connector.name
+                            ),
+                            description="Scan this QR Code at your Whatsapp Phone:",
+                        )
+                        self.logger_info(
+                            "SENDING QRCODE TO ROOM... {0}: {1}".format(
+                                channel, send_qr_code.json()
+                            )
+                        )
+                else:
+                    self.logger_error(
+                        "FAILED TO SEND QRCODE TO ROOM... {0}: {1}".format(
+                            channel, room_infos.json()
+                        )
+                    )
 
     def outcome_file(self, base64_data, room_id, mime, filename=None, description=None):
         if settings.DEBUG:
@@ -207,9 +240,21 @@ class Connector(object):
                 )
             # send to managers channel
             for manager_channel in managers_channel:
-                self.rocket.chat_post_message(
+                manager_channel_message = self.rocket.chat_post_message(
                     text=text_message, channel=manager_channel
                 )
+                if manager_channel_message.ok:
+                    self.logger_info(
+                        "OK! manager_channel_message: {0}".format(
+                            manager_channel_message.json()
+                        )
+                    )
+                else:
+                    self.logger_info(
+                        "ERROR! manager_channel_message: {0}".format(
+                            manager_channel_message.json()
+                        )
+                    )
 
     def get_visitor_name(self):
         try:

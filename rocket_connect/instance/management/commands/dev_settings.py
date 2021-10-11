@@ -33,7 +33,7 @@ class Command(BaseCommand):
         server.admin_password = "admin"
         server.bot_user = "bot"
         server.bot_password = "bot"
-        server.managers = "admin"
+        server.managers = "admin,#manager_channel"
         server.external_token = "SERVER_EXTERNAL_TOKEN"
         server.owners.add(admin)
         server.save()
@@ -262,6 +262,15 @@ class Command(BaseCommand):
         bot = rocket.users_create(**data)
         if bot.ok and bot.json()["success"]:
             print("Bot user created")
+
+        # create channels
+        channel = rocket.channels_create(name="manager_channel")
+        if channel.ok:
+            print("channel created: ", channel)
+            # invite admin to channel
+            user_id = rocket.users_info(username="admin").json()["user"]["_id"]
+            channel_id = channel.json()["channel"]["_id"]
+            rocket.channels_invite(room_id=channel_id, user_id=user_id)
         # configure server webhook api
         configs = [
             ["Site_Url", "http://rocketchat:3000"],

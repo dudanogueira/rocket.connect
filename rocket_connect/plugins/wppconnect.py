@@ -97,6 +97,7 @@ class Connector(ConnectorBase):
         this method will process the incoming messages
         and ajust what necessary, to output to rocketchat
         """
+        self.logger_info("INCOMING MESSAGE: {0}".format(self.message))
         # qr code
         if self.message.get("event") == "qrcode":
             base64_fixed_code = self.message.get("qrcode")
