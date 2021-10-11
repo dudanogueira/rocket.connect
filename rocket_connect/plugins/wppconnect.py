@@ -225,8 +225,20 @@ class Connector(ConnectorBase):
         self.logger_info(
             "OUTGOING TEXT MESSAGE. URL: {0}. PAYLOAD {1}".format(url, payload)
         )
-        r = session.post(url, json=payload)
-        return r.json()
+        timestamp = int(time.time())
+        try:
+            sent = session.post(url, json=payload)
+            self.message_object.delivered = sent.ok
+            self.message_object.response[timestamp] = sent.json()
+        except requests.ConnectionError:
+            self.message_object.delivered = False
+            self.logger_info("CONNECTOR DOWN: {0}".format(self.connector))
+        # save message object
+        if self.message_object:
+            self.message_object.payload[timestamp] = payload
+            self.message_object.save()
+
+        return sent.json()
 
     def outgo_file_message(self, message, agent_name=None):
         # if its audio, treat different
