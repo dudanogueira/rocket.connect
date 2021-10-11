@@ -103,6 +103,19 @@ class Connector(ConnectorBase):
             base64_fixed_code = self.message.get("qrcode")
             self.outcome_qrbase64(base64_fixed_code)
 
+        # admin message
+        if self.message.get("event") == "status-find":
+            text = "Session: {0}. Status: {1}".format(
+                self.message.get("session"), self.message.get("status")
+            )
+            if self.message.get("status") == "inChat":
+                text = (
+                    text
+                    + ":white_check_mark::white_check_mark::white_check_mark:"
+                    + "SUCESS!!!      :white_check_mark::white_check_mark::white_check_mark:"
+                )
+            self.outcome_admin_message(text)
+
         # message
         elif self.message.get("event") == "onmessage":
             # direct messages only

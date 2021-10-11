@@ -241,11 +241,11 @@ class Connector(object):
             # send to managers channel
             for manager_channel in managers_channel:
                 manager_channel_message = self.rocket.chat_post_message(
-                    text=text_message, channel=manager_channel
+                    text=text_message, channel=manager_channel.replace("#", "")
                 )
                 if manager_channel_message.ok:
                     self.logger_info(
-                        "OK! manager_channel_message: {0}".format(
+                        "OK! manager_channel_message payload received: {0}".format(
                             manager_channel_message.json()
                         )
                     )
