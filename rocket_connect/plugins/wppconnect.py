@@ -116,8 +116,21 @@ class Connector(ConnectorBase):
                 )
             self.outcome_admin_message(text)
 
+        if self.message.get("event") == "incomingcall":
+            # auto answer
+            if self.connector.config.get("auto_answer_incoming_call"):
+                self.logger_info(
+                    "auto_answer_incoming_call: {0}".format(
+                        self.connector.config.get("auto_answer_incoming_call")
+                    )
+                )
+                message = {
+                    "msg": self.connector.config.get("auto_answer_incoming_call")
+                }
+                self.outgo_text_message(message)
+
         # message
-        elif self.message.get("event") == "onmessage":
+        if self.message.get("event") == "onmessage":
             # direct messages only
             if not self.message.get("isGroupMsg"):
                 # register message
@@ -156,7 +169,10 @@ class Connector(ConnectorBase):
         return self.message.get("id")
 
     def get_incoming_visitor_id(self):
-        return self.message.get("chatId")
+        if self.message.get("event") == "incomingcall":
+            return self.message.get("peerJid")
+        else:
+            return self.message.get("chatId")
 
     def get_visitor_name(self):
         name = self.message.get("sender", {}).get("name")
@@ -205,6 +221,9 @@ class Connector(ConnectorBase):
         # See: https://github.com/wppconnect-team/wppconnect-server/issues/59
         url = self.connector.config["endpoint"] + "/api/{0}/send-message".format(
             self.connector.config["instance_name"]
+        )
+        self.logger_info(
+            "OUTGOING TEXT MESSAGE. URL: {0}. PAYLOAD {1}".format(url, payload)
         )
         r = session.post(url, json=payload)
         return r.json()
