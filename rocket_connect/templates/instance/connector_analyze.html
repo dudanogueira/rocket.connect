@@ -88,6 +88,8 @@
                             </button>
                         </p>
                         <div class="collapse" id="collapse-{{message.id}}">
+                            <a name="" id="" class="btn btn-danger" href="?id={{message.id}}&action=force_delivery" role="button">force delivery</a>
+                            <a name="" id="" class="btn btn-success" href="?id={{message.id}}&action=mark_as_delivered" role="button">mark as delivered</a>
                             <div class="card card-body m-3">
                             <pre>{{message.raw_message|pprint}}</pre>
                             </div>

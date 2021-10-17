@@ -180,12 +180,18 @@ def connector_analyze(request, server_id, connector_id):
     if request.GET.get("connector_action") == "initialize":
         connector_action_response["initialize"] = connector.initialize()
 
-    if request.GET.get("date") or request.GET.get("action"):
+    if request.GET.get("date") or request.GET.get("action") or request.GET.get("id"):
+        # select messages to action
         if request.GET.get("date"):
             date = datetime.datetime.strptime(request.GET.get("date"), "%Y-%m-%d")
             undelivered_messages = connector.messages.filter(
                 created__date=date, delivered=False
             )
+        if request.GET.get("id"):
+            undelivered_messages = connector.messages.filter(
+                id=request.GET.get("id"), delivered=False
+            )
+        # act on messages
         if request.GET.get("action") == "force_delivery":
             for message in undelivered_messages:
                 delivery_happened = message.force_delivery()
@@ -205,6 +211,10 @@ def connector_analyze(request, server_id, connector_id):
                     )
         if request.GET.get("action") == "mark_as_delivered":
             undelivered_messages.update(delivered=True)
+            for um in undelivered_messages:
+                messages.success(
+                    request, "Message #{0} marked as delivered".format(um.id)
+                )
         if request.GET.get("action") == "show":
             # we want to show the messages, so just pass
             # as the other actions will redirect
