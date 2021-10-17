@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load crispy_forms_tags %}
 
 {% block content %}
 <nav class="breadcrumb">
@@ -35,70 +36,78 @@
 
 {% endif %}
 
-
-
-<table class="table">
-    <thead>
-        <tr>
-            <th>Date</th>
-            <th>Undelivered Messages</th>
-            <th>Rooms</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for message in messages_undelivered_by_date %}
-        <tr>
-            <td scope="row">{{message.date|date:"SHORT_DATE_FORMAT"}}</td>
-            <td>{{message.created_count}}</td>
-            <td>{{message.room_count}}</td>
-            <td>
-                <a name="" id="" class="btn btn-danger" href="?date={{message.date|date:'Y-m-d'}}&action=force_delivery" role="button">force delivery</a>
-                <a name="" id="" class="btn btn-success" href="?date={{message.date|date:'Y-m-d'}}&action=mark_as_delivered" role="button">mark as delivered</a>
-                <a name="" id="" class="btn btn-info" href="?date={{message.date|date:'Y-m-d'}}&action=show" role="button">show</a>
-            </td>
-        </tr>
-        {% empty %}
-        <tr>
-            <td><i>No Undelivered Messages to show</i></td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
-
-{% if undelivered_messages %}
-    <h1>Showing undelivered Messages for date {{date|date:"SHORT_DATE_FORMAT"}}</h1>
-    <hr />
-    {% regroup undelivered_messages by room as undelivered_messages_by_room  %}
-    {% for rooms in undelivered_messages_by_room %}
-        <div class="card">
-            <div class="card-body">
-                <h4 class="card-title">
-                    <h2>
-                        {{rooms.grouper}}
-                        <a href="http://{{rooms.list.0.connector.server.url}}/live/{{rooms.grouper.room_id}}">link</a>
-                    </h2>
-                </h4>
-                <p class="card-text">
-                    {% for message in rooms.list %}
-                    <p>
-                        <button class="btn btn-primary" type="button" data-toggle="collapse" data-target="#collapse-{{message.id}}" aria-expanded="false" aria-controls="collapse-{{message.id}}">
-                        {{message.id}} {{message.type}}
-                        </button>
-                    </p>
-                    <div class="collapse" id="collapse-{{message.id}}">
-                        <div class="card card-body m-3">
-                        <pre>{{message.raw_message|pprint}}</pre>
+<div id="undelivered_messages_by_day" class="container">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Undelivered Messages</th>
+                <th>Rooms</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for message in messages_undelivered_by_date %}
+            <tr>
+                <td scope="row">{{message.date|date:"SHORT_DATE_FORMAT"}}</td>
+                <td>{{message.created_count}}</td>
+                <td>{{message.room_count}}</td>
+                <td>
+                    <a name="" id="" class="btn btn-danger" href="?date={{message.date|date:'Y-m-d'}}&action=force_delivery" role="button">force delivery</a>
+                    <a name="" id="" class="btn btn-success" href="?date={{message.date|date:'Y-m-d'}}&action=mark_as_delivered" role="button">mark as delivered</a>
+                    <a name="" id="" class="btn btn-info" href="?date={{message.date|date:'Y-m-d'}}&action=show" role="button">show</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td><i>No Undelivered Messages to show</i></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+<div id="undelivered_messages" class="container">
+    {% if undelivered_messages %}
+        <h1>Showing undelivered Messages for date {{date|date:"SHORT_DATE_FORMAT"}}</h1>
+        <hr />
+        {% regroup undelivered_messages by room as undelivered_messages_by_room  %}
+        {% for rooms in undelivered_messages_by_room %}
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="card-title">
+                        <h2>
+                            {{rooms.grouper}}
+                            <a href="http://{{rooms.list.0.connector.server.url}}/live/{{rooms.grouper.room_id}}">link</a>
+                        </h2>
+                    </h4>
+                    <p class="card-text">
+                        {% for message in rooms.list %}
+                        <p>
+                            <button class="btn btn-primary" type="button" data-toggle="collapse" data-target="#collapse-{{message.id}}" aria-expanded="false" aria-controls="collapse-{{message.id}}">
+                            {{message.id}} {{message.type}}
+                            </button>
+                        </p>
+                        <div class="collapse" id="collapse-{{message.id}}">
+                            <div class="card card-body m-3">
+                            <pre>{{message.raw_message|pprint}}</pre>
+                            </div>
                         </div>
-                    </div>
-                    {% endfor %}
-                </p>
+                        {% endfor %}
+                    </p>
+                </div>
             </div>
-        </div>
-
-
-
-    {% endfor %}
+        {% endfor %}
+    {% endif %}
+</div>
+{% if config_form %}
+    <div id="config" class="container">
+        <h1>Configurations</h1>
+        <form action="" method="post">
+            {% csrf_token %}
+            {{config_form|crispy}}
+            <button type="submit" class="btn btn-primary btn-lg btn-full">Save Configuration</button>
+        </form>
+    </div>
 {% endif %}
 
 

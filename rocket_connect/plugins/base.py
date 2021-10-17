@@ -575,7 +575,10 @@ class Connector(object):
                     ):
                         message["msg"] = self.connector.config["force_close_message"]
                     if message.get("msg"):
-                        self.outgo_text_message(message)
+                        if self.connector.config.get("add_agent_name_at_close_message"):
+                            self.outgo_text_message(message, agent_name=agent_name)
+                        else:
+                            self.outgo_text_message(message)
                         self.close_room()
                 else:
                     # regular message, maybe with attach

@@ -3,7 +3,9 @@ import time
 import urllib.parse as urlparse
 
 import requests
+from django import forms
 from django.conf import settings
+from django.core import validators
 from django.http import HttpResponse, JsonResponse
 
 from .base import Connector as ConnectorBase
@@ -132,7 +134,9 @@ class Connector(ConnectorBase):
         # message
         if self.message.get("event") == "onmessage":
             # direct messages only
-            if not self.message.get("isGroupMsg") and  'status@broadcast' not in self.message.get("from"):
+            if not self.message.get(
+                "isGroupMsg"
+            ) and "status@broadcast" not in self.message.get("from"):
                 # register message
                 message, created = self.register_message()
                 # get rocket client
@@ -280,3 +284,34 @@ class Connector(ConnectorBase):
             self.message_object.response[timestamp] = sent.json()
             self.message_object.save()
             # self.send_seen()
+
+
+# TODO: create a ConnectorBaseConfigForm
+# and inherit all the connectors from this one,
+# with same save method and common configs
+class ConnectorConfigForm(forms.Form):
+    def __init__(self, *args, **kwargs):
+        # get the instance connector
+        self.connector = kwargs.pop("connector")
+        # pass the connector config as initial
+        super().__init__(*args, **kwargs, initial=self.connector.config)
+
+    def save(self):
+        for field in self.cleaned_data.keys():
+            self.connector.config[field] = self.cleaned_data[field]
+            self.connector.save()
+
+    webhook = forms.CharField(
+        help_text="Where WPPConnect will send the events", required=True
+    )
+    endpoint = forms.CharField(
+        help_text="Where your WPPConnect is installed", required=True
+    )
+    secret_key = forms.CharField(
+        help_text="The secret key for your WPPConnect instance", required=True
+    )
+    instance_name = forms.CharField(
+        help_text="WPPConnect instance name", validators=[validators.validate_slug]
+    )
+    outcome_attachment_description_as_new_message = forms.BooleanField(required=False)
+    add_agent_name_at_close_message = forms.BooleanField(required=False)

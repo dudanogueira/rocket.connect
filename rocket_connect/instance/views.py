@@ -226,11 +226,27 @@ def connector_analyze(request, server_id, connector_id):
         .order_by("-date")
     )
 
+    # get form
+    config_form = connector.get_connector_config_form()
+    # process or render
+    if request.POST:
+        config_form = config_form(request.POST or None, connector=connector)
+        if config_form.is_valid():
+            # TODO: better save here
+            config_form.save()
+            messages.success(
+                request, "Configurations changed for {0}".format(connector.name)
+            )
+    else:
+        if config_form:
+            config_form = config_form(connector=connector)
+
     context = {
         "connector": connector,
         "messages_undelivered_by_date": messages_undelivered_by_date,
         "undelivered_messages": undelivered_messages,
         "date": date,
         "connector_action_response": connector_action_response,
+        "config_form": config_form,
     }
     return render(request, "instance/connector_analyze.html", context)

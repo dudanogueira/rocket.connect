@@ -164,6 +164,19 @@ class Connector(models.Model):
         # initiate connector plugin
         return plugin.Connector
 
+    def get_connector_config_form(self):
+        connector_type = self.connector_type
+        # import the connector plugin
+        plugin_string = "rocket_connect.plugins.{0}".format(connector_type)
+        try:
+            plugin = __import__(plugin_string, fromlist=["ConnectorConfigForm"])
+            # return form or false
+            return getattr(plugin, "ConnectorConfigForm", False)
+        # no form for you
+        except ModuleNotFoundError:
+            pass
+        return False
+
     def status_session(self, request=None):
         """
         this method will get the possible status_session of the connector instance logic from the plugin
