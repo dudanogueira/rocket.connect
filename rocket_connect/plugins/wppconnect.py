@@ -120,17 +120,9 @@ class Connector(ConnectorBase):
             self.outcome_admin_message(text)
 
         if self.message.get("event") == "incomingcall":
-            # auto answer
-            if self.connector.config.get("auto_answer_incoming_call"):
-                self.logger_info(
-                    "auto_answer_incoming_call: {0}".format(
-                        self.connector.config.get("auto_answer_incoming_call")
-                    )
-                )
-                message = {
-                    "msg": self.connector.config.get("auto_answer_incoming_call")
-                }
-                self.outgo_text_message(message)
+            # handle incoming call
+            message, created = self.register_message()
+            self.handle_incoming_call()
 
         # message
         if self.message.get("event") == "onmessage":

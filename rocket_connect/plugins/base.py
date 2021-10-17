@@ -608,6 +608,16 @@ class Connector(object):
             self.logger_info("OUTGOING MESSAGE {0}".format(message))
         return True
 
+    def handle_incoming_call(self):
+        if self.connector.config.get("auto_answer_incoming_call"):
+            self.logger_info(
+                "auto_answer_incoming_call: {0}".format(
+                    self.connector.config.get("auto_answer_incoming_call")
+                )
+            )
+            message = {"msg": self.connector.config.get("auto_answer_incoming_call")}
+            self.outgo_text_message(message)
+
 
 class BaseConnectorConfigForm(forms.Form):
     def __init__(self, *args, **kwargs):
@@ -625,7 +635,11 @@ class BaseConnectorConfigForm(forms.Form):
                     del self.connector.config[field]
             self.connector.save()
 
+    timezone = forms.CharField(help_text="Timezone for this connector", required=False)
     force_close_message = forms.CharField(
         help_text="Force this message on close", required=False
+    )
+    auto_answer_incoming_call = forms.CharField(
+        help_text="Auto answer this message on incoming call", required=False
     )
     outcome_attachment_description_as_new_message = forms.BooleanField(required=False)
