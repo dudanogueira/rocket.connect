@@ -132,7 +132,7 @@ class Connector(ConnectorBase):
         # message
         if self.message.get("event") == "onmessage":
             # direct messages only
-            if not self.message.get("isGroupMsg"):
+            if not self.message.get("isGroupMsg") and  'status@broadcast' not in self.message.get("from"):
                 # register message
                 message, created = self.register_message()
                 # get rocket client
