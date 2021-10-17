@@ -8,6 +8,7 @@ from django.conf import settings
 from django.core import validators
 from django.http import HttpResponse, JsonResponse
 
+from .base import BaseConnectorConfigForm
 from .base import Connector as ConnectorBase
 
 
@@ -286,20 +287,7 @@ class Connector(ConnectorBase):
             # self.send_seen()
 
 
-# TODO: create a ConnectorBaseConfigForm
-# and inherit all the connectors from this one,
-# with same save method and common configs
-class ConnectorConfigForm(forms.Form):
-    def __init__(self, *args, **kwargs):
-        # get the instance connector
-        self.connector = kwargs.pop("connector")
-        # pass the connector config as initial
-        super().__init__(*args, **kwargs, initial=self.connector.config)
-
-    def save(self):
-        for field in self.cleaned_data.keys():
-            self.connector.config[field] = self.cleaned_data[field]
-            self.connector.save()
+class ConnectorConfigForm(BaseConnectorConfigForm):
 
     webhook = forms.CharField(
         help_text="Where WPPConnect will send the events", required=True
@@ -315,3 +303,12 @@ class ConnectorConfigForm(forms.Form):
     )
     outcome_attachment_description_as_new_message = forms.BooleanField(required=False)
     add_agent_name_at_close_message = forms.BooleanField(required=False)
+
+    field_order = [
+        "webhook",
+        "endpoint",
+        "secret_key",
+        "instance_name",
+        "outcome_attachment_description_as_new_message",
+        "add_agent_name_at_close_message",
+    ]

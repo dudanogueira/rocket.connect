@@ -11,6 +11,7 @@ from io import BytesIO
 import qrcode
 import requests
 import zbarlight
+from django import forms
 from django.conf import settings
 from django.db import IntegrityError
 from django.http import JsonResponse
@@ -606,3 +607,23 @@ class Connector(object):
         else:
             self.logger_info("OUTGOING MESSAGE {0}".format(message))
         return True
+
+
+class BaseConnectorConfigForm(forms.Form):
+    def __init__(self, *args, **kwargs):
+        # get the instance connector
+        self.connector = kwargs.pop("connector")
+        # pass the connector config as initial
+        super().__init__(*args, **kwargs, initial=self.connector.config)
+
+    def save(self):
+        for field in self.cleaned_data.keys():
+            if self.cleaned_data[field]:
+                self.connector.config[field] = self.cleaned_data[field]
+            else:
+                del self.connector.config[field]
+            self.connector.save()
+
+    force_close_message = forms.CharField(
+        help_text="Force this message on close", required=False
+    )
