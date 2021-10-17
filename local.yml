@@ -223,3 +223,12 @@ services:
     command: wppserver --log-level DEBUG --secretKey My53cr3tKY --port 21465
     ports:
       - "21465:21465"
+
+  apache:
+      image: 'php:apache'
+      ports:
+        - "80:80"
+      restart: unless-stopped
+      volumes:
+        - ./compose/local/apache/site:/var/www/html
+        - ./compose/local/apache/confs/additional.conf:/etc/apache2/conf-enabled/additional.conf
