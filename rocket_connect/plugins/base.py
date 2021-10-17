@@ -621,9 +621,11 @@ class BaseConnectorConfigForm(forms.Form):
             if self.cleaned_data[field]:
                 self.connector.config[field] = self.cleaned_data[field]
             else:
-                del self.connector.config[field]
+                if self.connector.config.get(field):
+                    del self.connector.config[field]
             self.connector.save()
 
     force_close_message = forms.CharField(
         help_text="Force this message on close", required=False
     )
+    outcome_attachment_description_as_new_message = forms.BooleanField(required=False)

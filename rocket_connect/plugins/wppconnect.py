@@ -301,8 +301,6 @@ class ConnectorConfigForm(BaseConnectorConfigForm):
     instance_name = forms.CharField(
         help_text="WPPConnect instance name", validators=[validators.validate_slug]
     )
-    outcome_attachment_description_as_new_message = forms.BooleanField(required=False)
-    add_agent_name_at_close_message = forms.BooleanField(required=False)
 
     field_order = [
         "webhook",
@@ -310,5 +308,4 @@ class ConnectorConfigForm(BaseConnectorConfigForm):
         "secret_key",
         "instance_name",
         "outcome_attachment_description_as_new_message",
-        "add_agent_name_at_close_message",
     ]
