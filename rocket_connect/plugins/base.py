@@ -581,6 +581,10 @@ class Connector(object):
                         else:
                             self.outgo_text_message(message)
                         self.close_room()
+                    # closing message without message
+                    else:
+                        self.message_object.delivered = True
+                        self.message_object.save()
                 else:
                     # regular message, maybe with attach
                     if message.get("attachments", {}):
