@@ -420,7 +420,9 @@ class Connector(object):
                 message = {"msg": self.config.get("welcome_message")}
                 self.outgo_text_message(message)
                 # if room was created
-                if room:
+                if room and self.config.get(
+                    "alert_agent_of_automated_message_sent", False
+                ):
                     # let the agent know
                     self.outcome_text(
                         room.room_id,
@@ -442,7 +444,9 @@ class Connector(object):
                 payload = self.config.get("welcome_vcard")
                 self.outgo_vcard(payload)
                 # if room was created
-                if room:
+                if room and self.config.get(
+                    "alert_agent_of_automated_message_sent", False
+                ):
                     # let the agent know
                     self.outcome_text(
                         room_id=room.room_id,
@@ -676,16 +680,32 @@ class Connector(object):
         if self.config.get("auto_answer_incoming_call"):
             self.logger_info(
                 "auto_answer_incoming_call: {0}".format(
-                    self.connector.config.get("auto_answer_incoming_call")
+                    self.config.get("auto_answer_incoming_call")
                 )
             )
-            message = {"msg": self.connector.config.get("auto_answer_incoming_call")}
+            message = {"msg": self.config.get("auto_answer_incoming_call")}
             self.outgo_text_message(message)
         if self.config.get("convert_incoming_call_to_text"):
             if self.room:
                 self.outcome_text(
                     self.room.room_id,
                     text=self.config.get("convert_incoming_call_to_text"),
+                )
+
+    def handle_ptt(self):
+        if self.config.get("auto_answer_on_audio_message"):
+            self.logger_info(
+                "auto_answer_on_audio_message: {0}".format(
+                    self.config.get("auto_answer_on_audio_message")
+                )
+            )
+            message = {"msg": self.connector.config.get("auto_answer_on_audio_message")}
+            self.outgo_text_message(message)
+        if self.config.get("convert_incoming_audio_to_text"):
+            if self.room:
+                self.outcome_text(
+                    self.room.room_id,
+                    text=self.config.get("convert_incoming_audio_to_text"),
                 )
 
 
@@ -714,12 +734,7 @@ class BaseConnectorConfigForm(forms.Form):
     force_close_message = forms.CharField(
         help_text="Force this message on close", required=False
     )
-    auto_answer_incoming_call = forms.CharField(
-        help_text="Auto answer this message on incoming call", required=False
-    )
-    convert_incoming_call_to_text = forms.CharField(
-        help_text="Convert Incoming Call to this text", required=False
-    )
+
     outcome_attachment_description_as_new_message = forms.BooleanField(
         required=False,
         help_text="This might be necessary for the bot to react accordingly",
@@ -727,6 +742,26 @@ class BaseConnectorConfigForm(forms.Form):
     add_agent_name_at_close_message = forms.BooleanField(required=False)
     overwrite_custom_fields = forms.BooleanField(
         required=False, help_text="overwrite custom fields on new visitor registration"
+    )
+    alert_agent_of_automated_message_sent = forms.BooleanField(
+        required=False,
+        help_text="Alert the agent whenever you send an automated text."
+        + "WARNING: this option will cause a bot to react to those messages.",
+    )
+    auto_answer_incoming_call = forms.CharField(
+        help_text="Auto answer this message on incoming call", required=False
+    )
+    convert_incoming_call_to_text = forms.CharField(
+        help_text="Convert an Incoming Call to this text (can be used to force a bot reaction)",
+        required=False,
+    )
+    auto_answer_on_audio_message = forms.CharField(
+        required=False,
+        help_text="Auto answer with this message when a user end audio (PTT)",
+    )
+    convert_incoming_audio_to_text = forms.CharField(
+        required=False,
+        help_text="Convert a user audio to this message (can be used to force a bot reaction)",
     )
     welcome_message = forms.CharField(
         help_text="Auto answer this message as Welcome Message", required=False

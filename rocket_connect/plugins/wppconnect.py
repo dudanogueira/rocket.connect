@@ -180,6 +180,8 @@ class Connector(ConnectorBase):
                             room.room_id, text, message_id=self.get_message_id()
                         )
                     else:
+                        if self.message.get("type") == "ptt":
+                            self.handle_ptt()
                         # media type
                         mime = self.message.get("mimetype")
                         file_sent = self.outcome_file(
@@ -198,13 +200,13 @@ class Connector(ConnectorBase):
                         )
                     )
 
-        # unread messages
+        # unread messages - just logging
         if self.message.get("event") == "unreadmessages":
             if "status@broadcast" not in self.message.get(
                 "from"
             ) and not self.message.get("id", {}).get("fromMe", False):
                 self.logger_info(
-                    "PROCESSING UNREAD MESSAGE. PAYLOAD {0}".format(self.message)
+                    "PROCESSED UNREAD MESSAGE. PAYLOAD {0}".format(self.message)
                 )
 
         return JsonResponse({})
