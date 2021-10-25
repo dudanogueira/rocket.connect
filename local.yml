@@ -8,7 +8,7 @@ volumes:
   local_rocket_db_config: {}
   local_rocket_db_dump: {}
   local_waautomate_data: {}
-  local_venom_simple_api_data: {}
+  local_wppconnect_data: {}
   nodemodules: {}
 
 services:
@@ -117,7 +117,7 @@ services:
     command: /start-flower
 
   rocketchat:
-    image: rocketchat/rocket.chat:4.0.2
+    image: rocketchat/rocket.chat:4.0.4
     command: >
       bash -c
         "for i in `seq 1 30`; do
@@ -150,7 +150,7 @@ services:
     depends_on:
       - mongo
     ports:
-      - 3000:3000
+      - 3010:3000
 
   mongo:
     image: mongo:4.2
@@ -220,7 +220,19 @@ services:
 
   wppconnect:
     image: wppconnect/server-cli:main
-    command: wppserver --log-level DEBUG --secretKey My53cr3tKY --port 21465
+    # for command options: https://github.com/wppconnect-team/server-cli/blob/main/src/program.js
+    command: wppserver
+      --log-level DEBUG
+      --secretKey My53cr3tKY
+      --port 21465
+      --startAllSession
+      --webhook-allUnreadOnStart
+      #--no-webhook-onPresenceChanged
+      #--no-webhook-onParticipantsChanged
+      #--no-webhook-listenAcks
+    volumes:
+      - local_wppconnect_data:/usr/src/server-cli/tokens
+
     ports:
       - "21465:21465"
 
