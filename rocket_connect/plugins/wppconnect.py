@@ -311,6 +311,25 @@ class Connector(ConnectorBase):
             self.message_object.save()
             # self.send_seen()
 
+    def outgo_vcard(self, payload):
+        session = self.get_request_session()
+        url = self.connector.config["endpoint"] + "/api/{0}/contact-vcard".format(
+            self.connector.config["instance_name"]
+        )
+        self.logger_info("OUTGOING VCARD. URL: {0}. PAYLOAD {1}".format(url, payload))
+        timestamp = int(time.time())
+        try:
+            sent = session.post(url, json=payload)
+            self.message_object.delivered = sent.ok
+            self.message_object.response[timestamp] = sent.json()
+        except requests.ConnectionError:
+            self.message_object.delivered = False
+            self.logger_info("CONNECTOR DOWN: {0}".format(self.connector))
+        # save message object
+        if self.message_object:
+            self.message_object.payload[timestamp] = payload
+            self.message_object.save()
+
 
 class ConnectorConfigForm(BaseConnectorConfigForm):
 
@@ -332,5 +351,4 @@ class ConnectorConfigForm(BaseConnectorConfigForm):
         "endpoint",
         "secret_key",
         "instance_name",
-        "outcome_attachment_description_as_new_message",
     ]
