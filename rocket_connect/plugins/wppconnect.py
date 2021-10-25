@@ -154,9 +154,10 @@ class Connector(ConnectorBase):
                     if self.message.get("type") == "chat":
                         # deliver text message
                         message = self.get_message_body()
-                        deliver = self.outcome_text(room.room_id, message)
-                        if settings.DEBUG:
-                            print("DELIVER OF TEXT MESSAGE:", deliver.ok)
+                        if room:
+                            deliver = self.outcome_text(room.room_id, message)
+                            if settings.DEBUG:
+                                print("DELIVER OF TEXT MESSAGE:", deliver.ok)
                     else:
                         # media type
                         mime = self.message.get("mimetype")

@@ -227,8 +227,8 @@ services:
       --port 21465
       --startAllSession
       --webhook-allUnreadOnStart
-      #--no-webhook-onPresenceChanged
-      #--no-webhook-onParticipantsChanged
+      --no-webhook-onPresenceChanged
+      --no-webhook-onParticipantsChanged
       #--no-webhook-listenAcks
     volumes:
       - local_wppconnect_data:/usr/src/server-cli/tokens

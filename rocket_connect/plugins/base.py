@@ -365,35 +365,46 @@ class Connector(object):
             )
         except LiveChatRoom.DoesNotExist:
             print("get_room, didnt get for: ", connector_token)
-            # room not available, let's create one.
-            # get the visitor json
-            visitor_json = self.get_visitor_json()
-            # get the visitor object
-            visitor_object = self.rocket.livechat_register_visitor(
-                visitor=visitor_json, token=connector_token
-            )
-            response = visitor_object.json()
-            if settings.DEBUG:
-                print("VISITOR REGISTERING: ", response)
-            # we got a new room
-            # this is where you can hook some "welcoming features"
-            if response["success"]:
-                rc_room = self.rocket.livechat_room(token=connector_token)
-                rc_room_response = rc_room.json()
+            if self.config.get("welcome_message"):
+                message = {"msg": self.config.get("welcome_message")}
+                self.outgo_text_message(message)
+                # outcome this message to the agent
+            if self.config.get("open_room", True):
+                # room not available, let's create one.
+                # get the visitor json
+                visitor_json = self.get_visitor_json()
+                # get the visitor object
+                visitor_object = self.rocket.livechat_register_visitor(
+                    visitor=visitor_json, token=connector_token
+                )
+                response = visitor_object.json()
                 if settings.DEBUG:
-                    print("REGISTERING ROOM, ", rc_room_response)
-                if rc_room_response["success"]:
-                    room = LiveChatRoom.objects.create(
-                        connector=self.connector,
-                        token=connector_token,
-                        room_id=rc_room_response["room"]["_id"],
-                        open=True,
-                    )
-                else:
-                    if rc_room_response["error"] == "no-agent-online":
-                        if settings.DEBUG:
-                            print("Erro! No Agents Online")
+                    print("VISITOR REGISTERING: ", response)
+                # we got a new room
+                # this is where you can hook some "welcoming features"
+                if response["success"]:
+                    rc_room = self.rocket.livechat_room(token=connector_token)
+                    rc_room_response = rc_room.json()
+                    if settings.DEBUG:
+                        print("REGISTERING ROOM, ", rc_room_response)
+                    if rc_room_response["success"]:
+                        room = LiveChatRoom.objects.create(
+                            connector=self.connector,
+                            token=connector_token,
+                            room_id=rc_room_response["room"]["_id"],
+                            open=True,
+                        )
+                    else:
+                        if rc_room_response["error"] == "no-agent-online":
+                            if settings.DEBUG:
+                                print("Erro! No Agents Online")
         self.room = room
+        # tell agent that the welcome message was sent
+        if self.config.get("welcome_message"):
+            self.outcome_text(
+                room.room_id,
+                "MESSAGE SENT: {0}".format(self.config.get("welcome_message")),
+            )
         if self.message_object:
             self.message_object.room = room
             self.message_object.save()
@@ -652,3 +663,7 @@ class BaseConnectorConfigForm(forms.Form):
         help_text="Auto answer this message on incoming call", required=False
     )
     outcome_attachment_description_as_new_message = forms.BooleanField(required=False)
+    welcome_message = forms.CharField(
+        help_text="Auto answer this message as Welcome Message", required=False
+    )
+    open_room = forms.BooleanField(required=False, initial=True)
