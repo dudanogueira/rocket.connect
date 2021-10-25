@@ -146,6 +146,7 @@ class Connector(object):
                 self.connector.server.url, room_id
             )
             deliver = requests.post(url, headers=headers, files=files, data=data)
+            self.logger_info("RESPONSE OF FILE OUTCOME: {0}".format(deliver.json()))
             timestamp = int(time.time())
             self.message_object.payload[timestamp] = {
                 "data": "sent attached file to rocketchat"
@@ -295,16 +296,6 @@ class Connector(object):
             "phone": visitor_phone,
             "customFields": [
                 {
-                    "key": "whatsapp_name",
-                    "value": visitor_name,
-                    "overwrite": False,
-                },
-                {
-                    "key": "whatsapp_number",
-                    "value": visitor_phone,
-                    "overwrite": False,
-                },
-                {
                     "key": "connector_name",
                     "value": connector_name,
                     "overwrite": True,
@@ -313,9 +304,26 @@ class Connector(object):
         }
         if department:
             visitor["department"] = department
-        if visitor_name and not self.connector.config.get(
-            "supress_visitor_name", False
-        ):
+
+        if visitor_name:
+            visitor["customFields"].append(
+                {
+                    "key": "whatsapp_name",
+                    "value": visitor_name,
+                    "overwrite": self.config.get("overwrite_custom_fields", True),
+                }
+            )
+
+        if visitor_phone:
+            visitor["customFields"].append(
+                {
+                    "key": "whatsapp_number",
+                    "value": visitor_phone,
+                    "overwrite": self.config.get("overwrite_custom_fields", True),
+                }
+            )
+
+        if visitor_name and not self.config.get("supress_visitor_name", False):
             visitor["name"] = visitor_name
 
         if settings.DEBUG:
@@ -665,7 +673,7 @@ class Connector(object):
         self.logger_info("OUTGOING VCARD {0}".format(vcard_json))
 
     def handle_incoming_call(self):
-        if self.connector.config.get("auto_answer_incoming_call"):
+        if self.config.get("auto_answer_incoming_call"):
             self.logger_info(
                 "auto_answer_incoming_call: {0}".format(
                     self.connector.config.get("auto_answer_incoming_call")
@@ -673,6 +681,12 @@ class Connector(object):
             )
             message = {"msg": self.connector.config.get("auto_answer_incoming_call")}
             self.outgo_text_message(message)
+        if self.config.get("convert_incoming_call_to_text"):
+            if self.room:
+                self.outcome_text(
+                    self.room.room_id,
+                    text=self.config.get("convert_incoming_call_to_text"),
+                )
 
 
 class BaseConnectorConfigForm(forms.Form):
@@ -703,8 +717,17 @@ class BaseConnectorConfigForm(forms.Form):
     auto_answer_incoming_call = forms.CharField(
         help_text="Auto answer this message on incoming call", required=False
     )
-    outcome_attachment_description_as_new_message = forms.BooleanField(required=False)
+    convert_incoming_call_to_text = forms.CharField(
+        help_text="Convert Incoming Call to this text", required=False
+    )
+    outcome_attachment_description_as_new_message = forms.BooleanField(
+        required=False,
+        help_text="This might be necessary for the bot to react accordingly",
+    )
     add_agent_name_at_close_message = forms.BooleanField(required=False)
+    overwrite_custom_fields = forms.BooleanField(
+        required=False, help_text="overwrite custom fields on new visitor registration"
+    )
     welcome_message = forms.CharField(
         help_text="Auto answer this message as Welcome Message", required=False
     )

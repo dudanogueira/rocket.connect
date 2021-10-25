@@ -121,7 +121,9 @@ class Connector(ConnectorBase):
 
         if self.message.get("event") == "incomingcall":
             # handle incoming call
+            self.get_rocket_client()
             message, created = self.register_message()
+            room = self.get_room()
             self.handle_incoming_call()
 
         # message
@@ -149,6 +151,11 @@ class Connector(ConnectorBase):
                     # get room
                     room = self.get_room()
                     #
+                    # no room was generated
+                    #
+                    if not room:
+                        return JsonResponse({"message": "no room generated"})
+                    #
                     # process different type of messages
                     #
                     if self.message.get("type") == "chat":
@@ -158,6 +165,20 @@ class Connector(ConnectorBase):
                             deliver = self.outcome_text(room.room_id, message)
                             if settings.DEBUG:
                                 print("DELIVER OF TEXT MESSAGE:", deliver.ok)
+                    elif self.message.get("type") == "location":
+                        lat = self.message.get("lat")
+                        lng = self.message.get("lng")
+                        link = "https://www.google.com/maps/search/?api=1&query={0}+{1}".format(
+                            lat, lng
+                        )
+                        text = "Lat:{0}, Long:{1}: Link: {2}".format(
+                            lat,
+                            lng,
+                            link,
+                        )
+                        self.outcome_text(
+                            room.room_id, text, message_id=self.get_message_id()
+                        )
                     else:
                         # media type
                         mime = self.message.get("mimetype")
@@ -211,20 +232,20 @@ class Connector(ConnectorBase):
         return name
 
     def get_visitor_phone(self):
-        try:
+        if self.message.get("event") == "incomingcall":
+            visitor_phone = self.message.get("peerJid").split("@")[0]
+        else:
             visitor_phone = self.message.get("from").split("@")[0]
-        except IndexError:
-            visitor_phone = "553199999999"
         return visitor_phone
 
     def get_visitor_username(self):
-        try:
+        if self.message.get("event") == "incomingcall":
             visitor_username = "whatsapp:{0}".format(
                 # works for wa-automate
-                self.message.get("from")
+                self.message.get("peerJid")
             )
-        except IndexError:
-            visitor_username = "channel:visitor-username"
+        else:
+            visitor_username = "whatsapp:{0}".format(self.message.get("from"))
         return visitor_username
 
     def get_message_body(self):
