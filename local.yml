@@ -150,7 +150,7 @@ services:
     depends_on:
       - mongo
     ports:
-      - 3010:3000
+      - 3000:3000
 
   mongo:
     image: mongo:4.2
