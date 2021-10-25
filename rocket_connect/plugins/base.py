@@ -636,7 +636,12 @@ class BaseConnectorConfigForm(forms.Form):
                 self.connector.config[field] = self.cleaned_data[field]
             else:
                 if self.connector.config.get(field):
-                    del self.connector.config[field]
+                    # if is a boolean field, mark as false
+                    # else, delete
+                    if type(self.fields[field]) == forms.fields.BooleanField:
+                        self.connector.config[field] = False
+                    else:
+                        del self.connector.config[field]
             self.connector.save()
 
     timezone = forms.CharField(help_text="Timezone for this connector", required=False)
