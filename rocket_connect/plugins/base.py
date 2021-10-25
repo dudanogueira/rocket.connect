@@ -365,10 +365,6 @@ class Connector(object):
             )
         except LiveChatRoom.DoesNotExist:
             print("get_room, didnt get for: ", connector_token)
-            if self.config.get("welcome_message"):
-                message = {"msg": self.config.get("welcome_message")}
-                self.outgo_text_message(message)
-                # outcome this message to the agent
             if self.config.get("open_room", True):
                 # room not available, let's create one.
                 # get the visitor json
@@ -399,12 +395,17 @@ class Connector(object):
                             if settings.DEBUG:
                                 print("Erro! No Agents Online")
         self.room = room
-        # tell agent that the welcome message was sent
         if self.config.get("welcome_message"):
-            self.outcome_text(
-                room.room_id,
-                "MESSAGE SENT: {0}".format(self.config.get("welcome_message")),
-            )
+            message = {"msg": self.config.get("welcome_message")}
+            self.outgo_text_message(message)
+            # if room was created
+            if room:
+                # let the agent know
+                self.outcome_text(
+                    room.room_id,
+                    "MESSAGE SENT: {0}".format(self.config.get("welcome_message")),
+                )
+        # outcome this message to the agent
         if self.message_object:
             self.message_object.room = room
             self.message_object.save()
