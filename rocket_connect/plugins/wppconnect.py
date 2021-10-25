@@ -125,51 +125,83 @@ class Connector(ConnectorBase):
             self.handle_incoming_call()
 
         # message
-        if self.message.get("event") == "onmessage":
+        if self.message.get("event") in ["onmessage", "unreadmessages"]:
+            if self.message.get("event") == "unreadmessages":
+                self.logger_info(
+                    "PROCESSING UNREAD MESSAGE. PAYLOAD {0}".format(self.message)
+                )
+                # if it's a message from Me, ignore:
+                if self.message.get("id", {}).get("fromMe"):
+                    return JsonResponse({})
+                # adapt unread messages to intake like a regular message
+                pass
             # direct messages only
             if not self.message.get(
-                "isGroupMsg"
+                "isGroupMsg", False
             ) and "status@broadcast" not in self.message.get("from"):
                 # register message
                 message, created = self.register_message()
-                # get rocket client
-                self.get_rocket_client()
-                if not self.rocket:
-                    return HttpResponse("Rocket Down!", status=503)
-                # get room
-                room = self.get_room()
-                if not self.message.get("isMedia") and self.message.get("type") not in [
-                    "document",
-                    "ptt",
-                ]:
-                    # deliver text message
-                    message = self.get_message_body()
-                    deliver = self.outcome_text(room.room_id, message)
-                    if settings.DEBUG:
-                        print("DELIVER OF TEXT MESSAGE:", deliver.ok)
+                if not message.delivered:
+                    # get rocket client
+                    self.get_rocket_client()
+                    if not self.rocket:
+                        return HttpResponse("Rocket Down!", status=503)
+                    # get room
+                    room = self.get_room()
+                    #
+                    # process different type of messages
+                    #
+                    if self.message.get("type") == "chat":
+                        # deliver text message
+                        message = self.get_message_body()
+                        deliver = self.outcome_text(room.room_id, message)
+                        if settings.DEBUG:
+                            print("DELIVER OF TEXT MESSAGE:", deliver.ok)
+                    else:
+                        # media type
+                        mime = self.message.get("mimetype")
+                        file_sent = self.outcome_file(
+                            self.message.get("body"),
+                            room.room_id,
+                            mime,
+                            description=self.message.get("caption", None),
+                        )
+                        if file_sent.ok:
+                            self.message_object.delivered = True
+                            self.message_object.save()
                 else:
-                    # media type
-                    mime = self.message.get("mimetype")
-                    file_sent = self.outcome_file(
-                        self.message.get("body"),
-                        room.room_id,
-                        mime,
-                        description=self.message.get("caption", None),
+                    self.logger_info(
+                        "Message Object {0} Already delivered. Ignoring".format(
+                            message.id
+                        )
                     )
-                    if file_sent.ok:
-                        self.message_object.delivered = True
-                        self.message_object.save()
+
+        # unread messages
+        if self.message.get("event") == "unreadmessages":
+            if "status@broadcast" not in self.message.get(
+                "from"
+            ) and not self.message.get("id", {}).get("fromMe", False):
+                self.logger_info(
+                    "PROCESSING UNREAD MESSAGE. PAYLOAD {0}".format(self.message)
+                )
 
         return JsonResponse({})
 
     def get_incoming_message_id(self):
-        return self.message.get("id")
+        # unread messages has a different structure
+        if self.message.get("event") == "unreadmessages":
+            return self.message.get("id", {}).get("_serialized")
+        else:
+            return self.message.get("id")
 
     def get_incoming_visitor_id(self):
         if self.message.get("event") == "incomingcall":
             return self.message.get("peerJid")
         else:
-            return self.message.get("chatId")
+            if self.message.get("event") == "unreadmessages":
+                return self.message.get("from")
+            else:
+                return self.message.get("chatId")
 
     def get_visitor_name(self):
         name = self.message.get("sender", {}).get("name")
