@@ -166,8 +166,8 @@ class Connector(object):
 
             return deliver
 
-    def outcome_text(self, room_id, text):
-        deliver = self.room_send_text(room_id, text)
+    def outcome_text(self, room_id, text, message_id=None):
+        deliver = self.room_send_text(room_id, text, message_id)
         timestamp = int(time.time())
         self.message_object.payload[timestamp] = json.loads(deliver.request.body)
         self.message_object.response[timestamp] = deliver.json()
@@ -347,6 +347,7 @@ class Connector(object):
 
     def get_room(self):
         room = None
+        room_created = False
         connector_token = self.get_visitor_token()
         try:
             room = LiveChatRoom.objects.get(
@@ -390,22 +391,56 @@ class Connector(object):
                             room_id=rc_room_response["room"]["_id"],
                             open=True,
                         )
+                        room_created = True
                     else:
                         if rc_room_response["error"] == "no-agent-online":
                             if settings.DEBUG:
                                 print("Erro! No Agents Online")
         self.room = room
         if self.config.get("welcome_message"):
-            message = {"msg": self.config.get("welcome_message")}
-            self.outgo_text_message(message)
-            # if room was created
-            if room:
-                # let the agent know
-                self.outcome_text(
-                    room.room_id,
-                    "MESSAGE SENT: {0}".format(self.config.get("welcome_message")),
-                )
-        # outcome this message to the agent
+            # only send welcome message when
+            # 1 - open_room is False and there is a welcome_message
+            # 2 - open_room is True, room_created is True and there is a welcome_message
+            if (
+                not self.config.get("open_room", True)
+                and self.config.get("welcome_message")
+            ) or (
+                self.config.get("open_room", True)
+                and room_created
+                and self.config.get("welcome_message")
+            ):
+                message = {"msg": self.config.get("welcome_message")}
+                self.outgo_text_message(message)
+                # if room was created
+                if room:
+                    # let the agent know
+                    self.outcome_text(
+                        room.room_id,
+                        "MESSAGE SENT: {0}".format(self.config.get("welcome_message")),
+                        message_id=self.get_message_id() + "WELCOME",
+                    )
+        if self.config.get("welcome_vcard"):
+            # only send welcome vcard when
+            # 1 - open_room is False and there is a welcome_vcard
+            # 2 - open_room is True, room_created is True and there is a welcome_vcard
+            if (
+                not self.config.get("open_room", True)
+                and self.config.get("welcome_vcard")
+            ) or (
+                self.config.get("open_room", True)
+                and room_created
+                and self.config.get("welcome_vcard")
+            ):
+                payload = self.config.get("welcome_vcard")
+                self.outgo_vcard(payload)
+                # if room was created
+                if room:
+                    # let the agent know
+                    self.outcome_text(
+                        room_id=room.room_id,
+                        text="VCARD SENT: {0}".format(self.config.get("welcome_vcard")),
+                        message_id=self.get_message_id() + "VCARD",
+                    )
         if self.message_object:
             self.message_object.room = room
             self.message_object.save()
@@ -421,15 +456,17 @@ class Connector(object):
         # so now it can go to a new room
         self.incoming()
 
-    def room_send_text(self, room_id, text):
+    def room_send_text(self, room_id, text, message_id=None):
         if settings.DEBUG:
             print("SENDING MESSAGE TO ROOM ID {0}: {1}".format(room_id, text))
+        if not message_id:
+            message_id = self.get_message_id()
         rocket = self.get_rocket_client()
         response = rocket.livechat_message(
             token=self.get_visitor_token(),
             rid=room_id,
             msg=text,
-            _id=self.get_message_id(),
+            _id=message_id,
         )
         if settings.DEBUG:
             print("MESSAGE SENT. RESPONSE: ", response.json())
@@ -624,6 +661,9 @@ class Connector(object):
             self.logger_info("OUTGOING MESSAGE {0}".format(message))
         return True
 
+    def outgo_vcard(self, vcard_json):
+        self.logger_info("OUTGOING VCARD {0}".format(vcard_json))
+
     def handle_incoming_call(self):
         if self.connector.config.get("auto_answer_incoming_call"):
             self.logger_info(
@@ -664,7 +704,13 @@ class BaseConnectorConfigForm(forms.Form):
         help_text="Auto answer this message on incoming call", required=False
     )
     outcome_attachment_description_as_new_message = forms.BooleanField(required=False)
+    add_agent_name_at_close_message = forms.BooleanField(required=False)
     welcome_message = forms.CharField(
         help_text="Auto answer this message as Welcome Message", required=False
     )
-    open_room = forms.BooleanField(required=False, initial=True)
+    welcome_vcard = forms.JSONField(
+        required=False, initial={}, help_text="The Payload for a Welcome Vcard"
+    )
+    open_room = forms.BooleanField(
+        required=False, initial=True, help_text="Uncheck to avoid creating a room"
+    )
