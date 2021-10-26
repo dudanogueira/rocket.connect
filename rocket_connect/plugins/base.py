@@ -615,6 +615,7 @@ class Connector(object):
             # This message is sent when the message if taken
             message, created = self.register_message()
             self.handle_livechat_session_taken()
+
         if self.message.get("type") == "LivechatSessionForwarded":
             #
             # This message is sent when the message if Forwarded

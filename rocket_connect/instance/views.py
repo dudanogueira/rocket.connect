@@ -11,6 +11,7 @@ from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render, reverse
 from django.views.decorators.csrf import csrf_exempt
 from envelope.models import LiveChatRoom
+from instance.forms import NewConnectorForm
 from instance.models import Connector, Server
 from rocketchat_API.APIExceptions.RocketExceptions import RocketAuthenticationException
 
@@ -260,3 +261,33 @@ def connector_analyze(request, server_id, connector_id):
         "config_form": config_form,
     }
     return render(request, "instance/connector_analyze.html", context)
+
+
+@login_required(login_url="/accounts/login/")
+@must_be_yours
+def new_connector(request, server_id):
+    server = get_object_or_404(Server, external_token=server_id)
+    form = NewConnectorForm(request.POST or None, server=server)
+    if request.POST:
+        if form.is_valid():
+            new_connector = form.save(commit=False)
+            new_connector.server = server
+            if form.cleaned_data["custom_connector_type"]:
+                new_connector.connector_type = form.cleaned_data[
+                    "custom_connector_type"
+                ]
+            new_connector.save()
+            messages.success(
+                request, "New connector {0} created.".format(new_connector.name)
+            )
+            return redirect(
+                reverse(
+                    "instance:connector_analyze",
+                    args=[
+                        new_connector.server.external_token,
+                        new_connector.external_token,
+                    ],
+                )
+            )
+    context = {"server": server, "form": form}
+    return render(request, "instance/new_connector.html", context)

@@ -9,7 +9,7 @@
 {% if request.user.is_authenticated %}
     {% if request.user.servers.all %}
         {% for server in request.user.servers.all %}
-        <div class="card {% if server.enabled %}bg-success{% else %}bg-danger{% endif %}">
+        <div class="card {% if server.enabled %}bg-success{% else %}bg-danger{% endif %} mb-3">
             <div class="card-header">
                 <h1>{{server}}</h1>
             </div>
