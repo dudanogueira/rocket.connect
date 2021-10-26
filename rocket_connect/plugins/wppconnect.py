@@ -342,6 +342,8 @@ class Connector(ConnectorBase):
         self.logger_info("OUTGOING VCARD. URL: {0}. PAYLOAD {1}".format(url, payload))
         timestamp = int(time.time())
         try:
+            # replace destination phone
+            payload["phone"] = self.get_visitor_phone()
             sent = session.post(url, json=payload)
             self.message_object.delivered = sent.ok
             self.message_object.response[timestamp] = sent.json()
