@@ -15,6 +15,7 @@ from django import forms
 from django.conf import settings
 from django.db import IntegrityError
 from django.http import JsonResponse
+from django.template import Context, Template
 from envelope.models import LiveChatRoom
 from PIL import Image
 
@@ -612,8 +613,8 @@ class Connector(object):
         if self.message.get("type") == "LivechatSessionTaken":
             #
             # This message is sent when the message if taken
-            if settings.DEBUG:
-                print("LivechatSessionTaken")
+            message, created = self.register_message()
+            self.handle_livechat_session_taken()
         if self.message.get("type") == "LivechatSessionForwarded":
             #
             # This message is sent when the message if Forwarded
@@ -708,6 +709,24 @@ class Connector(object):
                     text=self.config.get("convert_incoming_audio_to_text"),
                 )
 
+    def handle_livechat_session_taken(self):
+        if self.config.get("session_taken_alert_template"):
+            template = Template(self.config.get("session_taken_alert_template"))
+            context = Context(self.message)
+            message = template.render(context)
+            message_payload = {"msg": message}
+            if (
+                self.config.get("alert_agent_of_automated_message_sent", False)
+                and self.room
+            ):
+                # let the agent know
+                self.outcome_text(
+                    self.room.room_id,
+                    "MESSAGE SENT: {0}".format(message),
+                    message_id=self.get_message_id() + "SESSION_TAKEN",
+                )
+            return self.outgo_text_message(message_payload)
+
 
 class BaseConnectorConfigForm(forms.Form):
     def __init__(self, *args, **kwargs):
@@ -730,11 +749,13 @@ class BaseConnectorConfigForm(forms.Form):
                         del self.connector.config[field]
             self.connector.save()
 
+    open_room = forms.BooleanField(
+        required=False, initial=True, help_text="Uncheck to avoid creating a room"
+    )
     timezone = forms.CharField(help_text="Timezone for this connector", required=False)
     force_close_message = forms.CharField(
         help_text="Force this message on close", required=False
     )
-
     outcome_attachment_description_as_new_message = forms.BooleanField(
         required=False,
         help_text="This might be necessary for the bot to react accordingly",
@@ -769,6 +790,7 @@ class BaseConnectorConfigForm(forms.Form):
     welcome_vcard = forms.JSONField(
         required=False, initial={}, help_text="The Payload for a Welcome Vcard"
     )
-    open_room = forms.BooleanField(
-        required=False, initial=True, help_text="Uncheck to avoid creating a room"
+    session_taken_alert_template = forms.CharField(
+        required=False,
+        help_text="Template to use for the alert session taken. eg. You are now talking with {{agent.name}}",
     )
