@@ -117,7 +117,7 @@ services:
     command: /start-flower
 
   rocketchat:
-    image: rocketchat/rocket.chat:4.0.4
+    image: rocketchat/rocket.chat:4.0.5
     command: >
       bash -c
         "for i in `seq 1 30`; do
@@ -153,7 +153,7 @@ services:
       - 3000:3000
 
   mongo:
-    image: mongo:4.2
+    image: mongo:4.4
     restart: unless-stopped
     ports:
       - 27017:27017
@@ -166,7 +166,7 @@ services:
       - "traefik.enable=false"
 
   mongo-init-replica:
-    image: mongo:4.2
+    image: mongo:4.4
     command: 'bash -c "for i in `seq 1 30`; do mongo mongo/rocketchat --eval \"rs.initiate({ _id: ''rs0'', members: [ { _id: 0, host: ''localhost:27017'' } ]})\" && s=$$? && break || s=$$?; echo \"Tried $$i times. Waiting 5 secs...\"; sleep 5; done; (exit $$s)"'
     depends_on:
       - mongo
