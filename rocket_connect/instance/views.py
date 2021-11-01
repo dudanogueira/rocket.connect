@@ -171,15 +171,21 @@ def connector_analyze(request, server_id, connector_id):
     connector = get_object_or_404(
         Connector.objects, server__external_token=server_id, external_token=connector_id
     )
+    # get status session
+    connector_action_response = {}
+    connector_action_response["status_session"] = connector.status_session()
     undelivered_messages = None
     date = None
-    connector_action_response = {}
 
     if request.GET.get("connector_action") == "status_session":
         connector_action_response["status_session"] = connector.status_session()
 
     if request.GET.get("connector_action") == "initialize":
         connector_action_response["initialize"] = connector.initialize()
+
+    if request.GET.get("connector_action") == "close_session":
+        connector_action_response["close_session"] = connector.close_session()
+        connector_action_response["status_session"] = connector.status_session()
 
     if request.GET.get("date") or request.GET.get("action") or request.GET.get("id"):
         # select messages to action

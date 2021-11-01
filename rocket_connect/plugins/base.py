@@ -42,6 +42,12 @@ class Connector(object):
         self.room = None
         self.logger = logging.getLogger("teste")
 
+    def status_session(self):
+        return True
+
+    def close_session(self):
+        return True
+
     def logger_info(self, message):
         self.logger.info(
             "{0} > {1} > {2}".format(self.connector, self.type.upper(), message)

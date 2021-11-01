@@ -26,8 +26,14 @@
             status</a>
         <a name="" id="" class="btn btn-primary" href="?connector=wppconnect&connector_action=initialize"
             role="button">initialize</a>
+        {% if connector_action_response.status_session.status == "CONNECTED" %}
+        <a name="" id="" class="btn btn-danger" href="?connector=wppconnect&connector_action=close_session"
+        role="button">close session</a>
+        {% endif %}
+
     </p>
 </div>
+
 
 {% if connector_action_response %}
 

@@ -64,6 +64,24 @@ class Connector(ConnectorBase):
             return status
         return False
 
+    def close_session(self):
+        # generate token
+        endpoint = "{0}/api/{1}/close-session".format(
+            self.config.get("endpoint"),
+            self.config.get("instance_name"),
+        )
+        token = self.config.get("token", {}).get("token")
+        if not token:
+            self.generate_token()
+            token = self.config.get("token", {}).get("token")
+
+        headers = {"Authorization": "Bearer " + token}
+        status_req = requests.post(endpoint, headers=headers)
+        if status_req.ok:
+            status = status_req.json()
+            return status
+        return False
+
     def start_session(self):
         endpoint = "{0}/api/{1}/start-session".format(
             self.config.get("endpoint"),
@@ -155,6 +173,17 @@ class Connector(ConnectorBase):
                     #
                     if not room:
                         return JsonResponse({"message": "no room generated"})
+
+                    #
+                    # type uknown
+                    #
+                    if self.message.get("type") == "unknown":
+                        # in case it has message object attached
+                        if not self.message_object.delivered:
+                            self.message_object.delivered = True
+                            self.message_object.save()
+                        return JsonResponse({"message": "uknown type"})
+
                     #
                     # process different type of messages
                     #

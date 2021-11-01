@@ -199,6 +199,17 @@ class Connector(models.Model):
         # return initialize result
         return connector.initialize()
 
+    def close_session(self, request=None):
+        """
+        this method will instantiate the connector instance logic from the plugin
+        """
+        # get connector
+        Connector = self.get_connector_class()
+        # initiate with fake message, as it doesnt matter
+        connector = Connector(self, {}, "incoming")
+        # return close session result
+        return connector.close_session()
+
     def intake(self, request):
         """
         this method will intake the raw message, and apply the connector logic
