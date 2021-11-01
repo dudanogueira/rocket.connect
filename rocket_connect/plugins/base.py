@@ -430,8 +430,9 @@ class Connector(object):
                         "MESSAGE SENT: {0}".format(self.config.get("welcome_message")),
                         message_id=self.get_message_id() + "WELCOME",
                     )
-        if self.config.get('welcome_vcard') != {}:
+        if self.config.get("welcome_vcard") != {}:
             # only send welcome vcard when
+            #
             # 1 - open_room is False and there is a welcome_vcard
             # 2 - open_room is True, room_created is True and there is a welcome_vcard
             if (
