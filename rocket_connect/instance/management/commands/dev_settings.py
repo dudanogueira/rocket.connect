@@ -289,6 +289,7 @@ class Command(BaseCommand):
             ["Accounts_TwoFactorAuthentication_By_Email_Enabled", False],
             ["API_Enable_Rate_Limiter", False],
             ["Log_Level", "2"],
+            ["Livechat_Routing_Method", "Manual_Selection"],
         ]
         for config in configs:
             rocket.settings_update(config[0], config[1])
