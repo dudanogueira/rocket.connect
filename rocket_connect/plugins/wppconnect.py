@@ -113,13 +113,15 @@ class Connector(ConnectorBase):
             and check_number.get("status") == "Disconnected"
         ):
             return {
-                "text": "CONNECTOR *{0}* IS DISCONNECTED".format(self.connector.name)
+                "text": ":warning: CONNECTOR *{0}* IS DISCONNECTED".format(
+                    self.connector.name
+                )
             }
         # construct message
         message_raw = " ".join(self.message.get("text").split()[2:])
         if not message_raw:
             return {
-                "text": "NO MESSAGE TO SEND!! SYNTAX: {0} {1} <TEXT HERE>".format(
+                "text": ":warning: NO MESSAGE TO SEND!! SYNTAX: {0} {1} <TEXT HERE>".format(
                     self.message.get("trigger_word"), reference
                 )
             }
@@ -143,13 +145,17 @@ class Connector(ConnectorBase):
                 message = {"msg": message_raw}
                 sent = self.outgo_text_message(message)
                 if sent.ok:
-                    return {"text": "SENT {0} > {1}".format(number, message_raw)}
+                    return {
+                        "text": ":white_check_mark: SENT {0} > {1}".format(
+                            number, message_raw
+                        )
+                    }
 
         # if cannot receive message, report
         else:
             # check_number failed, not a valid number
             # report back that it was not able to send the message
-            return {"text": "INVALID NUMBER: {0}".format(number)}
+            return {"text": ":warning:  INVALID NUMBER: {0}".format(number)}
 
     def start_session(self):
         endpoint = "{0}/api/{1}/start-session".format(
