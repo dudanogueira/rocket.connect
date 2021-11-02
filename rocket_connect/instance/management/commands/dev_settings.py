@@ -115,6 +115,7 @@ class Command(BaseCommand):
             "secret_key": "My53cr3tKY",
             "instance_name": "test",
             "outcome_attachment_description_as_new_message": True,
+            "active_chat_webhook_integration_token": "WPP_EXTERNAL_TOKEN",
         }
         connector.name = "WPPCONNECT CONNECTOR"
         connector.connector_type = "wppconnect"
@@ -293,6 +294,31 @@ class Command(BaseCommand):
         ]
         for config in configs:
             rocket.settings_update(config[0], config[1])
+
+        # create if dont exist:
+        r = rocket.call_api_get(
+            "integrations.get", integrationId="wppconnect-integration"
+        )
+        if not r.ok:
+            print("CREATING WEBHOOK OUTGOING")
+            payload = {
+                "_id": "wppconnect-integration",
+                "type": "webhook-outgoing",
+                "name": "WPPCONNECT ACTIVE CHAT INTEGRATION",
+                "event": "sendMessage",
+                "enabled": True,
+                "username": "rocket.cat",
+                "urls": ["http://django:8000/connector/WPP_EXTERNAL_TOKEN/"],
+                "scriptEnabled": False,
+                "channel": "#manager_channel",
+                "triggerWords": [
+                    "zapit",
+                ],
+                "token": "WPP_EXTERNAL_TOKEN",
+            }
+            rocket.call_api_post("integrations.create", **payload)
+        else:
+            print("WEBHOOK OUTGOING ALREADY EXISTS")
 
     def handle(self, *args, **options):
         self.handle_django()
