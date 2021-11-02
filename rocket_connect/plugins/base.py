@@ -733,7 +733,7 @@ class Connector(object):
                     "MESSAGE SENT: {0}".format(message),
                     message_id=self.get_message_id() + "SESSION_TAKEN",
                 )
-            return self.outgo_text_message(message_payload)
+            return self.outgo_text_message(message_payload).json()
 
 
 class BaseConnectorConfigForm(forms.Form):

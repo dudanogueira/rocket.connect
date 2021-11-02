@@ -82,6 +82,75 @@ class Connector(ConnectorBase):
             return status
         return False
 
+    def check_number_status(self, number):
+        endpoint = "{0}/api/{1}/check-number-status/{2}".format(
+            self.config.get("endpoint"), self.config.get("instance_name"), number
+        )
+
+        token = self.config.get("token", {}).get("token")
+
+        if not token:
+            self.generate_token()
+            token = self.config.get("token", {}).get("token")
+
+        headers = {"Authorization": "Bearer " + token}
+        data = {"webhook": self.config.get("webhook")}
+        start_session_req = requests.get(endpoint, headers=headers, json=data)
+        self.logger.info(
+            "CHECKING NUMBER: {0}: {1}".format(number, start_session_req.json())
+        )
+        return start_session_req.json()
+
+    def active_chat(self):
+        # get the number reference
+        reference = self.message.get("text").split()[1]
+        # get the number, or all
+        number = reference.split("@")[0]
+        check_number = self.check_number_status(number)
+        # could not get number validation
+        if (
+            not check_number.get("response")
+            and check_number.get("status") == "Disconnected"
+        ):
+            return {
+                "text": "CONNECTOR *{0}* IS DISCONNECTED".format(self.connector.name)
+            }
+        # construct message
+        message_raw = " ".join(self.message.get("text").split()[2:])
+        if not message_raw:
+            return {
+                "text": "NO MESSAGE TO SEND!! SYNTAX: {0} {1} <TEXT HERE>".format(
+                    self.message.get("trigger_word"), reference
+                )
+            }
+
+        # number checking
+        if check_number.get("response", {}).get("canReceiveMessage", False):
+            # can receive messages
+            if "@" in reference:
+                # a new room was asked to be created (@ included)
+                try:
+                    department = reference.split("@")[1]
+                except IndexError:
+                    # no department provided
+                    department = None
+
+                # check if department is valid
+                print("AQUI", department)
+            else:
+                # no department, just send the message
+                self.message["chatId"] = number
+                message = {"msg": message_raw}
+                sent = self.outgo_text_message(message)
+                if sent.ok:
+                    return {"text": "SENT {0} > {1}".format(number, message_raw)}
+
+        # if cannot receive message, report
+        else:
+            # check_number failed, not a valid number
+            # report back that it was not able to send the message
+            return {"text": "INVALID NUMBER: {0}".format(number)}
+
     def start_session(self):
         endpoint = "{0}/api/{1}/start-session".format(
             self.config.get("endpoint"),
@@ -238,6 +307,15 @@ class Connector(ConnectorBase):
                     "PROCESSED UNREAD MESSAGE. PAYLOAD {0}".format(self.message)
                 )
 
+        # webhook active chat integration
+        if self.message.get("token") == self.config.get(
+            "active_chat_webhook_integration_token"
+        ):
+            self.logger_info("active_chat_webhook_integration_token triggered")
+            # message, created = self.register_message()
+            req = self.active_chat()
+            return JsonResponse(req)
+
         return JsonResponse({})
 
     def get_incoming_message_id(self):
@@ -310,17 +388,19 @@ class Connector(ConnectorBase):
         timestamp = int(time.time())
         try:
             sent = session.post(url, json=payload)
-            self.message_object.delivered = sent.ok
-            self.message_object.response[timestamp] = sent.json()
+            if self.message_object:
+                self.message_object.delivered = sent.ok
+                self.message_object.response[timestamp] = sent.json()
         except requests.ConnectionError:
-            self.message_object.delivered = False
-            self.logger_info("CONNECTOR DOWN: {0}".format(self.connector))
+            if self.message_object:
+                self.message_object.delivered = False
+                self.logger_info("CONNECTOR DOWN: {0}".format(self.connector))
         # save message object
         if self.message_object:
             self.message_object.payload[timestamp] = payload
             self.message_object.save()
 
-        return sent.json()
+        return sent
 
     def outgo_file_message(self, message, agent_name=None):
         # if its audio, treat different
@@ -400,9 +480,16 @@ class ConnectorConfigForm(BaseConnectorConfigForm):
         help_text="WPPConnect instance name", validators=[validators.validate_slug]
     )
 
+    active_chat_webhook_integration_token = forms.CharField(
+        required=False,
+        help_text="Put here the same token used for the active chat integration",
+        validators=[validators.validate_slug],
+    )
+
     field_order = [
         "webhook",
         "endpoint",
         "secret_key",
         "instance_name",
+        "active_chat_webhook_integration_token",
     ]
