@@ -1,4 +1,5 @@
 import base64
+import datetime
 import time
 import urllib.parse as urlparse
 
@@ -102,8 +103,22 @@ class Connector(ConnectorBase):
         return start_session_req.json()
 
     def active_chat(self):
-        # get the number reference
+        """
+        this method will be triggered when an active_chat needs to be places
+        it has to interpret the active chat text, and do the necessary check and
+        returns in order to provide.
+        this method will provide options for:
+        triggerword reference text
+        reference can be:
+            +5531111111@Department - opens a new chat at the selected department
+            +5531111111@ Opens a new chat at the configured connector default department or None
+        """
+        self.get_rocket_client()
+        now_str = datetime.datetime.now().replace(microsecond=0).isoformat()
+        # get the number reference, room_id and message_id
         reference = self.message.get("text").split()[1]
+        room_id = self.message.get("channel_id")
+        msg_id = self.message.get("message_id")
         # get the number, or all
         number = reference.split("@")[0]
         check_number = self.check_number_status(number)
@@ -118,13 +133,19 @@ class Connector(ConnectorBase):
                 )
             }
         # construct message
-        message_raw = " ".join(self.message.get("text").split()[2:])
+        texto = self.message.get("text")
+        message_raw = " ".join(texto.split(" ")[2:])
         if not message_raw:
-            return {
-                "text": ":warning: NO MESSAGE TO SEND!! SYNTAX: {0} {1} <TEXT HERE>".format(
-                    self.message.get("trigger_word"), reference
-                )
-            }
+            self.rocket.chat_update(
+                room_id=room_id,
+                msg_id=msg_id,
+                text=self.message.get("text")
+                + "\n:warning: {0} NO MESSAGE TO SEND. *SYNTAX: {1} {2} <TEXT HERE>*".format(
+                    now_str, self.message.get("trigger_word"), reference
+                ),
+            )
+            # return nothing
+            return {"success": False, "message": "NO MESSAGE TO SEND"}
 
         # number checking
         if check_number.get("response", {}).get("canReceiveMessage", False):
@@ -136,26 +157,94 @@ class Connector(ConnectorBase):
                 except IndexError:
                     # no department provided
                     department = None
-
                 # check if department is valid
-                print("AQUI", department)
+                if department:
+                    department_check = self.rocket.call_api_get(
+                        "livechat/department", text=department, onlyMyDepartments=False
+                    )
+                    # departments found
+                    departments = department_check.json().get("departments")
+                    if not departments:
+                        self.rocket.chat_update(
+                            room_id=room_id,
+                            msg_id=msg_id,
+                            text=self.message.get("text")
+                            + "\n:warning: {0} NO DEPARTMENT FOUND".format(now_str),
+                        )
+                        # return nothing
+                        return {"success": False, "message": "NO DEPARTMENT FOUND"}
+                    # > 1 departments found
+                    if len(departments) > 1:
+                        alert_message = "\n:warning: {0} More than one department found. Try one of the below:".format(
+                            now_str
+                        )
+                        for dpto in departments:
+                            alert_message = alert_message + "\n*{0}*".format(
+                                self.message.get("text").replace(
+                                    "@" + department, "@" + dpto["name"]
+                                ),
+                            )
+                        self.rocket.chat_update(
+                            room_id=room_id,
+                            msg_id=msg_id,
+                            text=self.message.get("text") + alert_message,
+                        )
+                        return {
+                            "success": False,
+                            "message": "MULTIPLE DEPARTMENTS FOUND",
+                        }
+                    # only one department, good to go.
+                    if len(departments) == 1:
+                        # create basic incoming new message
+                        self.message = {
+                            "from": check_number.get("response")
+                            .get("id")
+                            .get("_serialized"),
+                            "chatId": check_number.get("response")
+                            .get("id")
+                            .get("_serialized"),
+                        }
+                        # register room
+                        # room = self.get_room()
+                        # send message_raw to the room
+                        return {
+                            "success": False,
+                            "message": "MULTIPLE DEPARTMENTS FOUND",
+                        }
+
+                # register visitor
+
             else:
                 # no department, just send the message
                 self.message["chatId"] = number
                 message = {"msg": message_raw}
                 sent = self.outgo_text_message(message)
                 if sent.ok:
-                    return {
-                        "text": ":white_check_mark: SENT {0} > {1}".format(
-                            number, message_raw
-                        )
-                    }
+                    # return {
+                    #     "text": ":white_check_mark: SENT {0} \n{1}".format(
+                    #         number, message_raw
+                    #     )
+                    # }
+                    # update message
+                    self.rocket.chat_update(
+                        room_id=room_id,
+                        msg_id=msg_id,
+                        text=":white_check_mark: " + self.message.get("text"),
+                    )
+                    return {"success": True, "message": "MESSAGE SENT"}
 
         # if cannot receive message, report
         else:
             # check_number failed, not a valid number
             # report back that it was not able to send the message
-            return {"text": ":warning:  INVALID NUMBER: {0}".format(number)}
+            # return {"text": ":warning:  INVALID NUMBER: {0}".format(number)}
+            self.rocket.chat_update(
+                room_id=room_id,
+                msg_id=msg_id,
+                text=self.message.get("text")
+                + "\n:warning: {0} INVALID NUMER".format(now_str),
+            )
+            return {"success": True, "message": "INVALID NUMBER"}
 
     def start_session(self):
         endpoint = "{0}/api/{1}/start-session".format(
