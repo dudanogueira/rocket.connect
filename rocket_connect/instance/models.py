@@ -1,5 +1,6 @@
 import uuid
 
+import requests
 from django.apps import apps
 from django.conf import settings
 from django.db import models
@@ -50,7 +51,7 @@ class Server(models.Model):
 
     def get_managers(self, as_string=True):
         """
-        this method will return the managers (user1,user2,user3,#channel1,#channel2)
+        this method will return the managers (user@1,user2,user3,#channel1,#channel2)
         and the bot. The final result should be:
         user1,user2,user3
         Obs: it will remove all channels
@@ -186,7 +187,10 @@ class Connector(models.Model):
         # initiate with fake message, as it doesnt matter
         connector = Connector(self, {}, "incoming")
         # return initialize result
-        return connector.status_session()
+        try:
+            return connector.status_session()
+        except requests.ConnectionError:
+            return {"success": False}
 
     def initialize(self, request=None):
         """
