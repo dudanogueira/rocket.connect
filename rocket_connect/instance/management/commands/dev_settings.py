@@ -154,7 +154,7 @@ class Command(BaseCommand):
         for user in ["agent1", "agent2"]:
             data = {
                 "email": user + "@email.com",
-                "name": user,
+                "name": user + " Name",
                 "password": user,
                 "username": user,
             }

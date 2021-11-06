@@ -233,7 +233,6 @@ services:
       #--archive-daysToArchive 30
     volumes:
       - local_wppconnect_data:/usr/src/server-cli/tokens
-
     ports:
       - "21465:21465"
 
