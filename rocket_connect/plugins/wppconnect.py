@@ -106,6 +106,25 @@ class Connector(ConnectorBase):
         )
         return start_session_req.json()
 
+    def check_number_info(self, number):
+        endpoint = "{0}/api/{1}/contact/{2}".format(
+            self.config.get("endpoint"), self.config.get("instance_name"), number
+        )
+
+        token = self.config.get("token", {}).get("token")
+
+        if not token:
+            self.generate_token()
+            token = self.config.get("token", {}).get("token")
+
+        headers = {"Authorization": "Bearer " + token}
+        data = {"webhook": self.config.get("webhook")}
+        number_info_req = requests.get(endpoint, headers=headers, json=data)
+        self.logger.info(
+            "CHECKING CONTACT INFO: {0}: {1}".format(number, number_info_req.json())
+        )
+        return number_info_req.json()
+
     def active_chat(self):
         """
         this method will be triggered when an active_chat needs to be places
@@ -214,8 +233,12 @@ class Connector(ConnectorBase):
                                 "message": "MESSAGE ALREADY SENT",
                             }
                         # augment name from contact API
+                        contact = self.check_number_info(
+                            check_number["response"]["id"]["user"]
+                        )
                         # push, name, etc
                         # create basic incoming new message, as payload
+                        self.type = "incomoing"
                         self.message = {
                             "from": check_number.get("response")
                             .get("id")
@@ -228,12 +251,27 @@ class Connector(ConnectorBase):
                                 "token": "whatsapp:"
                                 + check_number["response"]["id"]["_serialized"]
                             },
+                            "sender": {
+                                "name": contact["response"]["name"],
+                                "shortName": contact["response"]["shortName"],
+                                "pushname": contact["response"]["pushname"],
+                            },
                         }
+                        self.logger_info(
+                            "ACTIVE MESSAGE PAYLOAD GENERATED: {0}".format(self.message)
+                        )
                         # register room
                         room = self.get_room()
                         if room:
                             self.logger_info("ACTIVE CHAT GOT A ROOM {0}".format(room))
+                        # send the message to the room, in order to be delivered to the
+                        # webhook and go the flow
                         # send message_raw to the room
+                        self.get_rocket_client(bot=True)
+                        self.rocket.chat_post_message(
+                            text=message_raw, room_id=room.room_id
+                        )
+
                         return {
                             "success": True,
                             "message": "MESSAGE SENT",
