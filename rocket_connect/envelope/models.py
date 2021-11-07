@@ -37,6 +37,7 @@ class Message(models.Model):
     STAGE_CHOICES = [
         ["incoming", "Incoming Message"],
         ["ingoing", "Ingoing Message"],
+        ["active_chat", "Active Chat"],
     ]
 
     def get_connector(self):

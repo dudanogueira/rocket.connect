@@ -117,6 +117,10 @@ class Connector(ConnectorBase):
             +5531111111@Department - opens a new chat at the selected department
             +5531111111@ Opens a new chat at the configured connector default department or None
         """
+        # set the message type
+        self.type = "active_chat"
+        self.message["type"] = self.type
+        # get client
         self.get_rocket_client()
         now_str = datetime.datetime.now().replace(microsecond=0).isoformat()
         # get the number reference, room_id and message_id
@@ -199,7 +203,19 @@ class Connector(ConnectorBase):
                         }
                     # only one department, good to go.
                     if len(departments) == 1:
-                        # create basic incoming new message
+                        # define message type
+                        self.type = "active_chat"
+                        # register message
+                        message, created = self.register_message()
+                        # do not send a sent message
+                        if message.delivered:
+                            return {
+                                "success": False,
+                                "message": "MESSAGE ALREADY SENT",
+                            }
+                        # augment name from contact API
+                        # push, name, etc
+                        # create basic incoming new message, as payload
                         self.message = {
                             "from": check_number.get("response")
                             .get("id")
@@ -207,13 +223,20 @@ class Connector(ConnectorBase):
                             "chatId": check_number.get("response")
                             .get("id")
                             .get("_serialized"),
+                            "id": self.message.get("message_id"),
+                            "visitor": {
+                                "token": "whatsapp:"
+                                + check_number["response"]["id"]["_serialized"]
+                            },
                         }
                         # register room
-                        # room = self.get_room()
+                        room = self.get_room()
+                        if room:
+                            self.logger_info("ACTIVE CHAT GOT A ROOM {0}".format(room))
                         # send message_raw to the room
                         return {
-                            "success": False,
-                            "message": "MULTIPLE DEPARTMENTS FOUND",
+                            "success": True,
+                            "message": "MESSAGE SENT",
                         }
 
                 # register visitor
@@ -421,8 +444,9 @@ class Connector(ConnectorBase):
         # unread messages has a different structure
         if self.message.get("event") == "unreadmessages":
             return self.message.get("id", {}).get("_serialized")
-        else:
-            return self.message.get("id")
+        if self.message.get("type") == "active_chat":
+            return self.message.get("message_id")
+        return self.message.get("id")
 
     def get_incoming_visitor_id(self):
         if self.message.get("event") == "incomingcall":
