@@ -434,9 +434,18 @@ class Connector(ConnectorBase):
                 return self.message.get("chatId")
 
     def get_visitor_name(self):
-        name = self.message.get("sender", {}).get("name")
+        # get name order
+        name_order = self.config.get("name_extraction_order", "pushname,name,shortName")
+        message = self.message
+        order = name_order.split(",")
+        name = None
+        # try each attribute
+        for attribute in order:
+            if not name:
+                name = message.get("sender", {}).get(attribute)
+        # get the fallback name
         if not name:
-            name = self.message.get("chatId")
+            name = message.get("chatId")
         return name
 
     def get_visitor_phone(self):
