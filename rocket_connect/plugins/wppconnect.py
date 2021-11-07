@@ -100,11 +100,14 @@ class Connector(ConnectorBase):
 
         headers = {"Authorization": "Bearer " + token}
         data = {"webhook": self.config.get("webhook")}
-        start_session_req = requests.get(endpoint, headers=headers, json=data)
-        self.logger.info(
-            "CHECKING NUMBER: {0}: {1}".format(number, start_session_req.json())
-        )
-        return start_session_req.json()
+        try:
+            start_session_req = requests.get(endpoint, headers=headers, json=data)
+            self.logger.info(
+                "CHECKING NUMBER: {0}: {1}".format(number, start_session_req.json())
+            )
+            return start_session_req.json()
+        except requests.ConnectionError:
+            return {"success": False, "message": "Could not connect to wppconnect"}
 
     def check_number_info(self, number):
         endpoint = "{0}/api/{1}/contact/{2}".format(
@@ -153,12 +156,17 @@ class Connector(ConnectorBase):
         if (
             not check_number.get("response")
             and check_number.get("status") == "Disconnected"
-        ):
-            return {
-                "text": ":warning: CONNECTOR *{0}* IS DISCONNECTED".format(
-                    self.connector.name
-                )
-            }
+        ) or not check_number.get("success", True):
+            alert = "CONNECTOR *{0}* IS DISCONNECTED".format(self.connector.name)
+            self.logger_info(alert)
+            self.rocket.chat_update(
+                room_id=room_id,
+                msg_id=msg_id,
+                text=self.message.get("text")
+                + "\n:warning: {0} {1}".format(now_str, alert),
+            )
+            # return nothing
+            return {"success": False, "message": "NO MESSAGE TO SEND"}
         # construct message
         texto = self.message.get("text")
         message_raw = " ".join(texto.split(" ")[2:])
@@ -592,8 +600,6 @@ class Connector(ConnectorBase):
         if self.message_object:
             self.message_object.payload[timestamp] = payload
             self.message_object.save()
-
-        return sent
 
     def outgo_file_message(self, message, agent_name=None):
         # if its audio, treat different

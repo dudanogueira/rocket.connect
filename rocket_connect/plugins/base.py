@@ -181,16 +181,21 @@ class Connector(object):
         self.message_object.payload[timestamp] = json.loads(deliver.request.body)
         self.message_object.response[timestamp] = deliver.json()
         if settings.DEBUG:
-            print("DELIVERING... ", deliver.request.body)
-            print("RESPONSE", deliver.json())
+            self.logger_info("DELIVERING... {0}".format(deliver.request.body))
+            self.logger_info("RESPONSE... {0}".format(deliver.json()))
         if deliver.ok:
             if settings.DEBUG:
-                print("message delivered ", self.message_object.id)
+                self.logger_info(
+                    "MESSAGE DELIVERED... {0}".format(self.message_object.id)
+                )
             self.message_object.delivered = True
             self.message_object.room = self.room
             self.message_object.save()
             return deliver
         else:
+            self.logger_info(
+                "MESSAGE *NOT* DELIVERED... {0}".format(self.message_object.id)
+            )
             # save payload and save message object
             self.message_object.save()
             # room can be closed on RC and open here
@@ -490,7 +495,7 @@ class Connector(object):
             _id=message_id,
         )
         if settings.DEBUG:
-            print("MESSAGE SENT. RESPONSE: ", response.json())
+            self.logger_info("MESSAGE SENT. RESPONSE: {0}".format(response.json()))
         return response
 
     def register_message(self, type=None):
