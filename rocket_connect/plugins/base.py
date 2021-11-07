@@ -49,9 +49,10 @@ class Connector(object):
         return True
 
     def logger_info(self, message):
-        self.logger.info(
-            "{0} > {1} > {2}".format(self.connector, self.type.upper(), message)
-        )
+        output = "{0} > {1} > {2}".format(self.connector, self.type.upper(), message)
+        if self.get_message_id():
+            output = "MESSAGE ID {0} > ".format(self.get_message_id()) + output
+        self.logger.info(output)
 
     def logger_error(self, message):
         self.logger.error(
@@ -348,8 +349,7 @@ class Connector(object):
     def get_visitor_id(self):
         if self.type == "incoming":
             return self.get_incoming_visitor_id()
-        else:
-            return self.message.get("visitor", {}).get("token").split(":")[1]
+        return self.message.get("visitor", {}).get("token").split(":")[1]
 
     def get_visitor_token(self):
         try:
@@ -492,10 +492,14 @@ class Connector(object):
             print("MESSAGE SENT. RESPONSE: ", response.json())
         return response
 
-    def register_message(self):
+    def register_message(self, type=None):
+        if settings.DEBUG:
+            print("REGISTERING MESSAGE: ", self.message)
         try:
+            if not type:
+                type = self.type
             self.message_object, created = self.connector.messages.get_or_create(
-                envelope_id=self.get_message_id(), type=self.type
+                envelope_id=self.get_message_id(), type=type
             )
             self.message_object.raw_message = self.message
             if not self.message_object.room:
@@ -511,6 +515,7 @@ class Connector(object):
                 )
             return self.message_object, created
         except IntegrityError:
+            raise
             self.logger_info(
                 "CANNOT CREATE THIS MESSAGE AGAIN: {0}".format(self.get_message_id())
             )
@@ -524,8 +529,12 @@ class Connector(object):
             if self.message["messages"]:
                 rc_message_id = self.message["messages"][0]["_id"]
                 return rc_message_id
-            else:
-                return None
+            # other types of message
+            if self.message.get("_id"):
+                return self.message.get("_id")
+
+        # last resource
+        return self.get_incoming_message_id()
 
     def get_incoming_message_id(self):
         # this works for wa-automate EASYAPI
@@ -604,7 +613,7 @@ class Connector(object):
         this method will process the outcoming messages
         comming from Rocketchat, and deliver to the connector
         """
-        self.logger_info("Processing ingoing message: {0}".format(self.message))
+        self.logger_info("RECEIVED: {0}".format(self.message))
         # Session start
         if self.message.get("type") == "LivechatSessionStart":
             if settings.DEBUG:
@@ -620,7 +629,7 @@ class Connector(object):
         if self.message.get("type") == "LivechatSessionTaken":
             #
             # This message is sent when the message if taken
-            message, created = self.register_message()
+            # message, created = self.register_message()
             self.handle_livechat_session_taken()
 
         if self.message.get("type") == "LivechatSessionForwarded":

@@ -2,7 +2,6 @@ import datetime
 import json
 
 import requests
-from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Max, Q
@@ -52,8 +51,6 @@ def server_endpoint(request, server_id):
     # income message, we have a body
     if request.body:
         raw_message = json.loads(request.body)
-        if settings.DEBUG is True:
-            print("INGOING", request.body)
         #
         # roketchat test message
         #
