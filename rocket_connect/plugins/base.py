@@ -290,12 +290,13 @@ class Connector(object):
             visitor_phone = "553199999999"
         return visitor_phone
 
-    def get_visitor_json(self):
+    def get_visitor_json(self, department=None):
         visitor_name = self.get_visitor_name()
         visitor_username = self.get_visitor_username()
         visitor_phone = self.get_visitor_phone()
         visitor_token = self.get_visitor_token()
-        department = self.connector.department
+        if not department:
+            department = self.connector.department
         connector_name = self.connector.name
 
         visitor = {
@@ -360,7 +361,7 @@ class Connector(object):
         except IndexError:
             return "channel:visitor-id"
 
-    def get_room(self):
+    def get_room(self, department=None):
         room = None
         room_created = False
         connector_token = self.get_visitor_token()
@@ -384,7 +385,7 @@ class Connector(object):
             if self.config.get("open_room", True):
                 # room not available, let's create one.
                 # get the visitor json
-                visitor_json = self.get_visitor_json()
+                visitor_json = self.get_visitor_json(department)
                 # get the visitor object
                 visitor_object = self.rocket.livechat_register_visitor(
                     visitor=visitor_json, token=connector_token

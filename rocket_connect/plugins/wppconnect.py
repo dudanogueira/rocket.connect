@@ -199,6 +199,7 @@ class Connector(ConnectorBase):
                             + "\n:warning: {0} NO DEPARTMENT FOUND".format(now_str),
                         )
                         # return nothing
+                        # TODO: maybe show departments here
                         return {"success": False, "message": "NO DEPARTMENT FOUND"}
                     # > 1 departments found
                     if len(departments) > 1:
@@ -219,6 +220,7 @@ class Connector(ConnectorBase):
                         return {
                             "success": False,
                             "message": "MULTIPLE DEPARTMENTS FOUND",
+                            "departments": departments,
                         }
                     # only one department, good to go.
                     if len(departments) == 1:
@@ -261,21 +263,42 @@ class Connector(ConnectorBase):
                             "ACTIVE MESSAGE PAYLOAD GENERATED: {0}".format(self.message)
                         )
                         # register room
-                        room = self.get_room()
+                        room = self.get_room(department=departments[0]["name"])
                         if room:
                             self.logger_info("ACTIVE CHAT GOT A ROOM {0}".format(room))
-                        # send the message to the room, in order to be delivered to the
-                        # webhook and go the flow
-                        # send message_raw to the room
-                        self.get_rocket_client(bot=True)
-                        self.rocket.chat_post_message(
-                            text=message_raw, room_id=room.room_id
-                        )
+                            # send the message to the room, in order to be delivered to the
+                            # webhook and go the flow
+                            # send message_raw to the room
+                            self.get_rocket_client(bot=True)
+                            post_message = self.rocket.chat_post_message(
+                                text=message_raw, room_id=room.room_id
+                            )
+                            # change the message with checkmark
+                            if post_message.ok:
+                                self.rocket.chat_update(
+                                    room_id=room_id,
+                                    msg_id=msg_id,
+                                    text=":white_check_mark: " + texto,
+                                )
+                                # register message delivered
+                                if self.message_object:
+                                    self.message_object.delivered = True
+                                    self.message_object.save()
+                                return {
+                                    "success": True,
+                                    "message": "MESSAGE SENT",
+                                }
+                            else:
+                                return {
+                                    "success": False,
+                                    "message": "COULD NOT SEND MESSAGE",
+                                }
 
-                        return {
-                            "success": True,
-                            "message": "MESSAGE SENT",
-                        }
+                        else:
+                            return {
+                                "success": False,
+                                "message": "COULD NOT CREATE ROOM",
+                            }
 
                 # register visitor
 
