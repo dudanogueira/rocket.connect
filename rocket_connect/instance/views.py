@@ -278,11 +278,16 @@ def new_connector(request, server_id):
         if form.is_valid():
             new_connector = form.save(commit=False)
             new_connector.server = server
+            new_connector.config = {}
             if form.cleaned_data["custom_connector_type"]:
                 new_connector.connector_type = form.cleaned_data[
                     "custom_connector_type"
                 ]
             new_connector.save()
+            # make sure we have the default form values
+            form = NewConnectorForm(instance=new_connector, server=server)
+            if form.is_valid():
+                new_connector = form.save()
             messages.success(
                 request, "New connector {0} created.".format(new_connector.name)
             )

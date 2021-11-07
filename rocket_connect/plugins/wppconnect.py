@@ -49,20 +49,24 @@ class Connector(ConnectorBase):
 
     def status_session(self):
         # generate token
-        endpoint = "{0}/api/{1}/status-session".format(
-            self.config.get("endpoint"),
-            self.config.get("instance_name"),
-        )
-        token = self.config.get("token", {}).get("token")
-        if not token:
-            self.generate_token()
+        if self.config.get("endpoint"):
+            endpoint = "{0}/api/{1}/status-session".format(
+                self.config.get("endpoint"),
+                self.config.get("instance_name"),
+            )
             token = self.config.get("token", {}).get("token")
+            if not token:
+                self.generate_token()
+                token = self.config.get("token", {}).get("token")
 
-        headers = {"Authorization": "Bearer " + token}
-        status_req = requests.get(endpoint, headers=headers)
-        if status_req.ok:
-            status = status_req.json()
-            return status
+            if token:
+                headers = {"Authorization": "Bearer " + token}
+                status_req = requests.get(endpoint, headers=headers)
+                if status_req.ok:
+                    status = status_req.json()
+                    return status
+            else:
+                return "Could not get token. Check the WPPConnect Secret Key"
         return False
 
     def close_session(self):
@@ -563,13 +567,17 @@ class Connector(ConnectorBase):
 class ConnectorConfigForm(BaseConnectorConfigForm):
 
     webhook = forms.CharField(
-        help_text="Where WPPConnect will send the events", required=True
+        help_text="Where WPPConnect will send the events",
+        required=True,
     )
     endpoint = forms.CharField(
-        help_text="Where your WPPConnect is installed", required=True
+        help_text="Where your WPPConnect is installed",
+        required=True,
+        initial="http://wppconnect:21465",
     )
     secret_key = forms.CharField(
-        help_text="The secret key for your WPPConnect instance", required=True
+        help_text="The secret key for your WPPConnect instance",
+        required=True,
     )
     instance_name = forms.CharField(
         help_text="WPPConnect instance name", validators=[validators.validate_slug]
@@ -581,10 +589,17 @@ class ConnectorConfigForm(BaseConnectorConfigForm):
         validators=[validators.validate_slug],
     )
 
+    name_extraction_order = forms.CharField(
+        required=False,
+        help_text="The prefered order to extract a visitor name",
+        initial="name,shortName,pushname",
+    )
+
     field_order = [
         "webhook",
         "endpoint",
         "secret_key",
         "instance_name",
         "active_chat_webhook_integration_token",
+        "name_extraction_order",
     ]
