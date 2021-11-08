@@ -206,9 +206,29 @@ class Connector(ConnectorBase):
                             text=self.message.get("text")
                             + "\n:warning: {0} NO DEPARTMENT FOUND".format(now_str),
                         )
-                        # return nothing
-                        # TODO: maybe show departments here
-                        return {"success": False, "message": "NO DEPARTMENT FOUND"}
+                        # maybe department is an online agent. let's check if
+                        agents = self.rocket.livechat_get_users(
+                            user_type="agent"
+                        ).json()
+                        available_agents = [
+                            agent
+                            for agent in agents["users"]
+                            if agent["status"] == "online"
+                            and agent["statusLivechat"] == "available"
+                        ]
+                        self.logger_info(
+                            "NO DEPARTMENT FOUND. LOOKING INTO ONLINE AGENTS: {0}".format(
+                                available_agents
+                            )
+                        )
+                        # TODO: Check if department is username
+                        # if it is, simulate a department
+                        # transfer the room for the agent
+                        return {
+                            "success": False,
+                            "message": "NO DEPARTMENT FOUND",
+                            "available_agents": available_agents,
+                        }
                     # > 1 departments found
                     if len(departments) > 1:
                         alert_message = "\n:warning: {0} More than one department found. Try one of the below:".format(
@@ -248,7 +268,7 @@ class Connector(ConnectorBase):
                         )
                         # push, name, etc
                         # create basic incoming new message, as payload
-                        self.type = "incomoing"
+                        self.type = "incoming"
                         self.message = {
                             "from": check_number.get("response")
                             .get("id")
