@@ -109,7 +109,11 @@ class Connector(ConnectorBase):
         except requests.ConnectionError:
             return {"success": False, "message": "Could not connect to wppconnect"}
 
-    def check_number_info(self, number):
+    def check_number_info(self, number, augment_message=False):
+        """
+        this method will get infos from the contact api and insert
+        into self message
+        """
         endpoint = "{0}/api/{1}/contact/{2}".format(
             self.config.get("endpoint"), self.config.get("instance_name"), number
         )
@@ -123,9 +127,22 @@ class Connector(ConnectorBase):
         headers = {"Authorization": "Bearer " + token}
         data = {"webhook": self.config.get("webhook")}
         number_info_req = requests.get(endpoint, headers=headers, json=data)
+        number_info = number_info_req.json()
         self.logger.info(
-            "CHECKING CONTACT INFO: {0}: {1}".format(number, number_info_req.json())
+            "CHECKING CONTACT INFO FOR  NUMBER {0}: {1}".format(number, number_info)
         )
+        if augment_message:
+            if not self.message.get("sender"):
+                self.message["sender"] = {}
+            name_order = self.config.get(
+                "name_extraction_order", "pushname,name,shortName"
+            )
+            for order in name_order.split(","):
+                if number_info.get("response", {}).get(order, False):
+                    self.message["sender"][order] = number_info.get("response", {}).get(
+                        order
+                    )
+
         return number_info_req.json()
 
     def active_chat(self):
@@ -142,6 +159,8 @@ class Connector(ConnectorBase):
         # set the message type
         self.type = "active_chat"
         self.message["type"] = self.type
+        department = False
+        transfer = False
         # get client
         self.get_rocket_client()
         now_str = datetime.datetime.now().replace(microsecond=0).isoformat()
@@ -151,6 +170,9 @@ class Connector(ConnectorBase):
         msg_id = self.message.get("message_id")
         # get the number, or all
         number = reference.split("@")[0]
+        # register number to get_visitor_id
+        # emulating a regular ingoing message
+        self.message["visitor"] = {"token": "whatsapp:" + number}
         check_number = self.check_number_status(number)
         # could not get number validation
         if (
@@ -200,12 +222,6 @@ class Connector(ConnectorBase):
                     # departments found
                     departments = department_check.json().get("departments")
                     if not departments:
-                        self.rocket.chat_update(
-                            room_id=room_id,
-                            msg_id=msg_id,
-                            text=self.message.get("text")
-                            + "\n:warning: {0} NO DEPARTMENT FOUND".format(now_str),
-                        )
                         # maybe department is an online agent. let's check if
                         agents = self.rocket.livechat_get_users(
                             user_type="agent"
@@ -221,14 +237,23 @@ class Connector(ConnectorBase):
                                 available_agents
                             )
                         )
-                        # TODO: Check if department is username
-                        # if it is, simulate a department
+                        for agent in available_agents:
+                            if agent.get("username").lower() == department.lower():
+                                transfer = True
+                                departments = ["AGENT-DIRECT:" + agent.get("_id")]
                         # transfer the room for the agent
-                        return {
-                            "success": False,
-                            "message": "NO DEPARTMENT FOUND",
-                            "available_agents": available_agents,
-                        }
+                        if not transfer:
+                            self.rocket.chat_update(
+                                room_id=room_id,
+                                msg_id=msg_id,
+                                text=self.message.get("text")
+                                + "\n:warning: {0} NO DEPARTMENT FOUND".format(now_str),
+                            )
+                            return {
+                                "success": False,
+                                "message": "NO DEPARTMENT FOUND",
+                                "available_agents": available_agents,
+                            }
                     # > 1 departments found
                     if len(departments) > 1:
                         alert_message = "\n:warning: {0} More than one department found. Try one of the below:".format(
@@ -252,6 +277,15 @@ class Connector(ConnectorBase):
                         }
                     # only one department, good to go.
                     if len(departments) == 1:
+                        # direct chat to user
+                        # override department, and get agent name
+                        if "AGENT-DIRECT:" in departments[0]:
+                            self.logger_info("AGENT-DIRECT TRIGGERED")
+                            department = None
+                            agent_id = departments[0].split(":")[1]
+                        else:
+                            department = departments[0]["name"]
+
                         # define message type
                         self.type = "active_chat"
                         # register message
@@ -262,11 +296,6 @@ class Connector(ConnectorBase):
                                 "success": False,
                                 "message": "MESSAGE ALREADY SENT",
                             }
-                        # augment name from contact API
-                        contact = self.check_number_info(
-                            check_number["response"]["id"]["user"]
-                        )
-                        # push, name, etc
                         # create basic incoming new message, as payload
                         self.type = "incoming"
                         self.message = {
@@ -281,17 +310,16 @@ class Connector(ConnectorBase):
                                 "token": "whatsapp:"
                                 + check_number["response"]["id"]["_serialized"]
                             },
-                            "sender": {
-                                "name": contact["response"]["name"],
-                                "shortName": contact["response"]["shortName"],
-                                "pushname": contact["response"]["pushname"],
-                            },
                         }
+                        # augment name from contact API
+                        self.check_number_info(
+                            check_number["response"]["id"]["user"], augment_message=True
+                        )
                         self.logger_info(
                             "ACTIVE MESSAGE PAYLOAD GENERATED: {0}".format(self.message)
                         )
                         # register room
-                        room = self.get_room(department=departments[0]["name"])
+                        room = self.get_room(department)
                         if room:
                             self.logger_info("ACTIVE CHAT GOT A ROOM {0}".format(room))
                             # send the message to the room, in order to be delivered to the
@@ -303,6 +331,14 @@ class Connector(ConnectorBase):
                             )
                             # change the message with checkmark
                             if post_message.ok:
+                                if transfer:
+                                    payload = {
+                                        "roomId": room.room_id,
+                                        "userId": agent_id,
+                                    }
+                                    self.rocket.call_api_post(
+                                        "livechat/room.forward", **payload
+                                    )
                                 self.rocket.chat_update(
                                     room_id=room_id,
                                     msg_id=msg_id,
@@ -335,7 +371,7 @@ class Connector(ConnectorBase):
                 self.message["chatId"] = number
                 message = {"msg": message_raw}
                 sent = self.outgo_text_message(message)
-                if sent.ok:
+                if sent and sent.ok:
                     # return {
                     #     "text": ":white_check_mark: SENT {0} \n{1}".format(
                     #         number, message_raw
@@ -348,6 +384,15 @@ class Connector(ConnectorBase):
                         text=":white_check_mark: " + self.message.get("text"),
                     )
                     return {"success": True, "message": "MESSAGE SENT"}
+                else:
+                    self.rocket.chat_update(
+                        room_id=room_id,
+                        msg_id=msg_id,
+                        text=":warning: "
+                        + self.message.get("text")
+                        + "\n ERROR WHILE SENDING MESSAGE",
+                    )
+                    return {"success": False, "message": "ERROR WHILE SENDING MESSAGE"}
 
         # if cannot receive message, report
         else:
@@ -590,6 +635,7 @@ class Connector(ConnectorBase):
         return s
 
     def outgo_text_message(self, message, agent_name=None):
+        sent = False
         content = message["msg"]
         content = self.joypixel_to_unicode(content)
         # message may not have an agent
@@ -620,6 +666,8 @@ class Connector(ConnectorBase):
         if self.message_object:
             self.message_object.payload[timestamp] = payload
             self.message_object.save()
+
+        return sent
 
     def outgo_file_message(self, message, agent_name=None):
         # if its audio, treat different
