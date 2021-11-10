@@ -650,33 +650,39 @@ class Connector(object):
                 print("LivechatSessionQueued")
         if self.message.get("type") == "Message":
             message, created = self.register_message()
-
-            # prepare message to be sent to client
-            for message in self.message.get("messages", []):
-                agent_name = self.get_agent_name(message)
-                # closing message
-                if message.get("closingMessage"):
-                    if self.connector.config.get(
-                        "force_close_message",
-                    ):
-                        message["msg"] = self.connector.config["force_close_message"]
-                    if message.get("msg"):
-                        if self.connector.config.get("add_agent_name_at_close_message"):
-                            self.outgo_text_message(message, agent_name=agent_name)
+            if not message.delivered:
+                # prepare message to be sent to client
+                for message in self.message.get("messages", []):
+                    agent_name = self.get_agent_name(message)
+                    # closing message
+                    if message.get("closingMessage"):
+                        if self.connector.config.get(
+                            "force_close_message",
+                        ):
+                            message["msg"] = self.connector.config[
+                                "force_close_message"
+                            ]
+                        if message.get("msg"):
+                            if self.connector.config.get(
+                                "add_agent_name_at_close_message"
+                            ):
+                                self.outgo_text_message(message, agent_name=agent_name)
+                            else:
+                                self.outgo_text_message(message)
+                            self.close_room()
+                        # closing message without message
                         else:
-                            self.outgo_text_message(message)
-                        self.close_room()
-                    # closing message without message
+                            self.message_object.delivered = True
+                            self.message_object.save()
                     else:
-                        self.message_object.delivered = True
-                        self.message_object.save()
-                else:
-                    # regular message, maybe with attach
-                    if message.get("attachments", {}):
-                        # send file
-                        self.outgo_file_message(message, agent_name=agent_name)
-                    else:
-                        self.outgo_text_message(message, agent_name=agent_name)
+                        # regular message, maybe with attach
+                        if message.get("attachments", {}):
+                            # send file
+                            self.outgo_file_message(message, agent_name=agent_name)
+                        else:
+                            self.outgo_text_message(message, agent_name=agent_name)
+            else:
+                self.logger_info("MESSAGE ALREADY SEND. IGNORING.")
 
     def get_agent_name(self, message):
         agent_name = message.get("u", {}).get("name", {})
