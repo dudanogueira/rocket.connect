@@ -7,7 +7,7 @@ volumes:
   local_rocket_db: {}
   local_rocket_db_config: {}
   local_rocket_db_dump: {}
-  #local_waautomate_data: {}
+  local_waautomate_data: {}
   local_wppconnect_data: {}
   nodemodules: {}
 
@@ -117,7 +117,7 @@ services:
     command: /start-flower
 
   rocketchat:
-    image: rocketchat/rocket.chat:4.1.1
+    image: rocketchat/rocket.chat:4.1.2
     command: >
       bash -c
         "for i in `seq 1 30`; do
@@ -126,7 +126,7 @@ services:
           echo \"Tried $$i times. Waiting 5 secs...\";
           sleep 5;
         done; (exit $$s)"
-    restart: unless-stopped
+    restart: on-failure
     volumes:
       - local_rocket_uploads:/app/uploads
     environment:
@@ -154,7 +154,7 @@ services:
 
   mongo:
     image: mongo:4.4
-    restart: unless-stopped
+    restart: on-failure
     ports:
       - 27017:27017
     volumes:
@@ -170,6 +170,7 @@ services:
     command: 'bash -c "for i in `seq 1 30`; do mongo mongo/rocketchat --eval \"rs.initiate({ _id: ''rs0'', members: [ { _id: 0, host: ''localhost:27017'' } ]})\" && s=$$? && break || s=$$?; echo \"Tried $$i times. Waiting 5 secs...\"; sleep 5; done; (exit $$s)"'
     depends_on:
       - mongo
+
 
   # browser:
   #     image: browserless/chrome:1.48.0-chrome-stable
@@ -219,7 +220,7 @@ services:
   #     - "8001:8002"
 
   wppconnect:
-    image: wppconnect/server-cli:main
+    image: wppconnect/server-cli:latest
     # for command options: https://github.com/wppconnect-team/server-cli/blob/main/src/program.js
     command: wppserver
       --log-level DEBUG
@@ -235,12 +236,13 @@ services:
       - local_wppconnect_data:/usr/src/server-cli/tokens
     ports:
       - "21465:21465"
+    restart: on-failure
 
   apache:
       image: 'php:apache'
       ports:
         - "80:80"
-      restart: unless-stopped
+      restart: on-failure
       volumes:
         - ./compose/local/apache/site:/var/www/html
         - ./compose/local/apache/confs/additional.conf:/etc/apache2/conf-enabled/additional.conf
