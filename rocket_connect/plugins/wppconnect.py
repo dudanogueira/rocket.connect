@@ -311,6 +311,10 @@ class Connector(ConnectorBase):
                                 + check_number["response"]["id"]["_serialized"]
                             },
                         }
+                        # TODO: known issue:
+                        # it doesn't get client info when the client never sent a message
+                        # possible hacky fix is send a message to the user first
+                        # then get number info and then augment message
                         # augment name from contact API
                         self.check_number_info(
                             check_number["response"]["id"]["user"], augment_message=True
