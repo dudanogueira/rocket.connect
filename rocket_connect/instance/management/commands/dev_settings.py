@@ -274,9 +274,10 @@ class Command(BaseCommand):
             rocket.channels_invite(room_id=channel_id, user_id=user_id)
         # configure server webhook api
         configs = [
-            ["Site_Url", "http://rocketchat:3000"],
+            ["Site_Url", "http://127.0.0.1:3000"],
             ["Livechat_webhookUrl", "http://django:8000/server/SERVER_EXTERNAL_TOKEN/"],
             ["Livechat_enabled", True],
+            ["Livechat_AllowedDomainsList", "127.0.0.1"],
             ["Livechat_accept_chats_with_no_agents", True],
             ["Livechat_secret_token", "secret_token"],
             ["Livechat_webhook_on_start", True],
