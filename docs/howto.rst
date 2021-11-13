@@ -18,31 +18,64 @@ We have created a nice management command to setup everything for you:
 
 If everything went fine, you should have the following running services and exposed ports:
 
-* http://localhost:8000/admin - Rocket Connect Admin User/Password: admin/admin
+* http://localhost:8000 - Rocket Connect Admin User/Password: admin/admin
 * http://localhost:3000 - Rocket Chat Server. User/Password: admin/admin or agent1/agent1 or manager1/manager1
+* http://localhost:80 - Livechat Widget Demo. A simple website with livechat installed.
 * http://localhost:5555 - Flower, where you see how the tasks are running. User/Password: admin/admin
 * http://localhost:8025 - Mailhog - A nice mailserver. The stack is configured to deliver emails there
-* http://localhost:3010 - BrowserLess - A Browserless chrome instance
-* http://localhost:8002/api-docs/ - WA-AUTOMATE API DOCS - Only Available after QR SCANNING
+* http://localhost:21465/api-docs/ - WPPCONNECT API DOCS
 
-Scanning WA-AUTOMATE QR CODE
+
+Generating and Scanning the QR CODE
 ----------------------------------------------------------------------
 
-If you access Rocket Chat, as admin, you should see new direct messages popping with the launch status of the WA-AUTOMATE CLient.
+Go to Rocket.Connect (http://localhost:8000) login in (admin/admin), pick de default registered server, then go to WPPCONNECT Connector page.
+click at Initialize. Wait a little bit, and then click at get status.
+You should see the QR code at the website.
 
 .. figure:: wa-launch-messages.png
 
 At the end, you should see the QR CODE, that should be scanned with the device you want to PAIR.
 
-
-Inside RocketChat
+Active Chat
 ----------------------------------------------------------------------
+WPPCONNECT Connector comes with active chat. 
 
-To receive medias, its necessary to change the URL inside RocketChat.
+It means that at if you go to http://localhost:3000/channel/manager_channel and type: 
 
-Go to:
-Administration -> General -> Site URL and put your IP address or valid URL.
+    ::
 
+
+        zapit 5531999851111@department-name Hello World!
+
+You wil be able to open a room, transfer to the selected department and then send a message to the user.
+
+It will try to find a Department that has department-name. If not found, it will try to look for an online agent with that name. 
+
+Which means that
+    ::
+
+        zapit 5531999851111@agent1 Hello World!
+
+will also work.
+
+
+Emulating an incoming message
+----------------------------------------------------------------------
+    ::
+    
+        c = Connector.objects.get(external_token="WPP_EXTERNAL_TOKEN")
+        ConnectorClass = c.get_connector_class()
+        payload = {"payload": "here"}
+        connector = ConnectorClass(c, json.dumps(payload), "incoming")
+
+get a message connector class initialized
+
+    ::
+
+        message_id = 1234
+        m = Message.objects.get(pk=message_id)
+        connector = m.get_connector()
 
 
 Configuring Facebook Messenger
@@ -76,14 +109,7 @@ you need to change the "generate this" with the token facebook will give you.
 
 After that messages to your facebook account should be connected to RocketChat. If something goes wrong, facebook will stop sending messages for a while. That's normal. 
 
-TroubleShooting
+WAAUTOMATE
 ----------------------------------------------------------------------
 
-The dev environment should work fine, unles somethigs break :) For testing, 
-we will always try to deliver all clients to test with.
-
-For WA-AUTOMATE, the dev environment has two wa-automate containers, using the same browser container. This command will restart all that stack, and kick off the initialize settings
-    ::
-    
-        docker-compose -f local.yml restart waautomate browser
-
+We will be deprecating WAAUTOMATE in favor of WPPCONNECT.
