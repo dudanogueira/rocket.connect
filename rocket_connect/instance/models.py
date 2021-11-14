@@ -1,9 +1,11 @@
+import json
 import uuid
 
 import requests
 from django.apps import apps
 from django.conf import settings
 from django.db import models
+from rocketchat_API.APIExceptions.RocketExceptions import RocketAuthenticationException
 from rocketchat_API.rocketchat import RocketChat
 
 
@@ -18,6 +20,31 @@ class Server(models.Model):
 
     def __str__(self):
         return self.name
+
+    def status(self):
+        auth_error = False
+        alive = False
+        info = None
+        try:
+            client = self.get_rocket_client()
+            alive = True
+            info = client.info().json()
+            check_auth = client.users_list()
+            if check_auth.status_code == 401:
+                auth_error = True
+        except (
+            requests.ConnectionError,
+            json.JSONDecodeError,
+            requests.models.MissingSchema,
+        ):
+            alive = False
+        except RocketAuthenticationException:
+            auth_error = True
+        return {
+            "auth_error": auth_error,
+            "alive": alive,
+            "info": info,
+        }
 
     def get_rocket_client(self, bot=False):
         """
@@ -116,17 +143,26 @@ class Server(models.Model):
         settings.AUTH_USER_MODEL, related_name="servers", blank=True
     )
     external_token = models.CharField(max_length=50, default=random_string, unique=True)
-    secret_token = models.CharField(max_length=50, null=True, blank=True)
+    secret_token = models.CharField(
+        max_length=50,
+        null=True,
+        blank=True,
+        help_text="same secret_token used at Rocket.Chat Omnichannel Webhook Config",
+    )
     name = models.CharField(max_length=50)
     enabled = models.BooleanField(default=True)
     url = models.CharField(max_length=150)
     admin_user = models.CharField(max_length=50)
     admin_password = models.CharField(max_length=50)
-    admin_user_id = models.CharField(max_length=50, blank=True)
+    admin_user_id = models.CharField(
+        max_length=50, blank=True, help_text="Admin User Personal Access Token"
+    )
     admin_user_token = models.CharField(max_length=50, blank=True)
     bot_user = models.CharField(max_length=50)
     bot_password = models.CharField(max_length=50)
-    bot_user_id = models.CharField(max_length=50, blank=True)
+    bot_user_id = models.CharField(
+        max_length=50, blank=True, help_text="Bot User Personal Access Token"
+    )
     bot_user_token = models.CharField(max_length=50, blank=True)
 
     managers = models.CharField(
@@ -271,7 +307,7 @@ class Connector(models.Model):
         this method will return the managers channel both from server and
         connector (user1,user2,user3) or ['user1', 'user2, 'usern']
         and the bot. The final result should be:
-        a string or a list, without the channels
+        a string or a list, but only channels
         """
         managers = self.server.get_managers_channel(as_string=False)
         if self.managers:

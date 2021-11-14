@@ -3,6 +3,7 @@ from django.urls import re_path
 from rocket_connect.instance.views import (
     connector_analyze,
     new_connector,
+    new_server,
     server_detail_view,
 )
 
@@ -20,5 +21,10 @@ urlpatterns = [
         r"^server/(?P<server_id>\w+)/new_connector/?$",
         view=new_connector,
         name="new_connector",
+    ),
+    re_path(
+        r"^new/server/?$",
+        view=new_server,
+        name="new_server",
     ),
 ]

@@ -6,25 +6,34 @@
     <span class="breadcrumb-item active">home</span>
 </nav>
 
-{% if request.user.is_authenticated %}
-    {% if request.user.servers.all %}
-        {% for server in request.user.servers.all %}
-        <div class="card {% if server.enabled %}bg-success{% else %}bg-danger{% endif %} mb-3">
-            <div class="card-header">
-                <h1>{{server}}</h1>
+<div class="text-right mb-5">
+    <a type="button" class="btn btn-primary btn-lg" href="{% url 'instance:new_server' %}">Add Server</a>
+</div>
+
+
+<div class="">
+
+    {% if request.user.is_authenticated %}
+        {% if request.user.servers.all %}
+            {% for server in request.user.servers.all %}
+            <div class="card {% if server.enabled %}bg-success{% else %}bg-danger{% endif %} mb-3">
+                <div class="card-header">
+                    <h1>{{server}}</h1>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        <a name="" id="" class="btn btn-primary" href="{% url 'instance:server_detail' server.external_token %}" role="button">{{server.connectors.count}} Connectors</a>
+                    </p>
+                </div>
             </div>
-            <div class="card-body">
-                <p class="card-text">
-                    <a name="" id="" class="btn btn-primary" href="{% url 'instance:server_detail' server.external_token %}" role="button">{{server.connectors.count}} Connectors</a>
-                </p>
-            </div>
-        </div>
-        {% endfor %}
+            {% endfor %}
+        {% else %}
+            You have no servers configured
+        {% endif %}
     {% else %}
-        You have no servers configured
+        Register now. Or <a href="{% url 'account_login' %}?next=/">Login</a>
     {% endif %}
-{% else %}
-    Register now. Or <a href="{% url 'account_login' %}?next=/">Login</a>
-{% endif %}
+
+</div>
 
 {% endblock content %}

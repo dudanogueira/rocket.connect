@@ -1,5 +1,18 @@
 from django.forms import CharField, ChoiceField, ModelForm
-from instance.models import Connector
+from instance.models import Connector, Server
+
+
+class NewServerForm(ModelForm):
+    class Meta:
+        model = Server
+        fields = [
+            "name",
+            "url",
+            "secret_token",
+            "admin_user_id",
+            "admin_user_token",
+            "managers",
+        ]
 
 
 class NewConnectorForm(ModelForm):

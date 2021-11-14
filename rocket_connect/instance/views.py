@@ -1,7 +1,6 @@
 import datetime
 import json
 
-import requests
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Max, Q
@@ -10,9 +9,8 @@ from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render, reverse
 from django.views.decorators.csrf import csrf_exempt
 from envelope.models import LiveChatRoom
-from instance.forms import NewConnectorForm
+from instance.forms import NewConnectorForm, NewServerForm
 from instance.models import Connector, Server
-from rocketchat_API.APIExceptions.RocketExceptions import RocketAuthenticationException
 
 
 @csrf_exempt
@@ -95,18 +93,8 @@ def server_endpoint(request, server_id):
 @must_be_yours
 def server_detail_view(request, server_id):
     server = get_object_or_404(Server.objects, external_token=server_id)
-    # try to get the client
-    auth_error = False
-    alive = False
-    info = None
-    try:
-        client = server.get_rocket_client()
-        alive = True
-        info = client.info().json()
-    except (requests.ConnectionError, json.JSONDecodeError):
-        alive = False
-    except RocketAuthenticationException:
-        auth_error = True
+    # get server status
+    status = server.status()
     if request.GET.get("force_connector_delivery"):
         connector = get_object_or_404(
             server.connectors,
@@ -155,9 +143,7 @@ def server_detail_view(request, server_id):
         "base_uri": base_uri,
         "server": server,
         "connectors": connectors,
-        "alive": alive,
-        "info": info,
-        "auth_error": auth_error,
+        "status": status,
     }
     return render(request, "instance/server_detail_view.html", context)
 
@@ -299,3 +285,27 @@ def new_connector(request, server_id):
             )
     context = {"server": server, "form": form}
     return render(request, "instance/new_connector.html", context)
+
+
+@login_required(login_url="/accounts/login/")
+def new_server(request):
+    form = NewServerForm(request.POST or None)
+    form.fields["admin_user_id"].required = True
+    form.fields["admin_user_token"].required = True
+    if form.is_valid():
+        server = form.save(commit=False)
+        server.bot_user_id = server.admin_user_id
+        server.bot_user_token = server.admin_user_token
+        status = server.status()
+        if status["alive"] and not status["auth_error"]:
+            server.save()
+            server.owners.add(request.user)
+            messages.success(request, "Server Created")
+            return redirect(
+                reverse("instance:server_detail", args=[server.external_token])
+            )
+        else:
+            messages.error(request, "Error {0}".format(status))
+
+    context = {"form": form}
+    return render(request, "instance/new_server.html", context)
