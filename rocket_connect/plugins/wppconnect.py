@@ -438,7 +438,10 @@ class Connector(ConnectorBase):
         ci = cls(connector=c, message={}, type="incoming")
         """
         # generate token
-        self.generate_token()
+        try:
+            self.generate_token()
+        except requests.ConnectionError:
+            return {"success": False, "message": "ConnectionError"}
         # start session
         return self.start_session()
 
