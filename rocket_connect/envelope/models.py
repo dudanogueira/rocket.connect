@@ -49,6 +49,8 @@ class Message(models.Model):
         c = self.get_connector()
         if c.type == "incoming":
             c.incoming()
+        elif c.type == "active_chat":
+            c.active_chat()
         else:
             c.ingoing()
         return c.message_object.delivered
