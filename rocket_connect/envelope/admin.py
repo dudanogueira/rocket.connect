@@ -15,11 +15,12 @@ class LiveChatRoomAdmin(admin.ModelAdmin):
     )
     date_hierarchy = "created"
     ordering = ("-created",)
+    search_fields = "room_id", "token"
 
 
 @admin.register(Message)
 class MessageAdmin(admin.ModelAdmin):
-    search_fields = ("envelope_id",)
+    search_fields = ("envelope_id", "room__room_id", "room__token")
     list_display = ("id", "envelope_id", "type", "delivered", "connector", "created")
     list_filter = ("connector", "delivered", "type", "created", "updated")
     ordering = ("-created",)

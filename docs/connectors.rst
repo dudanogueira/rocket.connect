@@ -46,15 +46,17 @@ If everything is configured properly, you should see the queue calls being regis
 
 Now, you can configure the connector do your environment, defining the queue_notify_map, that will send the messages as configured at notify_abandoned_queue_template.
 
-WA-AUTOMATE
+WPCONNECT
 ----------------------------------------------------------------------
 
-https://github.com/open-wa/wa-automate-nodejs
+https://wppconnect-team.github.io/
 
 Features:
 
-* a
-* b
+* Active Chat
+* One Instance, multiple sessions
+* Automatically mark as read
+* Automatically send unread messages on startup
 
 
 FACEBOOK

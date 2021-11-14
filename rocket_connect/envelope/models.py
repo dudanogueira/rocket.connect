@@ -37,6 +37,7 @@ class Message(models.Model):
     STAGE_CHOICES = [
         ["incoming", "Incoming Message"],
         ["ingoing", "Ingoing Message"],
+        ["active_chat", "Active Chat"],
     ]
 
     def get_connector(self):
@@ -48,6 +49,8 @@ class Message(models.Model):
         c = self.get_connector()
         if c.type == "incoming":
             c.incoming()
+        elif c.type == "active_chat":
+            c.active_chat()
         else:
             c.ingoing()
         return c.message_object.delivered

@@ -33,7 +33,7 @@ class Command(BaseCommand):
         server.admin_password = "admin"
         server.bot_user = "bot"
         server.bot_password = "bot"
-        server.managers = "admin"
+        server.managers = "admin,#manager_channel"
         server.external_token = "SERVER_EXTERNAL_TOKEN"
         server.owners.add(admin)
         server.save()
@@ -115,6 +115,7 @@ class Command(BaseCommand):
             "secret_key": "My53cr3tKY",
             "instance_name": "test",
             "outcome_attachment_description_as_new_message": True,
+            "active_chat_webhook_integration_token": "WPP_EXTERNAL_TOKEN",
         }
         connector.name = "WPPCONNECT CONNECTOR"
         connector.connector_type = "wppconnect"
@@ -153,7 +154,7 @@ class Command(BaseCommand):
         for user in ["agent1", "agent2"]:
             data = {
                 "email": user + "@email.com",
-                "name": user,
+                "name": user + " Name",
                 "password": user,
                 "username": user,
             }
@@ -262,11 +263,21 @@ class Command(BaseCommand):
         bot = rocket.users_create(**data)
         if bot.ok and bot.json()["success"]:
             print("Bot user created")
+
+        # create channels
+        channel = rocket.channels_create(name="manager_channel")
+        if channel.ok:
+            print("channel created: ", channel)
+            # invite admin to channel
+            user_id = rocket.users_info(username="admin").json()["user"]["_id"]
+            channel_id = channel.json()["channel"]["_id"]
+            rocket.channels_invite(room_id=channel_id, user_id=user_id)
         # configure server webhook api
         configs = [
-            ["Site_Url", "http://rocketchat:3000"],
+            ["Site_Url", "http://localhost:3000"],
             ["Livechat_webhookUrl", "http://django:8000/server/SERVER_EXTERNAL_TOKEN/"],
             ["Livechat_enabled", True],
+            ["Livechat_AllowedDomainsList", "localhost"],
             ["Livechat_accept_chats_with_no_agents", True],
             ["Livechat_secret_token", "secret_token"],
             ["Livechat_webhook_on_start", True],
@@ -280,9 +291,35 @@ class Command(BaseCommand):
             ["Accounts_TwoFactorAuthentication_By_Email_Enabled", False],
             ["API_Enable_Rate_Limiter", False],
             ["Log_Level", "2"],
+            ["Livechat_Routing_Method", "Manual_Selection"],
         ]
         for config in configs:
             rocket.settings_update(config[0], config[1])
+
+        # create if dont exist:
+        r = rocket.call_api_get(
+            "integrations.get", integrationId="wppconnect-integration"
+        )
+        if not r.ok:
+            print("CREATING WEBHOOK OUTGOING")
+            payload = {
+                "_id": "wppconnect-integration",
+                "type": "webhook-outgoing",
+                "name": "WPPCONNECT ACTIVE CHAT INTEGRATION",
+                "event": "sendMessage",
+                "enabled": True,
+                "username": "rocket.cat",
+                "urls": ["http://django:8000/connector/WPP_EXTERNAL_TOKEN/"],
+                "scriptEnabled": False,
+                "channel": "#manager_channel",
+                "triggerWords": [
+                    "zapit",
+                ],
+                "token": "WPP_EXTERNAL_TOKEN",
+            }
+            rocket.call_api_post("integrations.create", **payload)
+        else:
+            print("WEBHOOK OUTGOING ALREADY EXISTS")
 
     def handle(self, *args, **options):
         self.handle_django()
