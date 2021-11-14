@@ -17,6 +17,12 @@ Rocket Connect - An agnostic connector for Rocket Chat
      :alt: Black code style
 
 
+
+Documentation
+-------------
+Check here: https://rocketconnect.readthedocs.io/
+
+
 Come develop with us!
 ---------------
 

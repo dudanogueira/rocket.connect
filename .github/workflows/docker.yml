@@ -17,11 +17,11 @@ jobs:
     steps:
       -
         name: Checkout
-        uses: actions/checkout@v2.3.4
+        uses: actions/checkout@v2.3.5
       -
         name: Docker meta
         id: meta
-        uses: crazy-max/ghaction-docker-meta@v3.5.0
+        uses: crazy-max/ghaction-docker-meta@v3.6.0
         with:
           images: dudanogueira/rocket.connect
       -
