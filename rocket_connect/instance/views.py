@@ -45,7 +45,9 @@ def server_endpoint(request, server_id):
         server.secret_token
         and request.headers.get("X-Rocketchat-Livechat-Token") != server.secret_token
     ):
-        return HttpResponse("Unauthorized", status=401)
+        return HttpResponse(
+            "Unauthorized. No X-Rocketchat-Livechat-Token provided.", status=401
+        )
     # income message, we have a body
     if request.body:
         raw_message = json.loads(request.body)
