@@ -739,7 +739,32 @@ class Connector(object):
                 )
 
     def handle_livechat_session_taken(self):
+        self.logger.info("HANDLING LIVECHATSESSION TAKEN")
         if self.config.get("session_taken_alert_template"):
+            # get departments to ignore
+            ignore_departments = self.config.get(
+                "session_taken_alert_ignore_departments"
+            )
+            if ignore_departments:
+                transferred_department = self.message.get("visitor", {}).get(
+                    "department"
+                )
+                departments_list = ignore_departments.split(",")
+                ignore_departments = [i.lower() for i in departments_list]
+                if transferred_department in ignore_departments:
+                    self.logger_info(
+                        "IGNORING LIVECHATSESSION Alert for DEPARTMENT {0}".format(
+                            self.message.get("department")
+                        )
+                    )
+                    # ignore this message
+                    return {
+                        "success": False,
+                        "message": "Ignoring department {0}".format(
+                            self.message.get("department")
+                        ),
+                    }
+
             template = Template(self.config.get("session_taken_alert_template"))
             context = Context(self.message)
             message = template.render(context)
@@ -822,4 +847,9 @@ class BaseConnectorConfigForm(forms.Form):
     session_taken_alert_template = forms.CharField(
         required=False,
         help_text="Template to use for the alert session taken. eg. You are now talking with {{agent.name}}",
+    )
+    session_taken_alert_ignore_departments = forms.CharField(
+        required=False,
+        help_text="Ignore this departments ID for the session taken alert."
+        + "multiple separated with comma. eg. departmentID1,departmentID2",
     )
