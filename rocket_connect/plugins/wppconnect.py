@@ -571,13 +571,14 @@ class Connector(ConnectorBase):
                 )
 
         # webhook active chat integration
-        if self.message.get("token") == self.config.get(
-            "active_chat_webhook_integration_token"
-        ):
-            self.logger_info("active_chat_webhook_integration_token triggered")
-            # message, created = self.register_message()
-            req = self.active_chat()
-            return JsonResponse(req)
+        if self.config.get("active_chat_webhook_integration_token"):
+            if self.message.get("token") == self.config.get(
+                "active_chat_webhook_integration_token"
+            ):
+                self.logger_info("active_chat_webhook_integration_token triggered")
+                # message, created = self.register_message()
+                req = self.active_chat()
+                return JsonResponse(req)
 
         return JsonResponse({})
 
