@@ -14,7 +14,8 @@
 
 
     <!-- Bootstrap core CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-+0n0xVW2eSR5OomGNYDnhzAbDsOXxcvSN1TPprVMTNDbiYZCxYbOOl7+AMvyTG2x" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-+0n0xVW2eSR5OomGNYDnhzAbDsOXxcvSN1TPprVMTNDbiYZCxYbOOl7+AMvyTG2x" crossorigin="anonymous">
 
     <style>
         .bd-placeholder-img {
@@ -87,15 +88,15 @@
             </footer>
         </div>
     </main>
-<!-- Start of Rocket.Chat Livechat Script -->
-<script type="text/javascript">
-	(function(w, d, s, u) {
-		w.RocketChat = function(c) { w.RocketChat._.push(c) }; w.RocketChat._ = []; w.RocketChat.url = u;
-		var h = d.getElementsByTagName(s)[0], j = d.createElement(s);
-		j.async = true; j.src = 'http://127.0.0.1:3000/livechat/rocketchat-livechat.min.js?_=201903270000';
-		h.parentNode.insertBefore(j, h);
-	})(window, document, 'script', 'http://127.0.0.1:3000/livechat');
-	</script>
+    <!-- Start of Rocket.Chat Livechat Script -->
+    <script type="text/javascript">
+        (function (w, d, s, u) {
+            w.RocketChat = function (c) { w.RocketChat._.push(c) }; w.RocketChat._ = []; w.RocketChat.url = u;
+            var h = d.getElementsByTagName(s)[0], j = d.createElement(s);
+            j.async = true; j.src = 'http://127.0.0.1:3000/livechat/rocketchat-livechat.min.js?_=201903270000';
+            h.parentNode.insertBefore(j, h);
+        })(window, document, 'script', 'http://127.0.0.1:3000/livechat');
+    </script>
 </body>
 
 </html>
