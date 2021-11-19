@@ -115,7 +115,7 @@ class Command(BaseCommand):
             "secret_key": "My53cr3tKY",
             "instance_name": "test",
             "outcome_attachment_description_as_new_message": True,
-            "active_chat_webhook_integration_token": "WPP_EXTERNAL_TOKEN",
+            "active_chat_webhook_integration_token": "WPP_ZAPIT_TOKEN",
         }
         connector.name = "WPPCONNECT CONNECTOR"
         connector.connector_type = "wppconnect"
@@ -301,7 +301,7 @@ class Command(BaseCommand):
             "integrations.get", integrationId="wppconnect-integration"
         )
         if not r.ok:
-            print("CREATING WEBHOOK OUTGOING")
+            print("CREATING WEBHOOK FOR ZAPIT  OUTGOING")
             payload = {
                 "_id": "wppconnect-integration",
                 "type": "webhook-outgoing",
@@ -315,11 +315,36 @@ class Command(BaseCommand):
                 "triggerWords": [
                     "zapit",
                 ],
-                "token": "WPP_EXTERNAL_TOKEN",
+                "token": "WPP_ZAPIT_TOKEN",
             }
             rocket.call_api_post("integrations.create", **payload)
         else:
-            print("WEBHOOK OUTGOING ALREADY EXISTS")
+            print("WEBHOOK FOR ZAPIT OUTGOING ALREADY EXISTS")
+
+        # create webhook rc manager:
+        r = rocket.call_api_get(
+            "integrations.get", integrationId="rc-manager-integration"
+        )
+        if not r.ok:
+            print("CREATING WEBHOOK FOR RC MANAGER OUTGOING")
+            payload = {
+                "_id": "rc-manager-integration",
+                "type": "webhook-outgoing",
+                "name": "RC MANAGER INTEGRATION",
+                "event": "sendMessage",
+                "enabled": True,
+                "username": "rocket.cat",
+                "urls": ["http://django:8000/server/SERVER_EXTERNAL_TOKEN/"],
+                "scriptEnabled": False,
+                "channel": "#manager_channel",
+                "triggerWords": [
+                    "rc",
+                ],
+                "token": "RC_MANAGER_TOKEN",
+            }
+            rocket.call_api_post("integrations.create", **payload)
+        else:
+            print("WEBHOOK FOR ZAPIT OUTGOING ALREADY EXISTS")
 
     def handle(self, *args, **options):
         self.handle_django()

@@ -6,9 +6,11 @@
     <span class="breadcrumb-item active">home</span>
 </nav>
 
+{% if request.user.is_authenticated %}
 <div class="text-right mb-5">
     <a type="button" class="btn btn-primary btn-lg" href="{% url 'instance:new_server' %}">Add Server</a>
 </div>
+{% endif %}
 
 
 <div class="">
