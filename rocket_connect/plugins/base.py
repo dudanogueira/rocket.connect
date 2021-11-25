@@ -499,8 +499,7 @@ class Connector(object):
         return response
 
     def register_message(self, type=None):
-        if settings.DEBUG:
-            print("REGISTERING MESSAGE: ", self.message)
+        self.logger_info("REGISTERING MESSAGE: {0}".format(self.message))
         try:
             if not type:
                 type = self.type
@@ -521,7 +520,6 @@ class Connector(object):
                 )
             return self.message_object, created
         except IntegrityError:
-            raise
             self.logger_info(
                 "CANNOT CREATE THIS MESSAGE AGAIN: {0}".format(self.get_message_id())
             )
