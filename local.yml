@@ -118,7 +118,7 @@ services:
     command: /start-flower
 
   rocketchat:
-    image: rocketchat/rocket.chat:4.1.2
+    image: registry.rocket.chat/rocketchat/rocket.chat
     command: >
       bash -c
         "for i in `seq 1 30`; do
@@ -237,13 +237,11 @@ services:
       - local_wppconnect_data:/usr/src/server-cli/tokens
     ports:
       - "21465:21465"
-    restart: on-failure
 
   apache:
       image: 'php:apache'
       ports:
         - "80:80"
-      restart: on-failure
       volumes:
         - ./compose/local/apache/site:/var/www/html
         - ./compose/local/apache/confs/additional.conf:/etc/apache2/conf-enabled/additional.conf
@@ -251,7 +249,6 @@ services:
 
   grafana:
     image: grafana/grafana:8.2.5
-    restart: unless-stopped
     ports:
       - 3001:3000
     volumes:
@@ -263,7 +260,6 @@ services:
 
   prometheus:
     image: quay.io/prometheus/prometheus:v2.31.1
-    restart: unless-stopped
     ports:
      - 9090:9090
     command:
