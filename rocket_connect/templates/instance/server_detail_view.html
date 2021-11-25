@@ -18,7 +18,7 @@
     <a href="{{server.url}}">{{server.url}}</a>
     {% if status.alive %}
         <span class="badge badge-success">UP</span>
-        <span class="badge badge-info">Version: {{status.info.version}}</span>
+        <span class="badge badge-info">Version: {{status.info.info.version}}</span>
     {% else %}
         <span class="badge badge-danger">Down!</span>
     {% endif %}
