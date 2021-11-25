@@ -519,13 +519,17 @@ class Connector(ConnectorBase):
                     #
                     # process different type of messages
                     #
-                    if self.message.get("type") == "chat":
+                    if self.message.get("type") == "chat" or self.message.get(
+                        "quotedMsg", {}
+                    ).get("isDynamicReplyButtonsMsg"):
                         # deliver text message
                         message = self.get_message_body()
                         if room:
                             deliver = self.outcome_text(room.room_id, message)
                             if settings.DEBUG:
-                                print("DELIVER OF TEXT MESSAGE:", deliver.ok)
+                                self.logger_info(
+                                    "DELIVER OF TEXT MESSAGE: {0}".format(deliver.ok)
+                                )
                     elif self.message.get("type") == "location":
                         lat = self.message.get("lat")
                         lng = self.message.get("lng")
@@ -540,6 +544,7 @@ class Connector(ConnectorBase):
                         self.outcome_text(
                             room.room_id, text, message_id=self.get_message_id()
                         )
+
                     else:
                         if self.message.get("type") == "ptt":
                             self.handle_ptt()
