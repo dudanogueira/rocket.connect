@@ -1,5 +1,6 @@
 import base64
 import datetime
+import json
 import time
 import urllib.parse as urlparse
 
@@ -650,21 +651,42 @@ class Connector(ConnectorBase):
     def outgo_text_message(self, message, agent_name=None):
         sent = False
         content = message["msg"]
-        content = self.joypixel_to_unicode(content)
-        # message may not have an agent
-        if agent_name:
-            content = "*[" + agent_name + "]*\n" + content
+        try:
+            # mesangem é um json
+            payload = json.loads(content)
+            if payload.get("buttons"):
+                url = self.connector.config[
+                    "endpoint"
+                ] + "/api/{0}/send-buttons".format(
+                    self.connector.config["instance_name"]
+                )
+                self.logger_info(
+                    "OUTGOING BUTTON MESSAGE. URL: {0}. PAYLOAD {1}".format(
+                        url, payload
+                    )
+                )
+        except ValueError:
+            content = self.joypixel_to_unicode(content)
+            # message may not have an agent
+            if agent_name:
+                content = "*[" + agent_name + "]*\n" + content
 
-        payload = {"phone": self.get_visitor_id(), "message": content, "isGroup": False}
+            payload = {
+                "phone": self.get_visitor_id(),
+                "message": content,
+                "isGroup": False,
+            }
+            url = self.connector.config["endpoint"] + "/api/{0}/send-message".format(
+                self.connector.config["instance_name"]
+            )
+            self.logger_info(
+                "OUTGOING TEXT MESSAGE. URL: {0}. PAYLOAD {1}".format(url, payload)
+            )
+        # SEND MESSAGE
         session = self.get_request_session()
         # TODO: Simulate typing
         # See: https://github.com/wppconnect-team/wppconnect-server/issues/59
-        url = self.connector.config["endpoint"] + "/api/{0}/send-message".format(
-            self.connector.config["instance_name"]
-        )
-        self.logger_info(
-            "OUTGOING TEXT MESSAGE. URL: {0}. PAYLOAD {1}".format(url, payload)
-        )
+
         timestamp = int(time.time())
         try:
             sent = session.post(url, json=payload)
@@ -679,7 +701,6 @@ class Connector(ConnectorBase):
         if self.message_object:
             self.message_object.payload[timestamp] = payload
             self.message_object.save()
-
         return sent
 
     def outgo_file_message(self, message, agent_name=None):
@@ -743,6 +764,40 @@ class Connector(ConnectorBase):
         if self.message_object:
             self.message_object.payload[timestamp] = payload
             self.message_object.save()
+
+    def outgo_json_message(self, payload):
+        sent = False
+        content = payload
+        payload_dict = json.loads(payload)
+        content = self.joypixel_to_unicode(content)
+        session = self.get_request_session()
+        # TODO: Simulate typing
+        # See: https://github.com/wppconnect-team/wppconnect-server/issues/59
+        if payload_dict.get("buttons"):
+            url = self.connector.config["endpoint"] + "/api/{0}/send-buttons".format(
+                self.connector.config["instance_name"]
+            )
+            self.logger_info(
+                "OUTGOING JSON MESSAGE. BUTTONS URL: {0}. PAYLOAD {1}".format(
+                    url, payload
+                )
+            )
+            timestamp = int(time.time())
+            try:
+                sent = session.post(url, json=payload)
+                if self.message_object:
+                    self.message_object.delivered = sent.ok
+                    self.message_object.response[timestamp] = sent.json()
+            except requests.ConnectionError:
+                if self.message_object:
+                    self.message_object.delivered = False
+                    self.logger_info("CONNECTOR DOWN: {0}".format(self.connector))
+            # save message object
+            if self.message_object:
+                self.message_object.payload[timestamp] = payload
+                self.message_object.save()
+
+            return sent
 
 
 class ConnectorConfigForm(BaseConnectorConfigForm):
