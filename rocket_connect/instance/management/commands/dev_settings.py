@@ -116,6 +116,11 @@ class Command(BaseCommand):
             "instance_name": "test",
             "outcome_attachment_description_as_new_message": True,
             "active_chat_webhook_integration_token": "WPP_ZAPIT_TOKEN",
+            "department_triage_payload": {
+                "title": "Title for Button goes here",
+                "footer": "This is the footer for the message. Its optional to send",
+                "message": "Test Sending Buttons. Let me know what you think about this function in wppconnect?",
+            },
         }
         connector.name = "WPPCONNECT CONNECTOR"
         connector.connector_type = "wppconnect"

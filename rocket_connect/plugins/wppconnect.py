@@ -479,6 +479,7 @@ class Connector(ConnectorBase):
 
         # message
         if self.message.get("event") in ["onmessage", "unreadmessages"]:
+            department = None
             if self.message.get("event") == "unreadmessages":
                 self.logger_info(
                     "PROCESSING UNREAD MESSAGE. PAYLOAD {0}".format(self.message)
@@ -499,8 +500,65 @@ class Connector(ConnectorBase):
                     self.get_rocket_client()
                     if not self.rocket:
                         return HttpResponse("Rocket Down!", status=503)
+                    # department triage is enabled
+                    if self.config.get("department_triage"):
+                        # message has no department, always
+                        # outcome department_triage_payload
+                        # if it's not a button reply
+                        # there is not room
+                        room = self.get_room(department, create=False)
+                        if not room:
+                            # get departments and buttons
+                            buttons = []
+                            departments = self.rocket.call_api_get(
+                                "livechat/department"
+                            ).json()
+                            department_triage_to_ignore = self.config.get(
+                                "department_triage_to_ignore", []
+                            ).split(",")
+                            for department in departments.get("departments"):
+                                if department.get("enabled"):
+                                    if (
+                                        department.get("_id")
+                                        not in department_triage_to_ignore
+                                    ):
+                                        button = {
+                                            "buttonId": department.get("_id"),
+                                            "buttonText": {
+                                                "displayText": department.get("name")
+                                            },
+                                            "type": 1,
+                                        }
+                                        buttons.append(button)
+                            # the message is a button reply. we now register the room
+                            # with the choosen department and return
+                            if self.message.get("quotedMsg", {}).get(
+                                "isDynamicReplyButtonsMsg", False
+                            ):
+                                # the department text is body
+                                choosen_department = self.message.get("body")
+                                department_map = {}
+                                for b in buttons:
+                                    department_map[b["buttonText"]["displayText"]] = b[
+                                        "buttonId"
+                                    ]
+                                department = department_map[choosen_department]
+                            else:
+                                # add destination phone
+                                payload = self.config.get("department_triage_payload")
+                                payload["phone"] = self.get_visitor_id()
+                                payload["buttons"] = buttons
+                                # outcome buttons
+                                message = {"msg": json.dumps(payload)}
+                                self.outgo_text_message(message)
+                                return JsonResponse(
+                                    {
+                                        "sucess": True,
+                                        "message": "Departments triage button list sent",
+                                    }
+                                )
                     # get room
-                    room = self.get_room()
+                    room = self.get_room(department)
                     #
                     # no room was generated
                     #
@@ -765,40 +823,6 @@ class Connector(ConnectorBase):
             self.message_object.payload[timestamp] = payload
             self.message_object.save()
 
-    def outgo_json_message(self, payload):
-        sent = False
-        content = payload
-        payload_dict = json.loads(payload)
-        content = self.joypixel_to_unicode(content)
-        session = self.get_request_session()
-        # TODO: Simulate typing
-        # See: https://github.com/wppconnect-team/wppconnect-server/issues/59
-        if payload_dict.get("buttons"):
-            url = self.connector.config["endpoint"] + "/api/{0}/send-buttons".format(
-                self.connector.config["instance_name"]
-            )
-            self.logger_info(
-                "OUTGOING JSON MESSAGE. BUTTONS URL: {0}. PAYLOAD {1}".format(
-                    url, payload
-                )
-            )
-            timestamp = int(time.time())
-            try:
-                sent = session.post(url, json=payload)
-                if self.message_object:
-                    self.message_object.delivered = sent.ok
-                    self.message_object.response[timestamp] = sent.json()
-            except requests.ConnectionError:
-                if self.message_object:
-                    self.message_object.delivered = False
-                    self.logger_info("CONNECTOR DOWN: {0}".format(self.connector))
-            # save message object
-            if self.message_object:
-                self.message_object.payload[timestamp] = payload
-                self.message_object.save()
-
-            return sent
-
 
 class ConnectorConfigForm(BaseConnectorConfigForm):
 
@@ -831,6 +855,12 @@ class ConnectorConfigForm(BaseConnectorConfigForm):
         initial="name,shortName,pushname",
     )
 
+    department_triage = forms.BooleanField(required=False)
+
+    department_triage_payload = forms.JSONField(required=False)
+
+    department_triage_to_ignore = forms.CharField(max_length=None, required=False)
+
     field_order = [
         "webhook",
         "endpoint",
@@ -838,4 +868,7 @@ class ConnectorConfigForm(BaseConnectorConfigForm):
         "instance_name",
         "active_chat_webhook_integration_token",
         "name_extraction_order",
+        "department_triage",
+        "department_triage_payload",
+        "department_triage_to_ignore",
     ]
