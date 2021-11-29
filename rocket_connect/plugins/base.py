@@ -763,7 +763,12 @@ class Connector(object):
                             self.message.get("department")
                         ),
                     }
-
+            self.get_rocket_client()
+            # enrich context with department data
+            department = self.rocket.call_api_get(
+                "livechat/department/{0}".format(self.message.get("departmentId"))
+            ).json()
+            self.message["department"] = department["department"]
             template = Template(self.config.get("session_taken_alert_template"))
             context = Context(self.message)
             message = template.render(context)
@@ -845,7 +850,8 @@ class BaseConnectorConfigForm(forms.Form):
     )
     session_taken_alert_template = forms.CharField(
         required=False,
-        help_text="Template to use for the alert session taken. eg. You are now talking with {{agent.name}}",
+        help_text="Template to use for the alert session taken. eg. \
+        You are now talking with {{agent.name}} at department {{department.name}}",
     )
     session_taken_alert_ignore_departments = forms.CharField(
         required=False,
