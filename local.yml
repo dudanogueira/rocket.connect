@@ -118,7 +118,7 @@ services:
     command: /start-flower
 
   rocketchat:
-    image: registry.rocket.chat/rocketchat/rocket.chat
+    image: registry.rocket.chat/rocketchat/rocket.chat:4.2.0
     command: >
       bash -c
         "for i in `seq 1 30`; do
