@@ -93,9 +93,9 @@
         (function (w, d, s, u) {
             w.RocketChat = function (c) { w.RocketChat._.push(c) }; w.RocketChat._ = []; w.RocketChat.url = u;
             var h = d.getElementsByTagName(s)[0], j = d.createElement(s);
-            j.async = true; j.src = 'http://127.0.0.1:3000/livechat/rocketchat-livechat.min.js?_=201903270000';
+            j.async = true; j.src = 'http://localhost:3000/livechat/rocketchat-livechat.min.js?_=201903270000';
             h.parentNode.insertBefore(j, h);
-        })(window, document, 'script', 'http://127.0.0.1:3000/livechat');
+        })(window, document, 'script', 'http://localhost:3000/livechat');
     </script>
 </body>
 
