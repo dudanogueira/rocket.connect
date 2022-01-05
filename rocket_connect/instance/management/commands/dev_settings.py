@@ -277,6 +277,11 @@ class Command(BaseCommand):
             user_id = rocket.users_info(username="admin").json()["user"]["_id"]
             channel_id = channel.json()["channel"]["_id"]
             rocket.channels_invite(room_id=channel_id, user_id=user_id)
+
+        # create teams
+        public_team = rocket.teams_create("team-public", 0)
+        private_team = rocket.teams_create("team-private", 1)
+        print("teams created, public n private: ", public_team, private_team)
         # configure server webhook api
         configs = [
             ["Site_Url", "http://localhost:3000"],
