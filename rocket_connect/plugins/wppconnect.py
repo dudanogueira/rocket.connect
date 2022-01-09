@@ -582,17 +582,34 @@ class Connector(ConnectorBase):
                     #
                     # process different type of messages
                     #
+                    # text type or dynamic button press
                     if self.message.get("type") == "chat" or self.message.get(
                         "quotedMsg", {}
                     ).get("isDynamicReplyButtonsMsg"):
-                        # deliver text message
+                        # pre define the message to be delivered
                         message = self.get_message_body()
+                        # Quoted Message in chat message
+                        if self.message.get("quotedMsgId"):
+                            quote_type = self.message.get("quotedMsg").get("type")
+                            if quote_type == "chat":
+                                quoted_body = self.message.get("quotedMsg").get("body")
+                                if self.connector.config.get(
+                                    "outcome_message_with_quoted_message", True
+                                ):
+                                    print("AEEEE AQUI")
+                                    message = ":arrow_forward:  IN RESPONSE TO: {0} \n:envelope: {1}"
+                                    message = message.format(
+                                        quoted_body,
+                                        self.get_message_body(),
+                                    )
+                        # deliver text message
                         if room:
                             deliver = self.outcome_text(room.room_id, message)
                             if settings.DEBUG:
                                 self.logger_info(
                                     "DELIVER OF TEXT MESSAGE: {0}".format(deliver.ok)
                                 )
+                    # location type
                     elif self.message.get("type") == "location":
                         lat = self.message.get("lat")
                         lng = self.message.get("lng")
@@ -608,6 +625,7 @@ class Connector(ConnectorBase):
                             room.room_id, text, message_id=self.get_message_id()
                         )
 
+                    # upload type
                     else:
                         if self.message.get("type") == "ptt":
                             self.handle_ptt()
@@ -893,6 +911,8 @@ class ConnectorConfigForm(BaseConnectorConfigForm):
 
     department_triage_to_ignore = forms.CharField(max_length=None, required=False)
 
+    outcome_message_with_quoted_message = forms.BooleanField(required=False)
+
     field_order = [
         "webhook",
         "endpoint",
@@ -901,6 +921,7 @@ class ConnectorConfigForm(BaseConnectorConfigForm):
         "active_chat_webhook_integration_token",
         "name_extraction_order",
         "process_unread_messages_on_start",
+        "outcome_message_with_quoted_message",
         "department_triage",
         "department_triage_payload",
         "department_triage_to_ignore",
