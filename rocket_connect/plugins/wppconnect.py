@@ -9,6 +9,7 @@ from django import forms
 from django.conf import settings
 from django.core import validators
 from django.http import HttpResponse, JsonResponse
+from instance import tasks
 
 from .base import BaseConnectorConfigForm
 from .base import Connector as ConnectorBase
@@ -462,12 +463,15 @@ class Connector(ConnectorBase):
             text = "Session: {0}. Status: {1}".format(
                 self.message.get("session"), self.message.get("status")
             )
-            if self.message.get("status") == "inChat":
+            if self.message.get("status") == "isLogged":
                 text = (
                     text
                     + ":white_check_mark::white_check_mark::white_check_mark:"
                     + "SUCESS!!!      :white_check_mark::white_check_mark::white_check_mark:"
                 )
+                # call intake unread task
+                if self.config.get("process_unread_messages_on_start", False):
+                    tasks.intake_unread_messages.delay(self.connector.id)
             self.outcome_admin_message(text)
 
         if self.message.get("event") == "incomingcall":
@@ -645,6 +649,32 @@ class Connector(ConnectorBase):
                 return JsonResponse(req)
 
         return JsonResponse({})
+
+    def intake_unread_messages(self):
+        """
+        intake unread messages
+        """
+        endpoint = "{0}/api/{1}/unread-messages".format(
+            self.config.get("endpoint"),
+            self.config.get("instance_name"),
+        )
+        session = self.get_request_session()
+        unread_contacts = session.get(endpoint)
+        if unread_contacts.ok:
+            self.logger_error("PROCESSING UNREAD CONTACTS ON START")
+            unread_contacts = unread_contacts.json()
+            for contact in unread_contacts.get("response"):
+                for message in contact["messages"]:
+                    message["event"] = "onmessage"
+                    message["chatId"] = message["from"]
+                    self.logger_error("PROCESSING UNREAD MESSAGE {0}".format(message))
+                    self.message = message
+                    self.type = "incoming"
+                    self.incoming()
+        else:
+            self.logger_error("COULD NOT CONNECT TO WPP SERVER TO GET UNREAD MESSAGES")
+
+        return False
 
     def get_incoming_message_id(self):
         # unread messages has a different structure
@@ -855,6 +885,8 @@ class ConnectorConfigForm(BaseConnectorConfigForm):
         initial="name,shortName,pushname",
     )
 
+    process_unread_messages_on_start = forms.BooleanField(initial=False, required=False)
+
     department_triage = forms.BooleanField(required=False)
 
     department_triage_payload = forms.JSONField(required=False)
@@ -868,6 +900,7 @@ class ConnectorConfigForm(BaseConnectorConfigForm):
         "instance_name",
         "active_chat_webhook_integration_token",
         "name_extraction_order",
+        "process_unread_messages_on_start",
         "department_triage",
         "department_triage_payload",
         "department_triage_to_ignore",
