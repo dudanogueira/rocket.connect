@@ -591,17 +591,54 @@ class Connector(ConnectorBase):
                         # Quoted Message in chat message
                         if self.message.get("quotedMsgId"):
                             quote_type = self.message.get("quotedMsg").get("type")
+                            # type of message quoted is text
                             if quote_type == "chat":
                                 quoted_body = self.message.get("quotedMsg").get("body")
                                 if self.connector.config.get(
                                     "outcome_message_with_quoted_message", True
                                 ):
-                                    print("AEEEE AQUI")
                                     message = ":arrow_forward:  IN RESPONSE TO: {0} \n:envelope: {1}"
                                     message = message.format(
                                         quoted_body,
                                         self.get_message_body(),
                                     )
+                            # type of message is others
+                            elif quote_type in ["document", "image", "ptt"]:
+                                message = "DOCUMENT RESENT:\n {0}".format(
+                                    self.get_message_body()
+                                )
+                                mime = self.message.get("quotedMsg").get("mimetype")
+                                # THE QUOTED BODY SEEMS CORRUPT
+                                # body = self.message.get("quotedMsg").get("body")
+                                # LETS GET THE ORIGINAL
+                                # session = self.get_request_session()
+                                # endpoint = "{0}/api/{1}/message-by-id/{2}".format(
+                                #     self.config.get("endpoint"),
+                                #     self.config.get("instance_name"),
+                                #     self.message.get("quotedMsgId")
+                                # )
+                                # session = self.get_request_session()
+                                # quoted_message = session.get(endpoint).json()
+                                # file_to_send = self.message.get("quotedMsg").get("body")
+                                # none of the above worked.
+                                # will need to get original content from rocket.connect
+                                try:
+                                    quoted_message = self.connector.messages.get(
+                                        envelope_id=self.message.get("quotedMsgId")
+                                    )
+                                    file_to_send = quoted_message.raw_message["body"]
+                                except self.connector.messages.model.DoesNotExist:
+                                    file_to_send = None
+                                if file_to_send:
+                                    file_sent = self.outcome_file(
+                                        file_to_send,
+                                        room.room_id,
+                                        mime,
+                                        description=self.message.get("quotedMsg").get(
+                                            "caption", None
+                                        ),
+                                    )
+
                         # deliver text message
                         if room:
                             deliver = self.outcome_text(room.room_id, message)

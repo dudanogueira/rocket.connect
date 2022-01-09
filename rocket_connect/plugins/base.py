@@ -156,9 +156,10 @@ class Connector(object):
             deliver = requests.post(url, headers=headers, files=files, data=data)
             self.logger_info("RESPONSE OF FILE OUTCOME: {0}".format(deliver.json()))
             timestamp = int(time.time())
-            self.message_object.payload[timestamp] = {
-                "data": "sent attached file to rocketchat"
-            }
+            if self.message_object:
+                self.message_object.payload[timestamp] = {
+                    "data": "sent attached file to rocketchat"
+                }
             if deliver.ok:
                 if settings.DEBUG and deliver.ok:
                     print("teste, ", deliver)
@@ -171,7 +172,10 @@ class Connector(object):
                 "outcome_attachment_description_as_new_message", True
             ):
                 if description:
-                    self.outcome_text(room_id, description)
+                    description_message_id = self.get_message_id() + "_description"
+                    self.outcome_text(
+                        room_id, description, message_id=description_message_id
+                    )
 
             return deliver
 
