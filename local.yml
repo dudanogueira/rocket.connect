@@ -220,10 +220,11 @@ services:
       - "8001:8002"
 
   wppconnect:
-    image: wppconnect/server-cli:latest
+    image: wppconnect/server-cli:main
     # for command options: https://github.com/wppconnect-team/server-cli/blob/main/src/program.js
     command: wppserver --log-level DEBUG --secretKey My53cr3tKY --port 21465
-      --startAllSession --webhook-allUnreadOnStart
+      --startAllSession
+      #--webhook-allUnreadOnStart
       #--no-webhook-onPresenceChanged
       #--no-webhook-onParticipantsChanged
       #--no-webhook-listenAcks
