@@ -823,7 +823,9 @@ class BaseConnectorConfigForm(forms.Form):
     )
     timezone = forms.CharField(help_text="Timezone for this connector", required=False)
     force_close_message = forms.CharField(
-        help_text="Force this message on close", required=False
+        widget=forms.Textarea(attrs={"rows": 4, "cols": 15}),
+        help_text="Force this message on close",
+        required=False,
     )
     outcome_attachment_description_as_new_message = forms.BooleanField(
         required=False,
@@ -844,28 +846,36 @@ class BaseConnectorConfigForm(forms.Form):
         + "WARNING: this option will cause a bot to react to those messages.",
     )
     auto_answer_incoming_call = forms.CharField(
-        help_text="Auto answer this message on incoming call", required=False
+        widget=forms.Textarea(attrs={"rows": 4, "cols": 15}),
+        help_text="Auto answer this message on incoming call",
+        required=False,
     )
     convert_incoming_call_to_text = forms.CharField(
+        widget=forms.Textarea(attrs={"rows": 4, "cols": 15}),
         help_text="Convert an Incoming Call to this text (can be used to force a bot reaction)",
         required=False,
     )
     auto_answer_on_audio_message = forms.CharField(
         required=False,
+        widget=forms.Textarea(attrs={"rows": 4, "cols": 15}),
         help_text="Auto answer with this message when a user end audio (PTT)",
     )
     convert_incoming_audio_to_text = forms.CharField(
         required=False,
+        widget=forms.Textarea(attrs={"rows": 4, "cols": 15}),
         help_text="Convert a user audio to this message (can be used to force a bot reaction)",
     )
     welcome_message = forms.CharField(
-        help_text="Auto answer this message as Welcome Message", required=False
+        widget=forms.Textarea(attrs={"rows": 4, "cols": 15}),
+        help_text="Auto answer this message as Welcome Message",
+        required=False,
     )
     welcome_vcard = forms.JSONField(
         required=False, initial={}, help_text="The Payload for a Welcome Vcard"
     )
     session_taken_alert_template = forms.CharField(
         required=False,
+        widget=forms.Textarea(attrs={"rows": 4, "cols": 15}),
         help_text="Template to use for the alert session taken. eg. \
         You are now talking with {{agent.name}} at department {{department.name}}",
     )
