@@ -463,7 +463,7 @@ class Connector(ConnectorBase):
             text = "Session: {0}. Status: {1}".format(
                 self.message.get("session"), self.message.get("status")
             )
-            if self.message.get("status") == "isLogged":
+            if self.message.get("status") in ["isLogged", "inChat"]:
                 text = (
                     text
                     + ":white_check_mark::white_check_mark::white_check_mark:"
