@@ -358,8 +358,11 @@ class Connector(object):
 
     def get_visitor_id(self):
         if self.type == "incoming":
-            return self.get_incoming_visitor_id()
-        return self.message.get("visitor", {}).get("token").split(":")[1]
+            visitor_id = self.get_incoming_visitor_id()
+        else:
+            visitor_id = self.message.get("visitor", {}).get("token").split(":")[1]
+        visitor_id = str(visitor_id).strip()
+        return visitor_id
 
     def get_visitor_token(self):
         try:
@@ -742,7 +745,7 @@ class Connector(object):
                 )
 
     def handle_livechat_session_taken(self):
-        self.logger.info("HANDLING LIVECHATSESSION TAKEN")
+        self.logger_info("HANDLING LIVECHATSESSION TAKEN")
         if self.config.get("session_taken_alert_template"):
             # get departments to ignore
             ignore_departments = self.config.get(
@@ -753,7 +756,7 @@ class Connector(object):
                     "department"
                 )
                 departments_list = ignore_departments.split(",")
-                ignore_departments = [i.lower() for i in departments_list]
+                ignore_departments = [i for i in departments_list]
                 if transferred_department in ignore_departments:
                     self.logger_info(
                         "IGNORING LIVECHATSESSION Alert for DEPARTMENT {0}".format(
@@ -776,7 +779,7 @@ class Connector(object):
             template = Template(self.config.get("session_taken_alert_template"))
             context = Context(self.message)
             message = template.render(context)
-            message_payload = {"msg": message}
+            message_payload = {"msg": str(message)}
             if (
                 self.config.get("alert_agent_of_automated_message_sent", False)
                 and self.room
@@ -787,7 +790,11 @@ class Connector(object):
                     "MESSAGE SENT: {0}".format(message),
                     message_id=self.get_message_id() + "SESSION_TAKEN",
                 )
-            return self.outgo_text_message(message_payload).json()
+            outgo_text_obj = self.outgo_text_message(message_payload)
+            self.logger_info(
+                "HANDLING LIVECHATSESSION TAKEN {0}".format(outgo_text_obj)
+            )
+            return outgo_text_obj
 
 
 class BaseConnectorConfigForm(forms.Form):
