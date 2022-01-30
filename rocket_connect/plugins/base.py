@@ -833,6 +833,11 @@ class BaseConnectorConfigForm(forms.Form):
     overwrite_custom_fields = forms.BooleanField(
         required=False, help_text="overwrite custom fields on new visitor registration"
     )
+    supress_visitor_name = forms.BooleanField(
+        required=False,
+        help_text="do not overwrite visitor name with connector visitor name",
+    )
+
     alert_agent_of_automated_message_sent = forms.BooleanField(
         required=False,
         help_text="Alert the agent whenever you send an automated text."
