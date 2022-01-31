@@ -37,6 +37,9 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/dev/ref/settings/#locale-paths
 LOCALE_PATHS = [str(ROOT_DIR / "locale")]
 
+DATA_UPLOAD_MAX_MEMORY_SIZE = env("DJANGO_DATA_UPLOAD_MAX_MEMORY_SIZE", default=2621440)
+
+
 # DATABASES
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#databases

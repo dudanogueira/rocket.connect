@@ -156,9 +156,10 @@ class Connector(object):
             deliver = requests.post(url, headers=headers, files=files, data=data)
             self.logger_info("RESPONSE OF FILE OUTCOME: {0}".format(deliver.json()))
             timestamp = int(time.time())
-            self.message_object.payload[timestamp] = {
-                "data": "sent attached file to rocketchat"
-            }
+            if self.message_object:
+                self.message_object.payload[timestamp] = {
+                    "data": "sent attached file to rocketchat"
+                }
             if deliver.ok:
                 if settings.DEBUG and deliver.ok:
                     print("teste, ", deliver)
@@ -171,7 +172,10 @@ class Connector(object):
                 "outcome_attachment_description_as_new_message", True
             ):
                 if description:
-                    self.outcome_text(room_id, description)
+                    description_message_id = self.get_message_id() + "_description"
+                    self.outcome_text(
+                        room_id, description, message_id=description_message_id
+                    )
 
             return deliver
 
@@ -354,8 +358,11 @@ class Connector(object):
 
     def get_visitor_id(self):
         if self.type == "incoming":
-            return self.get_incoming_visitor_id()
-        return self.message.get("visitor", {}).get("token").split(":")[1]
+            visitor_id = self.get_incoming_visitor_id()
+        else:
+            visitor_id = self.message.get("visitor", {}).get("token").split(":")[1]
+        visitor_id = str(visitor_id).strip()
+        return visitor_id
 
     def get_visitor_token(self):
         try:
@@ -366,7 +373,7 @@ class Connector(object):
         except IndexError:
             return "channel:visitor-id"
 
-    def get_room(self, department=None):
+    def get_room(self, department=None, create=True):
         room = None
         room_created = False
         connector_token = self.get_visitor_token()
@@ -386,37 +393,38 @@ class Connector(object):
                 .last()
             )
         except LiveChatRoom.DoesNotExist:
-            print("get_room, didnt get for: ", connector_token)
-            if self.config.get("open_room", True):
-                # room not available, let's create one.
-                # get the visitor json
-                visitor_json = self.get_visitor_json(department)
-                # get the visitor object
-                visitor_object = self.rocket.livechat_register_visitor(
-                    visitor=visitor_json, token=connector_token
-                )
-                response = visitor_object.json()
-                if settings.DEBUG:
-                    print("VISITOR REGISTERING: ", response)
-                # we got a new room
-                # this is where you can hook some "welcoming features"
-                if response["success"]:
-                    rc_room = self.rocket.livechat_room(token=connector_token)
-                    rc_room_response = rc_room.json()
+            if create:
+                print("get_room, didnt get for: ", connector_token)
+                if self.config.get("open_room", True):
+                    # room not available, let's create one.
+                    # get the visitor json
+                    visitor_json = self.get_visitor_json(department)
+                    # get the visitor object
+                    visitor_object = self.rocket.livechat_register_visitor(
+                        visitor=visitor_json, token=connector_token
+                    )
+                    response = visitor_object.json()
                     if settings.DEBUG:
-                        print("REGISTERING ROOM, ", rc_room_response)
-                    if rc_room_response["success"]:
-                        room = LiveChatRoom.objects.create(
-                            connector=self.connector,
-                            token=connector_token,
-                            room_id=rc_room_response["room"]["_id"],
-                            open=True,
-                        )
-                        room_created = True
-                    else:
-                        if rc_room_response["error"] == "no-agent-online":
-                            if settings.DEBUG:
-                                print("Erro! No Agents Online")
+                        print("VISITOR REGISTERING: ", response)
+                    # we got a new room
+                    # this is where you can hook some "welcoming features"
+                    if response["success"]:
+                        rc_room = self.rocket.livechat_room(token=connector_token)
+                        rc_room_response = rc_room.json()
+                        if settings.DEBUG:
+                            print("REGISTERING ROOM, ", rc_room_response)
+                        if rc_room_response["success"]:
+                            room = LiveChatRoom.objects.create(
+                                connector=self.connector,
+                                token=connector_token,
+                                room_id=rc_room_response["room"]["_id"],
+                                open=True,
+                            )
+                            room_created = True
+                        else:
+                            if rc_room_response["error"] == "no-agent-online":
+                                if settings.DEBUG:
+                                    print("Erro! No Agents Online")
         self.room = room
         if self.config.get("welcome_message"):
             # only send welcome message when
@@ -499,8 +507,7 @@ class Connector(object):
         return response
 
     def register_message(self, type=None):
-        if settings.DEBUG:
-            print("REGISTERING MESSAGE: ", self.message)
+        self.logger_info("REGISTERING MESSAGE: {0}".format(self.message))
         try:
             if not type:
                 type = self.type
@@ -521,7 +528,6 @@ class Connector(object):
                 )
             return self.message_object, created
         except IntegrityError:
-            raise
             self.logger_info(
                 "CANNOT CREATE THIS MESSAGE AGAIN: {0}".format(self.get_message_id())
             )
@@ -739,11 +745,41 @@ class Connector(object):
                 )
 
     def handle_livechat_session_taken(self):
+        self.logger_info("HANDLING LIVECHATSESSION TAKEN")
         if self.config.get("session_taken_alert_template"):
+            # get departments to ignore
+            ignore_departments = self.config.get(
+                "session_taken_alert_ignore_departments"
+            )
+            if ignore_departments:
+                transferred_department = self.message.get("visitor", {}).get(
+                    "department"
+                )
+                departments_list = ignore_departments.split(",")
+                ignore_departments = [i for i in departments_list]
+                if transferred_department in ignore_departments:
+                    self.logger_info(
+                        "IGNORING LIVECHATSESSION Alert for DEPARTMENT {0}".format(
+                            self.message.get("department")
+                        )
+                    )
+                    # ignore this message
+                    return {
+                        "success": False,
+                        "message": "Ignoring department {0}".format(
+                            self.message.get("department")
+                        ),
+                    }
+            self.get_rocket_client()
+            # enrich context with department data
+            department = self.rocket.call_api_get(
+                "livechat/department/{0}".format(self.message.get("departmentId"))
+            ).json()
+            self.message["department"] = department["department"]
             template = Template(self.config.get("session_taken_alert_template"))
             context = Context(self.message)
             message = template.render(context)
-            message_payload = {"msg": message}
+            message_payload = {"msg": str(message)}
             if (
                 self.config.get("alert_agent_of_automated_message_sent", False)
                 and self.room
@@ -754,7 +790,11 @@ class Connector(object):
                     "MESSAGE SENT: {0}".format(message),
                     message_id=self.get_message_id() + "SESSION_TAKEN",
                 )
-            return self.outgo_text_message(message_payload).json()
+            outgo_text_obj = self.outgo_text_message(message_payload)
+            self.logger_info(
+                "HANDLING LIVECHATSESSION TAKEN {0}".format(outgo_text_obj)
+            )
+            return outgo_text_obj
 
 
 class BaseConnectorConfigForm(forms.Form):
@@ -783,7 +823,9 @@ class BaseConnectorConfigForm(forms.Form):
     )
     timezone = forms.CharField(help_text="Timezone for this connector", required=False)
     force_close_message = forms.CharField(
-        help_text="Force this message on close", required=False
+        widget=forms.Textarea(attrs={"rows": 4, "cols": 15}),
+        help_text="Force this message on close",
+        required=False,
     )
     outcome_attachment_description_as_new_message = forms.BooleanField(
         required=False,
@@ -793,33 +835,52 @@ class BaseConnectorConfigForm(forms.Form):
     overwrite_custom_fields = forms.BooleanField(
         required=False, help_text="overwrite custom fields on new visitor registration"
     )
+    supress_visitor_name = forms.BooleanField(
+        required=False,
+        help_text="do not overwrite visitor name with connector visitor name",
+    )
+
     alert_agent_of_automated_message_sent = forms.BooleanField(
         required=False,
         help_text="Alert the agent whenever you send an automated text."
         + "WARNING: this option will cause a bot to react to those messages.",
     )
     auto_answer_incoming_call = forms.CharField(
-        help_text="Auto answer this message on incoming call", required=False
+        widget=forms.Textarea(attrs={"rows": 4, "cols": 15}),
+        help_text="Auto answer this message on incoming call",
+        required=False,
     )
     convert_incoming_call_to_text = forms.CharField(
+        widget=forms.Textarea(attrs={"rows": 4, "cols": 15}),
         help_text="Convert an Incoming Call to this text (can be used to force a bot reaction)",
         required=False,
     )
     auto_answer_on_audio_message = forms.CharField(
         required=False,
+        widget=forms.Textarea(attrs={"rows": 4, "cols": 15}),
         help_text="Auto answer with this message when a user end audio (PTT)",
     )
     convert_incoming_audio_to_text = forms.CharField(
         required=False,
+        widget=forms.Textarea(attrs={"rows": 4, "cols": 15}),
         help_text="Convert a user audio to this message (can be used to force a bot reaction)",
     )
     welcome_message = forms.CharField(
-        help_text="Auto answer this message as Welcome Message", required=False
+        widget=forms.Textarea(attrs={"rows": 4, "cols": 15}),
+        help_text="Auto answer this message as Welcome Message",
+        required=False,
     )
     welcome_vcard = forms.JSONField(
         required=False, initial={}, help_text="The Payload for a Welcome Vcard"
     )
     session_taken_alert_template = forms.CharField(
         required=False,
-        help_text="Template to use for the alert session taken. eg. You are now talking with {{agent.name}}",
+        widget=forms.Textarea(attrs={"rows": 4, "cols": 15}),
+        help_text="Template to use for the alert session taken. eg. \
+        You are now talking with {{agent.name}} at department {{department.name}}",
+    )
+    session_taken_alert_ignore_departments = forms.CharField(
+        required=False,
+        help_text="Ignore this departments ID for the session taken alert."
+        + "multiple separated with comma. eg. departmentID1,departmentID2",
     )

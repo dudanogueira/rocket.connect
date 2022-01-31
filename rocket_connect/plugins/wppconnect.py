@@ -1,5 +1,6 @@
 import base64
 import datetime
+import json
 import time
 import urllib.parse as urlparse
 
@@ -8,6 +9,7 @@ from django import forms
 from django.conf import settings
 from django.core import validators
 from django.http import HttpResponse, JsonResponse
+from instance import tasks
 
 from .base import BaseConnectorConfigForm
 from .base import Connector as ConnectorBase
@@ -461,12 +463,15 @@ class Connector(ConnectorBase):
             text = "Session: {0}. Status: {1}".format(
                 self.message.get("session"), self.message.get("status")
             )
-            if self.message.get("status") == "inChat":
+            if self.message.get("status") in ["isLogged", "inChat"]:
                 text = (
                     text
                     + ":white_check_mark::white_check_mark::white_check_mark:"
                     + "SUCESS!!!      :white_check_mark::white_check_mark::white_check_mark:"
                 )
+                # call intake unread task
+                if self.config.get("process_unread_messages_on_start", False):
+                    tasks.intake_unread_messages.delay(self.connector.id)
             self.outcome_admin_message(text)
 
         if self.message.get("event") == "incomingcall":
@@ -478,6 +483,7 @@ class Connector(ConnectorBase):
 
         # message
         if self.message.get("event") in ["onmessage", "unreadmessages"]:
+            department = None
             if self.message.get("event") == "unreadmessages":
                 self.logger_info(
                     "PROCESSING UNREAD MESSAGE. PAYLOAD {0}".format(self.message)
@@ -498,8 +504,65 @@ class Connector(ConnectorBase):
                     self.get_rocket_client()
                     if not self.rocket:
                         return HttpResponse("Rocket Down!", status=503)
+                    # department triage is enabled
+                    if self.config.get("department_triage"):
+                        # message has no department, always
+                        # outcome department_triage_payload
+                        # if it's not a button reply
+                        # there is not room
+                        room = self.get_room(department, create=False)
+                        if not room:
+                            # get departments and buttons
+                            buttons = []
+                            departments = self.rocket.call_api_get(
+                                "livechat/department"
+                            ).json()
+                            department_triage_to_ignore = self.config.get(
+                                "department_triage_to_ignore", []
+                            ).split(",")
+                            for department in departments.get("departments"):
+                                if department.get("enabled"):
+                                    if (
+                                        department.get("_id")
+                                        not in department_triage_to_ignore
+                                    ):
+                                        button = {
+                                            "buttonId": department.get("_id"),
+                                            "buttonText": {
+                                                "displayText": department.get("name")
+                                            },
+                                            "type": 1,
+                                        }
+                                        buttons.append(button)
+                            # the message is a button reply. we now register the room
+                            # with the choosen department and return
+                            if self.message.get("quotedMsg", {}).get(
+                                "isDynamicReplyButtonsMsg", False
+                            ):
+                                # the department text is body
+                                choosen_department = self.message.get("body")
+                                department_map = {}
+                                for b in buttons:
+                                    department_map[b["buttonText"]["displayText"]] = b[
+                                        "buttonId"
+                                    ]
+                                department = department_map[choosen_department]
+                            else:
+                                # add destination phone
+                                payload = self.config.get("department_triage_payload")
+                                payload["phone"] = self.get_visitor_id()
+                                payload["buttons"] = buttons
+                                # outcome buttons
+                                message = {"msg": json.dumps(payload)}
+                                self.outgo_text_message(message)
+                                return JsonResponse(
+                                    {
+                                        "sucess": True,
+                                        "message": "Departments triage button list sent",
+                                    }
+                                )
                     # get room
-                    room = self.get_room()
+                    room = self.get_room(department)
                     #
                     # no room was generated
                     #
@@ -519,13 +582,71 @@ class Connector(ConnectorBase):
                     #
                     # process different type of messages
                     #
-                    if self.message.get("type") == "chat":
-                        # deliver text message
+                    # text type or dynamic button press
+                    if self.message.get("type") == "chat" or self.message.get(
+                        "quotedMsg", {}
+                    ).get("isDynamicReplyButtonsMsg"):
+                        # pre define the message to be delivered
                         message = self.get_message_body()
+                        # Quoted Message in chat message
+                        if self.message.get("quotedMsgId"):
+                            quote_type = self.message.get("quotedMsg").get("type")
+                            # type of message quoted is text
+                            if quote_type == "chat":
+                                quoted_body = self.message.get("quotedMsg").get("body")
+                                if self.connector.config.get(
+                                    "outcome_message_with_quoted_message", True
+                                ):
+                                    message = ":arrow_forward:  IN RESPONSE TO: {0} \n:envelope: {1}"
+                                    message = message.format(
+                                        quoted_body,
+                                        self.get_message_body(),
+                                    )
+                            # type of message is others
+                            elif quote_type in ["document", "image", "ptt"]:
+                                message = "DOCUMENT RESENT:\n {0}".format(
+                                    self.get_message_body()
+                                )
+                                mime = self.message.get("quotedMsg").get("mimetype")
+                                # THE QUOTED BODY SEEMS CORRUPT
+                                # body = self.message.get("quotedMsg").get("body")
+                                # LETS GET THE ORIGINAL
+                                # session = self.get_request_session()
+                                # endpoint = "{0}/api/{1}/message-by-id/{2}".format(
+                                #     self.config.get("endpoint"),
+                                #     self.config.get("instance_name"),
+                                #     self.message.get("quotedMsgId")
+                                # )
+                                # session = self.get_request_session()
+                                # quoted_message = session.get(endpoint).json()
+                                # file_to_send = self.message.get("quotedMsg").get("body")
+                                # none of the above worked.
+                                # will need to get original content from rocket.connect
+                                try:
+                                    quoted_message = self.connector.messages.get(
+                                        envelope_id=self.message.get("quotedMsgId")
+                                    )
+                                    file_to_send = quoted_message.raw_message["body"]
+                                except self.connector.messages.model.DoesNotExist:
+                                    file_to_send = None
+                                if file_to_send:
+                                    file_sent = self.outcome_file(
+                                        file_to_send,
+                                        room.room_id,
+                                        mime,
+                                        description=self.message.get("quotedMsg").get(
+                                            "caption", None
+                                        ),
+                                    )
+
+                        # deliver text message
                         if room:
                             deliver = self.outcome_text(room.room_id, message)
                             if settings.DEBUG:
-                                print("DELIVER OF TEXT MESSAGE:", deliver.ok)
+                                self.logger_info(
+                                    "DELIVER OF TEXT MESSAGE: {0}".format(deliver.ok)
+                                )
+                    # location type
                     elif self.message.get("type") == "location":
                         lat = self.message.get("lat")
                         lng = self.message.get("lng")
@@ -540,6 +661,8 @@ class Connector(ConnectorBase):
                         self.outcome_text(
                             room.room_id, text, message_id=self.get_message_id()
                         )
+
+                    # upload type
                     else:
                         if self.message.get("type") == "ptt":
                             self.handle_ptt()
@@ -581,6 +704,32 @@ class Connector(ConnectorBase):
                 return JsonResponse(req)
 
         return JsonResponse({})
+
+    def intake_unread_messages(self):
+        """
+        intake unread messages
+        """
+        endpoint = "{0}/api/{1}/unread-messages".format(
+            self.config.get("endpoint"),
+            self.config.get("instance_name"),
+        )
+        session = self.get_request_session()
+        unread_contacts = session.get(endpoint)
+        if unread_contacts.ok:
+            self.logger_error("PROCESSING UNREAD CONTACTS ON START")
+            unread_contacts = unread_contacts.json()
+            for contact in unread_contacts.get("response"):
+                for message in contact["messages"]:
+                    message["event"] = "onmessage"
+                    message["chatId"] = message["from"]
+                    self.logger_error("PROCESSING UNREAD MESSAGE {0}".format(message))
+                    self.message = message
+                    self.type = "incoming"
+                    self.incoming()
+        else:
+            self.logger_error("COULD NOT CONNECT TO WPP SERVER TO GET UNREAD MESSAGES")
+
+        return False
 
     def get_incoming_message_id(self):
         # unread messages has a different structure
@@ -645,21 +794,42 @@ class Connector(ConnectorBase):
     def outgo_text_message(self, message, agent_name=None):
         sent = False
         content = message["msg"]
-        content = self.joypixel_to_unicode(content)
-        # message may not have an agent
-        if agent_name:
-            content = "*[" + agent_name + "]*\n" + content
+        try:
+            # mesangem é um json
+            payload = json.loads(content)
+            if payload.get("buttons"):
+                url = self.connector.config[
+                    "endpoint"
+                ] + "/api/{0}/send-buttons".format(
+                    self.connector.config["instance_name"]
+                )
+                self.logger_info(
+                    "OUTGOING BUTTON MESSAGE. URL: {0}. PAYLOAD {1}".format(
+                        url, payload
+                    )
+                )
+        except ValueError:
+            content = self.joypixel_to_unicode(content)
+            # message may not have an agent
+            if agent_name:
+                content = "*[" + agent_name + "]*\n" + content
 
-        payload = {"phone": self.get_visitor_id(), "message": content, "isGroup": False}
+            payload = {
+                "phone": self.get_visitor_id(),
+                "message": content,
+                "isGroup": False,
+            }
+            url = self.connector.config["endpoint"] + "/api/{0}/send-message".format(
+                self.connector.config["instance_name"]
+            )
+            self.logger_info(
+                "OUTGOING TEXT MESSAGE. URL: {0}. PAYLOAD {1}".format(url, payload)
+            )
+        # SEND MESSAGE
         session = self.get_request_session()
         # TODO: Simulate typing
         # See: https://github.com/wppconnect-team/wppconnect-server/issues/59
-        url = self.connector.config["endpoint"] + "/api/{0}/send-message".format(
-            self.connector.config["instance_name"]
-        )
-        self.logger_info(
-            "OUTGOING TEXT MESSAGE. URL: {0}. PAYLOAD {1}".format(url, payload)
-        )
+
         timestamp = int(time.time())
         try:
             sent = session.post(url, json=payload)
@@ -674,7 +844,6 @@ class Connector(ConnectorBase):
         if self.message_object:
             self.message_object.payload[timestamp] = payload
             self.message_object.save()
-
         return sent
 
     def outgo_file_message(self, message, agent_name=None):
@@ -771,6 +940,16 @@ class ConnectorConfigForm(BaseConnectorConfigForm):
         initial="name,shortName,pushname",
     )
 
+    process_unread_messages_on_start = forms.BooleanField(initial=False, required=False)
+
+    department_triage = forms.BooleanField(required=False)
+
+    department_triage_payload = forms.JSONField(required=False)
+
+    department_triage_to_ignore = forms.CharField(max_length=None, required=False)
+
+    outcome_message_with_quoted_message = forms.BooleanField(required=False)
+
     field_order = [
         "webhook",
         "endpoint",
@@ -778,4 +957,9 @@ class ConnectorConfigForm(BaseConnectorConfigForm):
         "instance_name",
         "active_chat_webhook_integration_token",
         "name_extraction_order",
+        "process_unread_messages_on_start",
+        "outcome_message_with_quoted_message",
+        "department_triage",
+        "department_triage_payload",
+        "department_triage_to_ignore",
     ]

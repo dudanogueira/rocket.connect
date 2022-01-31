@@ -1,4 +1,4 @@
-version: "3"
+version: "3.4"
 
 volumes:
   local_postgres_data: {}
@@ -9,10 +9,13 @@ volumes:
   local_rocket_db_dump: {}
   local_waautomate_data: {}
   local_wppconnect_data: {}
+  local_prometeus_data: {}
   nodemodules: {}
 
 services:
-  django: &django
+
+  django:
+    &django
     build:
       context: .
       dockerfile: ./compose/local/django/Dockerfile
@@ -117,7 +120,7 @@ services:
     command: /start-flower
 
   rocketchat:
-    image: rocketchat/rocket.chat:4.1.2
+    image: registry.rocket.chat/rocketchat/rocket.chat:4.4.0
     command: >
       bash -c
         "for i in `seq 1 30`; do
@@ -138,12 +141,9 @@ services:
       - MONGO_URL=mongodb://mongo:27017/rocketchat
       - MONGO_OPLOG_URL=mongodb://mongo:27017/local
       - OVERWRITE_SETTING_Accounts_TwoFactorAuthentication_Enforce_Password_Fallback=false
-      - OVERWRITE_SETTING_SMTP_HOST=mailhog
-      - OVERWRITE_SETTING_SMTP_PORT=1025
-      - OVERWRITE_SETTING_SMTP_Username=smtp_user
-      - OVERWRITE_SETTING_SMTP_Password=smtp_password
-      - OVERWRITE_SETTING_SMTP_From_Email=from@email.smtp
-      - OVERWRITE_SETTING_Show_Setup_Wizard=completed
+      - OVERWRITE_SETTING_SMTP_Host=mailhog
+      - OVERWRITE_SETTING_SMTP_Port=1025
+      - OVERWRITE_SETTING_From_Email=from@email.com
       - OVERWRITE_SETTING_API_Enable_Rate_Limiter=false
       - CREATE_TOKENS_FOR_USERS=true
       - OVERWRITE_SETTING_Accounts_SystemBlockedUsernameList=administrator,system,user
@@ -151,6 +151,12 @@ services:
       - mongo
     ports:
       - 3000:3000
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:3000/api/info" ]
+      interval: 1m30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   mongo:
     image: mongo:4.4
@@ -167,67 +173,58 @@ services:
 
   mongo-init-replica:
     image: mongo:4.4
-    command: 'bash -c "for i in `seq 1 30`; do mongo mongo/rocketchat --eval \"rs.initiate({ _id: ''rs0'', members: [ { _id: 0, host: ''localhost:27017'' } ]})\" && s=$$? && break || s=$$?; echo \"Tried $$i times. Waiting 5 secs...\"; sleep 5; done; (exit $$s)"'
+    command: 'bash -c "for i in `seq 1 30`; do mongo mongo/rocketchat --eval
+      \"rs.initiate({ _id: ''rs0'', members: [ { _id: 0, host:
+      ''localhost:27017'' } ]})\" && s=$$? && break || s=$$?; echo \"Tried $$i
+      times. Waiting 5 secs...\"; sleep 5; done; (exit $$s)"'
     depends_on:
       - mongo
 
+  browser:
+    image: browserless/chrome:1.48.0-chrome-stable
+    hostname: browser
+    ports:
+      - "3010:3000"
+    environment:
+      CONNECTION_TIMEOUT: -1
+      KEEP_ALIVE: 'true'
+      WORKSPACE_EXPIRE_DAYS: 1
+      ENABLE_CORS: 'true'
+      CHROME_REFRESH_TIME: 86400000
+      DEFAULT_BLOCK_ADS: 'true'
+      FUNCTION_ENABLE_INCOGNITO_MODE: 'true'
+      ENABLE_XVBF: 'true'
+      CHROME_PATH: '/usr/bin/google-chrome'
+      USE_CHROME_STABLE: 'true'
+      NODE_ENV: 'production'
 
-  # browser:
-  #     image: browserless/chrome:1.48.0-chrome-stable
-  #     hostname: browser
-  #     ports:
-  #       - "3010:3000"
-  #     deploy:
-  #       replicas: 1
-  #       update_config:
-  #         parallelism: 1
-  #         delay: 10s
-  #       restart_policy:
-  #         condition: on-failure
-  #     environment:
-  #       CONNECTION_TIMEOUT: -1
-  #       KEEP_ALIVE: 'true'
-  #       WORKSPACE_EXPIRE_DAYS: 1
-  #       ENABLE_CORS: 'true'
-  #       CHROME_REFRESH_TIME: 86400000
-  #       DEFAULT_BLOCK_ADS: 'true'
-  #       FUNCTION_ENABLE_INCOGNITO_MODE: 'true'
-  #       ENABLE_XVBF: 'true'
-  #       CHROME_PATH: '/usr/bin/google-chrome'
-  #       USE_CHROME_STABLE: 'true'
-  #       NODE_ENV: 'production'
-
-  # waautomate:
-  #   # waautomate options ar at  ./compose/local/waautomate/cli.config.json
-  #   build:
-  #     context: ./compose/local/waautomate
-  #   command: npx @open-wa/wa-automate
-  #     --ev "http://django.docker:8000/connector/CONNECTOR_EXTERNAL_TOKEN1/?ev=1"
-  #     --no-kill-on-logout
-  #     --api-host 'http://127.0.0.1:8081'
-  #     --browserWSEndpoint 'http://browser:3000'
-  #     -w 'http://django.docker:8000/connector/CONNECTOR_EXTERNAL_TOKEN1/'
-  #     --sessionId waautomate1
-  #   restart: unless-stopped
-  #   volumes:
-  #     - local_waautomate_data:/usr/src/app/session_data
-  #     - ./compose/local/waautomate/instance1/cli.config.json:/usr/src/app/ccli.config.json
-  #   links:
-  #     - "django:django.docker"
-  #   depends_on:
-  #     - browser
-  #   ports:
-  #     - "8001:8002"
+  waautomate:
+    # waautomate options ar at  ./compose/local/waautomate/cli.config.json
+    build:
+      context: ./compose/local/waautomate
+    command: npx @open-wa/wa-automate --ev
+      "http://django.docker:8000/connector/CONNECTOR_EXTERNAL_TOKEN1/?ev=1"
+      --no-kill-on-logout --api-host 'http://127.0.0.1:8081' --browserWSEndpoint
+      'http://browser:3000' -w
+      'http://django.docker:8000/connector/CONNECTOR_EXTERNAL_TOKEN1/'
+      --sessionId waautomate1
+    restart: unless-stopped
+    volumes:
+      - local_waautomate_data:/usr/src/app/session_data
+      - ./compose/local/waautomate/instance1/cli.config.json:/usr/src/app/ccli.config.json
+    links:
+      - "django:django.docker"
+    depends_on:
+      - browser
+    ports:
+      - "8001:8002"
 
   wppconnect:
-    image: wppconnect/server-cli:latest
+    image: wppconnect/server-cli:main
     # for command options: https://github.com/wppconnect-team/server-cli/blob/main/src/program.js
-    command: wppserver
-      --log-level DEBUG
-      --secretKey My53cr3tKY
-      --port 21465
+    command: wppserver --log-level DEBUG --secretKey My53cr3tKY --port 21465
       --startAllSession
-      --webhook-allUnreadOnStart
+      #--webhook-allUnreadOnStart
       #--no-webhook-onPresenceChanged
       #--no-webhook-onParticipantsChanged
       #--no-webhook-listenAcks
@@ -236,13 +233,34 @@ services:
       - local_wppconnect_data:/usr/src/server-cli/tokens
     ports:
       - "21465:21465"
-    restart: on-failure
 
   apache:
-      image: 'php:apache'
-      ports:
-        - "80:80"
-      restart: on-failure
-      volumes:
-        - ./compose/local/apache/site:/var/www/html
-        - ./compose/local/apache/confs/additional.conf:/etc/apache2/conf-enabled/additional.conf
+    image: 'php:apache'
+    ports:
+      - "80:80"
+    volumes:
+      - ./compose/local/apache/site:/var/www/html
+      - ./compose/local/apache/confs/additional.conf:/etc/apache2/conf-enabled/additional.conf
+
+  grafana:
+    image: grafana/grafana:8.2.5
+    ports:
+      - 3001:3000
+    volumes:
+      - ./compose/local/rocket_metrics/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./compose/local/rocket_metrics/grafana/provisioning/dashboards/provider:/etc/grafana/provisioning/dashboards:ro
+      - ./compose/local/rocket_metrics/grafana/provisioning/dashboards/json-exports:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+
+  prometheus:
+    image: quay.io/prometheus/prometheus:v2.31.1
+    ports:
+      - 9090:9090
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - '--storage.tsdb.retention.time=12w'
+      - '--storage.tsdb.path=/prometheus'
+    volumes:
+      - local_prometeus_data:/prometheus
+      - ./compose/local/rocket_metrics/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
