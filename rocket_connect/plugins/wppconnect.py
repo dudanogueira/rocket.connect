@@ -798,6 +798,8 @@ class Connector(ConnectorBase):
             # mesangem é um json
             payload = json.loads(content)
             if payload.get("buttons"):
+                if not payload.get("phone"):
+                    payload["phone"] = self.get_visitor_id()
                 url = self.connector.config[
                     "endpoint"
                 ] + "/api/{0}/send-buttons".format(
