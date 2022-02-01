@@ -588,8 +588,10 @@ class Connector(ConnectorBase):
                     ).get("isDynamicReplyButtonsMsg"):
                         # pre define the message to be delivered
                         message = self.get_message_body()
-                        # Quoted Message in chat message
-                        if self.message.get("quotedMsgId"):
+                        # Quoted Message in chat message and not a reply to a button
+                        if self.message.get("quotedMsgId") and not self.message.get(
+                            "quotedMsg", {}
+                        ).get("isDynamicReplyButtonsMsg"):
                             quote_type = self.message.get("quotedMsg").get("type")
                             # type of message quoted is text
                             if quote_type == "chat":
