@@ -56,19 +56,20 @@ class Connector(ConnectorBase):
                 self.config.get("endpoint"),
                 self.config.get("instance_name"),
             )
-            token = self.config.get("token", {}).get("token")
-            if not token:
-                self.generate_token()
-                token = self.config.get("token", {}).get("token")
-
-            if token:
-                headers = {"Authorization": "Bearer " + token}
-                status_req = requests.get(endpoint, headers=headers)
-                if status_req.ok:
-                    status = status_req.json()
-                    return status
-            else:
-                return "Could not get token. Check the WPPConnect Secret Key"
+            session = self.get_request_session()
+            status_req = session.get(endpoint)
+            if status_req.ok:
+                status = status_req.json()
+                # if connected, get battery and host device
+                if status.get("status") == "CONNECTED":
+                    # host device
+                    endpoint = "{0}/api/{1}/host-device".format(
+                        self.config.get("endpoint"),
+                        self.config.get("instance_name"),
+                    )
+                    host_device = session.get(endpoint).json()
+                    status["host_device"] = host_device["response"]
+                return status
         return False
 
     def close_session(self):
@@ -796,6 +797,9 @@ class Connector(ConnectorBase):
     def outgo_text_message(self, message, agent_name=None):
         sent = False
         content = message["msg"]
+        url = self.connector.config["endpoint"] + "/api/{0}/send-message".format(
+            self.connector.config["instance_name"]
+        )
         try:
             # mesangem é um json
             payload = json.loads(content)
@@ -823,9 +827,6 @@ class Connector(ConnectorBase):
                 "message": content,
                 "isGroup": False,
             }
-            url = self.connector.config["endpoint"] + "/api/{0}/send-message".format(
-                self.connector.config["instance_name"]
-            )
             self.logger_info(
                 "OUTGOING TEXT MESSAGE. URL: {0}. PAYLOAD {1}".format(url, payload)
             )
