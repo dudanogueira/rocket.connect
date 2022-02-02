@@ -156,6 +156,9 @@ def connector_analyze(request, server_id, connector_id):
     connector = get_object_or_404(
         Connector.objects, server__external_token=server_id, external_token=connector_id
     )
+    # get base uri
+    uri = request.build_absolute_uri()
+    base_uri = uri.replace(request.get_full_path(), "")
     # get status session
     connector_action_response = {}
     connector_action_response["status_session"] = connector.status_session()
@@ -250,6 +253,7 @@ def connector_analyze(request, server_id, connector_id):
         "date": date,
         "connector_action_response": connector_action_response,
         "config_form": config_form,
+        "base_uri": base_uri,
     }
     return render(request, "instance/connector_analyze.html", context)
 
