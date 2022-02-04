@@ -1,6 +1,7 @@
 """
 Base settings to build other settings files upon.
 """
+from email.utils import parseaddr
 from pathlib import Path
 
 import environ
@@ -234,7 +235,14 @@ EMAIL_TIMEOUT = 5
 # Django Admin URL.
 ADMIN_URL = "admin/"
 # https://docs.djangoproject.com/en/dev/ref/settings/#admins
-ADMINS = [("""Duda Nogueira""", "dudanogueira@gmail.com")]
+
+MANAGERS_ENV = env("DJANGO_ADMINS", default=None)
+if MANAGERS_ENV:
+    ADMINS = list(parseaddr(email) for email in MANAGERS_ENV.split(","))
+else:
+    ADMINS = None
+
+
 # https://docs.djangoproject.com/en/dev/ref/settings/#managers
 MANAGERS = ADMINS
 
