@@ -35,7 +35,7 @@ class Connector(object):
         if message:
             self.message = json.loads(message)
         else:
-            self.message = None
+            self.message = {}
         self.request = request
         self.message_object = None
         self.rocket = None
@@ -50,8 +50,9 @@ class Connector(object):
 
     def logger_info(self, message):
         output = "{0} > {1} > {2}".format(self.connector, self.type.upper(), message)
-        if self.get_message_id():
-            output = "MESSAGE ID {0} > ".format(self.get_message_id()) + output
+        if self.message:
+            if self.get_message_id():
+                output = "MESSAGE ID {0} > ".format(self.get_message_id()) + output
         self.logger.info(output)
 
     def logger_error(self, message):
