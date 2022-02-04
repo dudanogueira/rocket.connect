@@ -455,6 +455,29 @@ class Connector(ConnectorBase):
         """
         self.logger_info("INCOMING MESSAGE: {0}".format(self.message))
         # qr code
+
+        if self.message.get("action"):
+            # check if session managemnt is active
+            if self.config.get("session_management_token"):
+                if self.message.get("session_management_token") != self.config.get(
+                    "session_management_token"
+                ):
+                    output = {"success": False, "message": "INVALID TOKEN"}
+                    return JsonResponse(output)
+                else:
+                    action = self.message.get("action")
+                    output = {"action": action}
+                    if action == "start":
+                        response = self.connector.initialize()
+                    if action == "status":
+                        response = self.connector.status_session()
+                    if action == "close":
+                        response = self.connector.close_session()
+
+                    # return status
+                    output = {**output, **response}
+                    return JsonResponse(output)
+
         if self.message.get("event") == "qrcode":
             base64_fixed_code = self.message.get("qrcode")
             self.outcome_qrbase64(base64_fixed_code)
@@ -955,12 +978,15 @@ class ConnectorConfigForm(BaseConnectorConfigForm):
 
     outcome_message_with_quoted_message = forms.BooleanField(required=False)
 
+    session_management_token = forms.CharField(required=False)
+
     field_order = [
         "webhook",
         "endpoint",
         "secret_key",
         "instance_name",
         "active_chat_webhook_integration_token",
+        "session_management_token",
         "name_extraction_order",
         "process_unread_messages_on_start",
         "outcome_message_with_quoted_message",
