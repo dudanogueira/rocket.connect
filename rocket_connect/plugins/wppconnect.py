@@ -56,19 +56,20 @@ class Connector(ConnectorBase):
                 self.config.get("endpoint"),
                 self.config.get("instance_name"),
             )
-            token = self.config.get("token", {}).get("token")
-            if not token:
-                self.generate_token()
-                token = self.config.get("token", {}).get("token")
-
-            if token:
-                headers = {"Authorization": "Bearer " + token}
-                status_req = requests.get(endpoint, headers=headers)
-                if status_req.ok:
-                    status = status_req.json()
-                    return status
-            else:
-                return "Could not get token. Check the WPPConnect Secret Key"
+            session = self.get_request_session()
+            status_req = session.get(endpoint)
+            if status_req.ok:
+                status = status_req.json()
+                # if connected, get battery and host device
+                if status.get("status") == "CONNECTED":
+                    # host device
+                    endpoint = "{0}/api/{1}/host-device".format(
+                        self.config.get("endpoint"),
+                        self.config.get("instance_name"),
+                    )
+                    host_device = session.get(endpoint).json()
+                    status["host_device"] = host_device["response"]
+                return status
         return False
 
     def close_session(self):
@@ -454,6 +455,29 @@ class Connector(ConnectorBase):
         """
         self.logger_info("INCOMING MESSAGE: {0}".format(self.message))
         # qr code
+
+        if self.message.get("action"):
+            # check if session managemnt is active
+            if self.config.get("session_management_token"):
+                if self.message.get("session_management_token") != self.config.get(
+                    "session_management_token"
+                ):
+                    output = {"success": False, "message": "INVALID TOKEN"}
+                    return JsonResponse(output)
+                else:
+                    action = self.message.get("action")
+                    output = {"action": action}
+                    if action == "start":
+                        response = self.connector.initialize()
+                    if action == "status":
+                        response = self.connector.status_session()
+                    if action == "close":
+                        response = self.connector.close_session()
+
+                    # return status
+                    output = {**output, **response}
+                    return JsonResponse(output)
+
         if self.message.get("event") == "qrcode":
             base64_fixed_code = self.message.get("qrcode")
             self.outcome_qrbase64(base64_fixed_code)
@@ -588,8 +612,10 @@ class Connector(ConnectorBase):
                     ).get("isDynamicReplyButtonsMsg"):
                         # pre define the message to be delivered
                         message = self.get_message_body()
-                        # Quoted Message in chat message
-                        if self.message.get("quotedMsgId"):
+                        # Quoted Message in chat message and not a reply to a button
+                        if self.message.get("quotedMsgId") and not self.message.get(
+                            "quotedMsg", {}
+                        ).get("isDynamicReplyButtonsMsg"):
                             quote_type = self.message.get("quotedMsg").get("type")
                             # type of message quoted is text
                             if quote_type == "chat":
@@ -794,10 +820,15 @@ class Connector(ConnectorBase):
     def outgo_text_message(self, message, agent_name=None):
         sent = False
         content = message["msg"]
+        url = self.connector.config["endpoint"] + "/api/{0}/send-message".format(
+            self.connector.config["instance_name"]
+        )
         try:
             # mesangem é um json
             payload = json.loads(content)
             if payload.get("buttons"):
+                if not payload.get("phone"):
+                    payload["phone"] = self.get_visitor_id()
                 url = self.connector.config[
                     "endpoint"
                 ] + "/api/{0}/send-buttons".format(
@@ -808,7 +839,7 @@ class Connector(ConnectorBase):
                         url, payload
                     )
                 )
-        except ValueError:
+        except (ValueError, TypeError):
             content = self.joypixel_to_unicode(content)
             # message may not have an agent
             if agent_name:
@@ -819,9 +850,6 @@ class Connector(ConnectorBase):
                 "message": content,
                 "isGroup": False,
             }
-            url = self.connector.config["endpoint"] + "/api/{0}/send-message".format(
-                self.connector.config["instance_name"]
-            )
             self.logger_info(
                 "OUTGOING TEXT MESSAGE. URL: {0}. PAYLOAD {1}".format(url, payload)
             )
@@ -950,12 +978,15 @@ class ConnectorConfigForm(BaseConnectorConfigForm):
 
     outcome_message_with_quoted_message = forms.BooleanField(required=False)
 
+    session_management_token = forms.CharField(required=False)
+
     field_order = [
         "webhook",
         "endpoint",
         "secret_key",
         "instance_name",
         "active_chat_webhook_integration_token",
+        "session_management_token",
         "name_extraction_order",
         "process_unread_messages_on_start",
         "outcome_message_with_quoted_message",
