@@ -116,11 +116,15 @@ class Command(BaseCommand):
             "instance_name": "test",
             "outcome_attachment_description_as_new_message": True,
             "active_chat_webhook_integration_token": "WPP_ZAPIT_TOKEN",
+            "session_management_token": "session_management_secret_token",
             "department_triage_payload": {
                 "title": "Title for Button goes here",
                 "footer": "This is the footer for the message. Its optional to send",
                 "message": "Test Sending Buttons. Let me know what you think about this function in wppconnect?",
             },
+            "no_agent_online_alert_admin": "No agent online!. **Message**: {{body}} **From**: {{from}}",
+            "session_taken_alert_template": "You are now talking with {{agent.name}}"
+            + "{% if department %}at department {{department.name}}{% endif %}",
         }
         connector.name = "WPPCONNECT CONNECTOR"
         connector.connector_type = "wppconnect"
@@ -331,26 +335,94 @@ class Command(BaseCommand):
         else:
             print("WEBHOOK FOR ZAPIT OUTGOING ALREADY EXISTS")
 
-        # create webhook rc manager:
+        # create webhook wppconnect manager:
         r = rocket.call_api_get(
-            "integrations.get", integrationId="rc-manager-integration"
+            "integrations.get", integrationId="wppconnect-manager-integration"
         )
         if not r.ok:
-            print("CREATING WEBHOOK FOR RC MANAGER OUTGOING")
+            print("CREATING WEBHOOK FOR WPPCONNECT MANAGER OUTGOING")
             payload = {
-                "_id": "rc-manager-integration",
+                "_id": "wppconnect-manager-integration",
                 "type": "webhook-outgoing",
-                "name": "RC MANAGER INTEGRATION",
+                "name": "WPPCONNECT MANAGER INTEGRATION",
                 "event": "sendMessage",
                 "enabled": True,
                 "username": "rocket.cat",
-                "urls": ["http://django:8000/server/SERVER_EXTERNAL_TOKEN/"],
-                "scriptEnabled": False,
+                "urls": ["http://django:8000/connector/WPP_EXTERNAL_TOKEN/"],
+                "scriptEnabled": True,
+                "script": """
+class Script {
+    /**
+     * @params {object} request
+     */
+    prepare_outgoing_request({ request }) {
+
+      let match;
+
+      // match a allowed commands
+      match = request.data.text.match(/^rc\s(status|start|close)/);
+      if (match) {
+        return {
+          url: request.url,
+          headers: request.headers,
+          method: 'POST',
+          data:{
+                session_management_token: request.data.token,
+                action: request.data.text.split(" ")[1]
+          }
+        };
+      }else{
+          // Prevent the request and return a help message
+          return {
+            message: {
+              text: [
+                '**commands**',
+                '```',
+                  '  rc [status|start|close]',
+                '```'
+              ].join('\n')
+            }
+          };
+      }
+
+    }
+
+    process_outgoing_response({ request, response }) {
+      const obj = JSON.parse(response.content);
+      lines = []
+
+      if (!response.error){
+        lines.push(":arrow_right:  " + obj.action + " executed succesfully" )
+        if (obj.action == "status"){
+          if (obj.status == "CONNECTED"){
+            lines.push(":white_check_mark: STATUS " + obj.status)
+            lines.push(":iphone:  CONNECTED NUMBER: " + obj.host_device.wid.user)
+            lines.push(":battery: BATTERY " + obj.host_device.battery + "%")
+            lines.push(":electric_plug:  Connected to Plug? " + obj.host_device.plugged)
+            lines.push(":computer:  Platform: " + obj.host_device.platform)
+          }else{
+            lines.push(":red_circle: STATUS " + obj.status)
+          }
+        }
+      }else{
+        lines.push(":red_circle: Error while executing " + obj.action + " : "  + response.error)
+      }
+
+        return {
+          content: {
+            text: lines.join('\n'),
+            parseUrls: false
+          }
+        };
+
+    }
+}
+                """,  # noqa
                 "channel": "#manager_channel",
                 "triggerWords": [
                     "rc",
                 ],
-                "token": "RC_MANAGER_TOKEN",
+                "token": "session_management_secret_token",
             }
             rocket.call_api_post("integrations.create", **payload)
         else:
