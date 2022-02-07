@@ -839,7 +839,7 @@ class Connector(ConnectorBase):
                         url, payload
                     )
                 )
-        except ValueError:
+        except (ValueError, TypeError):
             content = self.joypixel_to_unicode(content)
             # message may not have an agent
             if agent_name:

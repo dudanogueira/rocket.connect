@@ -423,7 +423,27 @@ class Connector(object):
                             )
                             room_created = True
                         else:
-                            if rc_room_response["error"] == "no-agent-online":
+                            if rc_room_response["errorType"] == "no-agent-online":
+                                self.logger_info("NO AGENTS ONLINE")
+                                if self.config.get("no_agent_online_alert_admin"):
+                                    # add message as template
+                                    template = Template(
+                                        self.config.get("no_agent_online_alert_admin")
+                                    )
+                                    context = Context(self.message)
+                                    message = template.render(context)
+                                    self.outcome_admin_message(message)
+                                if self.config.get(
+                                    "no_agent_online_autoanswer_visitor"
+                                ):
+                                    template = Template(
+                                        self.config.get(
+                                            "no_agent_online_autoanswer_visitor"
+                                        )
+                                    )
+                                    context = Context(self.message)
+                                    message = {"msg": template.render(context)}
+                                    self.outgo_text_message(message)
                                 if settings.DEBUG:
                                     print("Erro! No Agents Online")
         self.room = room
@@ -884,4 +904,15 @@ class BaseConnectorConfigForm(forms.Form):
         required=False,
         help_text="Ignore this departments ID for the session taken alert."
         + "multiple separated with comma. eg. departmentID1,departmentID2",
+    )
+    no_agent_online_alert_admin = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={"rows": 4, "cols": 15}),
+        help_text="""Template to alert admin when no agent is online.
+        Eg: No agent online!. **Message**: {{body}} **From**: {{from}}""",
+    )
+    no_agent_online_autoanswer_visitor = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={"rows": 4, "cols": 15}),
+        help_text="Template to auto answer visitor when no agent is online",
     )
