@@ -120,7 +120,7 @@ services:
     command: /start-flower
 
   rocketchat:
-    image: registry.rocket.chat/rocketchat/rocket.chat:4.4.0
+    image: registry.rocket.chat/rocketchat/rocket.chat:4.4.2
     command: >
       bash -c
         "for i in `seq 1 30`; do
@@ -157,6 +157,18 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+
+  webdav:
+    image: bytemark/webdav
+    volumes:
+      - /tmp/web:/var/lib/dav
+    environment:
+      - AUTH_TYPE=Basic
+      - USERNAME=alice
+      - PASSWORD=secret1234
+      - LOCATION=/webdav
+    ports:
+      - 8011:80
 
   mongo:
     image: mongo:4.4
