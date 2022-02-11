@@ -860,7 +860,10 @@ class BaseConnectorConfigForm(forms.Form):
         required=False,
         help_text="do not overwrite visitor name with connector visitor name",
     )
-
+    include_connector_status = forms.BooleanField(
+        required=False,
+        help_text="Includes connector status in the status payload. Disable for better performance",
+    )
     alert_agent_of_automated_message_sent = forms.BooleanField(
         required=False,
         help_text="Alert the agent whenever you send an automated text."

@@ -2,6 +2,8 @@ from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 from instance.models import Server
 
+wpp_admin_script = """// Check gist https://gist.github.com/dudanogueira/ae8e92c5071b750de405546980eba7dc"""
+
 
 class Command(BaseCommand):
     help = "My shiny new management command."
@@ -69,6 +71,7 @@ class Command(BaseCommand):
                 "outcome_message_with_quoted_message": False,
                 "outcome_attachment_description_as_new_message": False,
                 "supress_visitor_name": False,
+                "include_connector_status": True,
                 "force_close_message": "This is a default closing message per connector.",
             }
             connector.save()
@@ -114,6 +117,7 @@ class Command(BaseCommand):
             "endpoint": "http://wppconnect:21465",
             "secret_key": "My53cr3tKY",
             "instance_name": "test",
+            "include_connector_status": True,
             "outcome_attachment_description_as_new_message": True,
             "active_chat_webhook_integration_token": "WPP_ZAPIT_TOKEN",
             "session_management_token": "session_management_secret_token",
@@ -350,74 +354,7 @@ class Command(BaseCommand):
                 "username": "rocket.cat",
                 "urls": ["http://django:8000/connector/WPP_EXTERNAL_TOKEN/"],
                 "scriptEnabled": True,
-                "script": """
-class Script {
-    /**
-     * @params {object} request
-     */
-    prepare_outgoing_request({ request }) {
-
-      let match;
-
-      // match a allowed commands
-      match = request.data.text.match(/^rc\s(status|start|close)/);
-      if (match) {
-        return {
-          url: request.url,
-          headers: request.headers,
-          method: 'POST',
-          data:{
-                session_management_token: request.data.token,
-                action: request.data.text.split(" ")[1]
-          }
-        };
-      }else{
-          // Prevent the request and return a help message
-          return {
-            message: {
-              text: [
-                '**commands**',
-                '```',
-                  '  rc [status|start|close]',
-                '```'
-              ].join('\n')
-            }
-          };
-      }
-
-    }
-
-    process_outgoing_response({ request, response }) {
-      const obj = JSON.parse(response.content);
-      lines = []
-
-      if (!response.error){
-        lines.push(":arrow_right:  " + obj.action + " executed succesfully" )
-        if (obj.action == "status"){
-          if (obj.status == "CONNECTED"){
-            lines.push(":white_check_mark: STATUS " + obj.status)
-            lines.push(":iphone:  CONNECTED NUMBER: " + obj.host_device.wid.user)
-            lines.push(":battery: BATTERY " + obj.host_device.battery + "%")
-            lines.push(":electric_plug:  Connected to Plug? " + obj.host_device.plugged)
-            lines.push(":computer:  Platform: " + obj.host_device.platform)
-          }else{
-            lines.push(":red_circle: STATUS " + obj.status)
-          }
-        }
-      }else{
-        lines.push(":red_circle: Error while executing " + obj.action + " : "  + response.error)
-      }
-
-        return {
-          content: {
-            text: lines.join('\n'),
-            parseUrls: false
-          }
-        };
-
-    }
-}
-                """,  # noqa
+                "script": wpp_admin_script,
                 "channel": "#manager_channel",
                 "triggerWords": [
                     "rc",

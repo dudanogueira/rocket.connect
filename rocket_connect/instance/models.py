@@ -224,7 +224,11 @@ class Connector(models.Model):
         connector = Connector(self, {}, "incoming")
         # return initialize result
         try:
-            return connector.status_session()
+            # return informations from the connector
+            status = connector.status_session()
+            if self.config.get("include_connector_status"):
+                status["connector"] = self.connector_status()
+            return status
         except requests.ConnectionError:
             return {"success": False}
 
@@ -322,6 +326,25 @@ class Connector(models.Model):
         messages = self.messages.filter(delivered=False)
         for message in messages:
             message.force_delivery()
+
+    def connector_status(self):
+        """
+        this method will return the status of the connector
+        """
+        return self.messages.aggregate(
+            undelivered_messages=models.Count(
+                "id",
+                models.Q(delivered=False) | models.Q(delivered=None),
+                distinct=True,
+            ),
+            total_messages=models.Count("id", distinct=True),
+            open_rooms=models.Count(
+                "room__id", models.Q(room__open=True), distinct=True
+            ),
+            total_rooms=models.Count("room__id", distinct=True),
+            last_message=models.Max("created"),
+            total_visitors=models.Count("room__token", distinct=True),
+        )
 
     uuid = models.UUIDField(default=uuid.uuid4, editable=False)
     external_token = models.CharField(max_length=50, default=random_string, unique=True)
