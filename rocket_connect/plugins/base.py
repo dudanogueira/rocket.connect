@@ -183,8 +183,9 @@ class Connector(object):
     def outcome_text(self, room_id, text, message_id=None):
         deliver = self.room_send_text(room_id, text, message_id)
         timestamp = int(time.time())
-        self.message_object.payload[timestamp] = json.loads(deliver.request.body)
-        self.message_object.response[timestamp] = deliver.json()
+        if self.message_object:
+            self.message_object.payload[timestamp] = json.loads(deliver.request.body)
+            self.message_object.response[timestamp] = deliver.json()
         if settings.DEBUG:
             self.logger_info("DELIVERING... {0}".format(deliver.request.body))
             self.logger_info("RESPONSE... {0}".format(deliver.json()))
@@ -193,16 +194,18 @@ class Connector(object):
                 self.logger_info(
                     "MESSAGE DELIVERED... {0}".format(self.message_object.id)
                 )
-            self.message_object.delivered = True
-            self.message_object.room = self.room
-            self.message_object.save()
+            if self.message_object:
+                self.message_object.delivered = True
+                self.message_object.room = self.room
+                self.message_object.save()
             return deliver
         else:
             self.logger_info(
                 "MESSAGE *NOT* DELIVERED... {0}".format(self.message_object.id)
             )
             # save payload and save message object
-            self.message_object.save()
+            if self.message_object:
+                self.message_object.save()
             # room can be closed on RC and open here
             r = deliver.json()
             # TODO: when sending a message already sent, rocket doesnt return a identifiable message
