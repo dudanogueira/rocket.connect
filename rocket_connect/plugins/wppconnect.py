@@ -542,7 +542,7 @@ class Connector(ConnectorBase):
                                 "livechat/department"
                             ).json()
                             department_triage_to_ignore = self.config.get(
-                                "department_triage_to_ignore", []
+                                "department_triage_to_ignore", ""
                             ).split(",")
                             for department in departments.get("departments"):
                                 if department.get("enabled"):
