@@ -192,7 +192,7 @@ class Connector(object):
         if deliver.ok:
             if settings.DEBUG:
                 self.logger_info(
-                    "MESSAGE DELIVERED... {0}".format(self.message_object.id)
+                    "MESSAGE DELIVERED... {0}".format(deliver.request.body)
                 )
             if self.message_object:
                 self.message_object.delivered = True
@@ -200,9 +200,7 @@ class Connector(object):
                 self.message_object.save()
             return deliver
         else:
-            self.logger_info(
-                "MESSAGE *NOT* DELIVERED... {0}".format(self.message_object.id)
-            )
+            self.logger_info("MESSAGE *NOT* DELIVERED...")
             # save payload and save message object
             if self.message_object:
                 self.message_object.save()
