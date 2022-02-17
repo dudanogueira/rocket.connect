@@ -231,18 +231,26 @@ services:
     ports:
       - "8001:8002"
 
+  # wppconnect:
+  #   image: wppconnect/server-cli:main
+  #   # for command options: https://github.com/wppconnect-team/server-cli/blob/main/src/program.js
+  #   command: wppserver --log-level DEBUG --secretKey THISISMYSECURETOKEN --port 21465
+  #     --startAllSession
+  #     #--webhook-allUnreadOnStart
+  #     #--no-webhook-onPresenceChanged
+  #     #--no-webhook-onParticipantsChanged
+  #     #--no-webhook-listenAcks
+  #     #--archive-daysToArchive 30
+  #   volumes:
+  #     - local_wppconnect_data:/usr/src/server-cli/tokens
+  #   ports:
+  #     - "21465:21465"
+
   wppconnect:
-    image: wppconnect/server-cli:main
-    # for command options: https://github.com/wppconnect-team/server-cli/blob/main/src/program.js
-    command: wppserver --log-level DEBUG --secretKey My53cr3tKY --port 21465
-      --startAllSession
-      #--webhook-allUnreadOnStart
-      #--no-webhook-onPresenceChanged
-      #--no-webhook-onParticipantsChanged
-      #--no-webhook-listenAcks
-      #--archive-daysToArchive 30
+    image: dudanogueira/wpp-server:latest
     volumes:
-      - local_wppconnect_data:/usr/src/server-cli/tokens
+      - ./compose/local/wppconnect/config.json:/usr/src/wpp-server/config.json
+      - local_wppconnect_data:/usr/src/wpp-server/tokens
     ports:
       - "21465:21465"
 

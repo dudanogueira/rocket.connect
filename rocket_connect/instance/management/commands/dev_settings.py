@@ -115,7 +115,7 @@ class Command(BaseCommand):
         connector.config = {
             "webhook": "http://django:8000/connector/WPP_EXTERNAL_TOKEN/",
             "endpoint": "http://wppconnect:21465",
-            "secret_key": "My53cr3tKY",
+            "secret_key": "THISISMYSECURETOKEN",
             "instance_name": "test",
             "include_connector_status": True,
             "outcome_attachment_description_as_new_message": True,

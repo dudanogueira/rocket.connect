@@ -1,29 +1,35 @@
 {
-    "secretKey": "My53cr3tKY",
+    /* secret key to genereta access token */
+    "secretKey": "THISISMYSECURETOKEN",
     "host": "http://localhost",
     "port": "21465",
+    // create userDataDir for each puppeteer instance for working with Multi Device
+    "customUserDataDir": "./userDataDir/",
+    // starts all sessions when starting the server.
     "startAllSession": true,
+    // sets the maximum global listeners. 0 = infinity.
+    "maxListeners": 15,
     "webhook": {
-        "url": "http://django:8000/connector/WPP_EXTERNAL_TOKEN/",
-        "autoDownload": true,
-        "readMessage": false,
-        "allUnreadOnStart": true
+      "url": null,
+      // automatically downloads files to upload to the webhook
+      "autoDownload": true,
+      //marks messages as read when the webhook returns ok
+      "readMessage": false,
+      //sends all unread messages to the webhook when the server starts
+      "allUnreadOnStart": true
     },
+    //functionality that archives conversations, runs when the server starts
     "archive": {
-        "enable": true,
-        "waitTime": 10,
-        "daysToArchive": 45
+      "enable": true,
+      //maximum interval between filings.
+      "waitTime": 10,
+      "daysToArchive": 45
     },
     "log": {
-        "level": "error",
-        "logger": [
-            "console",
-            "file"
-        ]
+      "level": "error",
+      "logger": [ "console", "file" ]
     },
     "createOptions": {
-        "browserArgs": [
-            "--no-sandbox"
-        ]
+      "browserArgs": ["--no-sandbox"]
     }
-}
+  }
