@@ -826,6 +826,9 @@ class Connector(ConnectorBase):
         try:
             # mesangem é um json
             payload = json.loads(content)
+            # if payload is integer or other json loadable content
+            if type(payload) != dict:
+                raise ValueError
             if payload.get("buttons"):
                 if not payload.get("phone"):
                     payload["phone"] = self.get_visitor_id()
