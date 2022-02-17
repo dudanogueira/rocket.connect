@@ -51,6 +51,7 @@ class Connector(ConnectorBase):
 
     def status_session(self):
         # generate token
+        status = {}
         if self.config.get("endpoint"):
             endpoint = "{0}/api/{1}/status-session".format(
                 self.config.get("endpoint"),
@@ -69,8 +70,10 @@ class Connector(ConnectorBase):
                     )
                     host_device = session.get(endpoint).json()
                     status["host_device"] = host_device["response"]
-                return status
-        return False
+            else:
+                status = {"success": False, **status_req.json()}
+
+        return status
 
     def close_session(self):
         # generate token
