@@ -375,7 +375,7 @@ class Connector(object):
         except IndexError:
             return "channel:visitor-id"
 
-    def get_room(self, department=None, create=True):
+    def get_room(self, department=None, create=True, allow_welcome_message=True):
         room = None
         room_created = False
         connector_token = self.get_visitor_token()
@@ -448,21 +448,23 @@ class Connector(object):
                                 if settings.DEBUG:
                                     print("Erro! No Agents Online")
         self.room = room
-        if self.config.get("welcome_message"):
-            # only send welcome message when
-            # 1 - open_room is False and there is a welcome_message
-            # 2 - open_room is True, room_created is True and there is a welcome_message
-            if (
-                not self.config.get("open_room", True)
-                and self.config.get("welcome_message")
-            ) or (
-                self.config.get("open_room", True)
-                and room_created
-                and self.config.get("welcome_message")
-            ):
-                message = {"msg": self.config.get("welcome_message")}
-                self.outgo_text_message(message)
-                # if room was created
+        # optionally allow welcome message
+        if allow_welcome_message:
+            if self.config.get("welcome_message"):
+                # only send welcome message when
+                # 1 - open_room is False and there is a welcome_message
+                # 2 - open_room is True, room_created is True and there is a welcome_message
+                if (
+                    not self.config.get("open_room", True)
+                    and self.config.get("welcome_message")
+                ) or (
+                    self.config.get("open_room", True)
+                    and room_created
+                    and self.config.get("welcome_message")
+                ):
+                    message = {"msg": self.config.get("welcome_message")}
+                    self.outgo_text_message(message)
+                    # if room was created
                 if room and self.config.get(
                     "alert_agent_of_automated_message_sent", False
                 ):
@@ -472,31 +474,34 @@ class Connector(object):
                         "MESSAGE SENT: {0}".format(self.config.get("welcome_message")),
                         message_id=self.get_message_id() + "WELCOME",
                     )
-        if self.config.get("welcome_vcard") != {}:
-            # only send welcome vcard when
-            #
-            # 1 - open_room is False and there is a welcome_vcard
-            # 2 - open_room is True, room_created is True and there is a welcome_vcard
-            if (
-                not self.config.get("open_room", True)
-                and self.config.get("welcome_vcard")
-            ) or (
-                self.config.get("open_room", True)
-                and room_created
-                and self.config.get("welcome_vcard")
-            ):
-                payload = self.config.get("welcome_vcard")
-                self.outgo_vcard(payload)
-                # if room was created
-                if room and self.config.get(
-                    "alert_agent_of_automated_message_sent", False
+            if self.config.get("welcome_vcard") != {}:
+                # only send welcome vcard when
+                #
+                # 1 - open_room is False and there is a welcome_vcard
+                # 2 - open_room is True, room_created is True and there is a welcome_vcard
+                if (
+                    not self.config.get("open_room", True)
+                    and self.config.get("welcome_vcard")
+                ) or (
+                    self.config.get("open_room", True)
+                    and room_created
+                    and self.config.get("welcome_vcard")
                 ):
-                    # let the agent know
-                    self.outcome_text(
-                        room_id=room.room_id,
-                        text="VCARD SENT: {0}".format(self.config.get("welcome_vcard")),
-                        message_id=self.get_message_id() + "VCARD",
-                    )
+                    payload = self.config.get("welcome_vcard")
+                    self.outgo_vcard(payload)
+                    # if room was created
+                    if room and self.config.get(
+                        "alert_agent_of_automated_message_sent", False
+                    ):
+                        # let the agent know
+                        self.outcome_text(
+                            room_id=room.room_id,
+                            text="VCARD SENT: {0}".format(
+                                self.config.get("welcome_vcard")
+                            ),
+                            message_id=self.get_message_id() + "VCARD",
+                        )
+        # save message obj
         if self.message_object:
             self.message_object.room = room
             self.message_object.save()

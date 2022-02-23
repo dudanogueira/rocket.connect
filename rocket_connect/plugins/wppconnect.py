@@ -329,7 +329,7 @@ class Connector(ConnectorBase):
                             "ACTIVE MESSAGE PAYLOAD GENERATED: {0}".format(self.message)
                         )
                         # register room
-                        room = self.get_room(department)
+                        room = self.get_room(department, allow_welcome_message=False)
                         if room:
                             self.logger_info("ACTIVE CHAT GOT A ROOM {0}".format(room))
                             # send the message to the room, in order to be delivered to the
