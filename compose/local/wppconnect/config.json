@@ -2,6 +2,8 @@
     "secretKey": "My53cr3tKY",
     "host": "http://localhost",
     "port": "21465",
+    "deviceName" : "Rocket.Connect",
+    "customUserDataDir": "./userDataDir/",
     "startAllSession": true,
     "webhook": {
         "url": "http://django:8000/connector/WPP_EXTERNAL_TOKEN/",
