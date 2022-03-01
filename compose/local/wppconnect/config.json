@@ -3,9 +3,8 @@
     "secretKey": "THISISMYSECURETOKEN",
     "host": "http://localhost",
     "port": "21465",
-    // create userDataDir for each puppeteer instance for working with Multi Device
+    "deviceName" : "Rocket.Connect",
     "customUserDataDir": "./userDataDir/",
-    // starts all sessions when starting the server.
     "startAllSession": true,
     // sets the maximum global listeners. 0 = infinity.
     "maxListeners": 15,
