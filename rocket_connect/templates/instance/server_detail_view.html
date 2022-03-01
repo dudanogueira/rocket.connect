@@ -5,20 +5,36 @@
     <a class="breadcrumb-item" href="{% url 'home' %}">home</a>
     <span class="breadcrumb-item active">{{server}}</span>
 </nav>
-<h1>
-    {{server}} <span class="text-{{ server.enabled|yesno:'success,danger' }}">{{ server.enabled|yesno:"Active,Inactive" }}</span>
-</h1>
-<a href="{{server.url}}">{{server.url}}</a>
-{% if alive %}
-    <span class="badge badge-success">UP</span>
-    <span class="badge badge-info">Version: {{info.info.version}}</span>
-{% else %}
-    <span class="badge badge-danger">Down!</span>
-    {% if auth_error %}
-    <span class="badge badge-danger">AUTH ERROR!</span>
+<div class="container">
+    <a name="" id="" class="btn btn-primary btn-lg float-right" href="{% url 'instance:new_connector' server.external_token %}" role="button">
+        new connector
+    </a>
+</div>
+<div class="container p-5" id="server-header">
+    <h1>
+        {{server}} <span class="text-{{ server.enabled|yesno:'success,danger' }}">{{ server.enabled|yesno:"Active,Inactive" }}</span>
+    </h1>
+    <hr />
+    <a href="{{server.url}}">{{server.url}}</a>
+    {% if status.alive %}
+        <span class="badge badge-success">UP</span>
+        <span class="badge badge-info">Version: {{status.info.info.version}}</span>
+    {% else %}
+        <span class="badge badge-danger">Down!</span>
     {% endif %}
-{% endif %}
-<span class="badge badge-secondary">endpoint: {{base_uri}}/server/{{server.external_token}}/</span>
+    {% if status.auth_error %}
+        <span class="badge badge-danger" title="Check Credentials!">AUTH ERROR!</span>
+    {% else %}
+    <span class="badge badge-success">AUTH</span>
+    {% endif %}
+    <hr />
+    <i>
+        Add to Rocket.Chat's Omnichannel WebHook Endpoint:<br />
+        {{base_uri}}/server/{{server.external_token}}/
+    </i>
+</div>
+
+
 
 {% for connector in connectors %}
     <div class="card mb-3">
@@ -30,7 +46,6 @@
         <div class="card-body">
             <a class="btn btn-primary btn-bg" href="{% url 'instance:connector_analyze' connector.server.external_token connector.external_token %}">analyze</a><br />
             <p class="card-text">
-                Endpoint: {{base_uri}}/connector/{{connector.external_token}}/<br />
                 {% if connector.last_message%} Last Message: {{connector.last_message}} ({{connector.last_message|timesince}})<br />{% endif %}
                 <span class="{% if connector.undelivered_messages %}text-danger{% else %}text-success{%endif%}">
                     Undelivered Messages: {{connector.undelivered_messages}}

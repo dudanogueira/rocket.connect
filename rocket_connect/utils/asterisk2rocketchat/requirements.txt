@@ -1,0 +1,2 @@
+panoramisk==1.4
+mysql-connector-python==3.6.1

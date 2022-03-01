@@ -3,10 +3,12 @@ import json
 import time
 
 import requests
+from django import forms
 from django.conf import settings
 from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
 from requests_toolbelt import MultipartEncoder
 
+from .base import BaseConnectorConfigForm
 from .base import Connector as ConnectorBase
 
 
@@ -255,3 +257,17 @@ class Connector(ConnectorBase):
             return " ".join([parts[0], parts[-1]])
         else:
             return agent_name
+
+
+class ConnectorConfigForm(BaseConnectorConfigForm):
+
+    access_token = forms.CharField(
+        help_text="Facebook Access Token to get contact info",
+        required=False,
+    )
+    verify_token = forms.CharField(
+        help_text="The same verify token to be provided at Facebook Developer Page",
+        required=True,
+    )
+
+    field_order = ["access_token", "verify_token"]

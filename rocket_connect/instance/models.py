@@ -1,8 +1,11 @@
+import json
 import uuid
 
+import requests
 from django.apps import apps
 from django.conf import settings
 from django.db import models
+from rocketchat_API.APIExceptions.RocketExceptions import RocketAuthenticationException
 from rocketchat_API.rocketchat import RocketChat
 
 
@@ -17,6 +20,31 @@ class Server(models.Model):
 
     def __str__(self):
         return self.name
+
+    def status(self):
+        auth_error = False
+        alive = False
+        info = None
+        try:
+            client = self.get_rocket_client()
+            alive = True
+            info = client.info().json()
+            check_auth = client.users_list()
+            if check_auth.status_code == 401:
+                auth_error = True
+        except (
+            requests.ConnectionError,
+            json.JSONDecodeError,
+            requests.models.MissingSchema,
+        ):
+            alive = False
+        except RocketAuthenticationException:
+            auth_error = True
+        return {
+            "auth_error": auth_error,
+            "alive": alive,
+            "info": info,
+        }
 
     def get_rocket_client(self, bot=False):
         """
@@ -50,7 +78,7 @@ class Server(models.Model):
 
     def get_managers(self, as_string=True):
         """
-        this method will return the managers (user1,user2,user3,#channel1,#channel2)
+        this method will return the managers (user@1,user2,user3,#channel1,#channel2)
         and the bot. The final result should be:
         user1,user2,user3
         Obs: it will remove all channels
@@ -115,17 +143,26 @@ class Server(models.Model):
         settings.AUTH_USER_MODEL, related_name="servers", blank=True
     )
     external_token = models.CharField(max_length=50, default=random_string, unique=True)
-    secret_token = models.CharField(max_length=50, null=True, blank=True)
+    secret_token = models.CharField(
+        max_length=50,
+        null=True,
+        blank=True,
+        help_text="same secret_token used at Rocket.Chat Omnichannel Webhook Config",
+    )
     name = models.CharField(max_length=50)
     enabled = models.BooleanField(default=True)
     url = models.CharField(max_length=150)
     admin_user = models.CharField(max_length=50)
     admin_password = models.CharField(max_length=50)
-    admin_user_id = models.CharField(max_length=50, blank=True)
+    admin_user_id = models.CharField(
+        max_length=50, blank=True, help_text="Admin User Personal Access Token"
+    )
     admin_user_token = models.CharField(max_length=50, blank=True)
     bot_user = models.CharField(max_length=50)
     bot_password = models.CharField(max_length=50)
-    bot_user_id = models.CharField(max_length=50, blank=True)
+    bot_user_id = models.CharField(
+        max_length=50, blank=True, help_text="Bot User Personal Access Token"
+    )
     bot_user_token = models.CharField(max_length=50, blank=True)
 
     managers = models.CharField(
@@ -164,6 +201,19 @@ class Connector(models.Model):
         # initiate connector plugin
         return plugin.Connector
 
+    def get_connector_config_form(self):
+        connector_type = self.connector_type
+        # import the connector plugin
+        plugin_string = "rocket_connect.plugins.{0}".format(connector_type)
+        try:
+            plugin = __import__(plugin_string, fromlist=["ConnectorConfigForm"])
+            # return form or false
+            return getattr(plugin, "ConnectorConfigForm", False)
+        # no form for you
+        except ModuleNotFoundError:
+            pass
+        return False
+
     def status_session(self, request=None):
         """
         this method will get the possible status_session of the connector instance logic from the plugin
@@ -173,7 +223,14 @@ class Connector(models.Model):
         # initiate with fake message, as it doesnt matter
         connector = Connector(self, {}, "incoming")
         # return initialize result
-        return connector.status_session()
+        try:
+            # return informations from the connector
+            status = connector.status_session()
+            if self.config.get("include_connector_status"):
+                status["connector"] = self.connector_status()
+            return status
+        except requests.ConnectionError:
+            return {"success": False}
 
     def initialize(self, request=None):
         """
@@ -185,6 +242,17 @@ class Connector(models.Model):
         connector = Connector(self, {}, "incoming")
         # return initialize result
         return connector.initialize()
+
+    def close_session(self, request=None):
+        """
+        this method will instantiate the connector instance logic from the plugin
+        """
+        # get connector
+        Connector = self.get_connector_class()
+        # initiate with fake message, as it doesnt matter
+        connector = Connector(self, {}, "incoming")
+        # return close session result
+        return connector.close_session()
 
     def intake(self, request):
         """
@@ -243,7 +311,7 @@ class Connector(models.Model):
         this method will return the managers channel both from server and
         connector (user1,user2,user3) or ['user1', 'user2, 'usern']
         and the bot. The final result should be:
-        a string or a list, without the channels
+        a string or a list, but only channels
         """
         managers = self.server.get_managers_channel(as_string=False)
         if self.managers:
@@ -258,6 +326,25 @@ class Connector(models.Model):
         messages = self.messages.filter(delivered=False)
         for message in messages:
             message.force_delivery()
+
+    def connector_status(self):
+        """
+        this method will return the status of the connector
+        """
+        return self.messages.aggregate(
+            undelivered_messages=models.Count(
+                "id",
+                models.Q(delivered=False) | models.Q(delivered=None),
+                distinct=True,
+            ),
+            total_messages=models.Count("id", distinct=True),
+            open_rooms=models.Count(
+                "room__id", models.Q(room__open=True), distinct=True
+            ),
+            total_rooms=models.Count("room__id", distinct=True),
+            last_message=models.Max("created"),
+            total_visitors=models.Count("room__token", distinct=True),
+        )
 
     uuid = models.UUIDField(default=uuid.uuid4, editable=False)
     external_token = models.CharField(max_length=50, default=random_string, unique=True)

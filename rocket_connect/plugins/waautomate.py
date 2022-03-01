@@ -1,5 +1,6 @@
 import json
 import random
+import string
 import time
 import urllib.parse as urlparse
 
@@ -569,3 +570,15 @@ class Connector(ConnectorBase):
                 name = self.message.get("data", {}).get("sender", {}).get("id", None)
         # for some reason, the business account is not getting the name correctly
         return name or token
+
+    def get_incoming_message_id(self):
+        # this works for wa-automate EASYAPI
+        message_id = "".join(random.choice(string.ascii_letters) for i in range(10))
+        if type(self.message.get("data")) != str:
+            try:
+                message_id = self.message.get("data", {}).get("id")
+            except IndexError:
+                # for sake of forgiveness, lets make it random
+                pass
+        print("MESSAGE ID ", message_id)
+        return message_id

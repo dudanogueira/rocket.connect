@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<nav class="breadcrumb">
+    <a class="breadcrumb-item" href="{% url 'home' %}">home</a>
+    <span class="breadcrumb-item active">New Server<span>
+</nav>
+
+<div id="form" class="container">
+    <form action="" method="post">
+        {% csrf_token %}
+        {{form|crispy}}
+        <button type="submit" class="btn btn-primary">Submit</button>
+    </form>
+</div>
+
+{% endblock content %}

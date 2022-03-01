@@ -2,6 +2,8 @@ from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 from instance.models import Server
 
+wpp_admin_script = """// Check gist https://gist.github.com/dudanogueira/ae8e92c5071b750de405546980eba7dc"""
+
 
 class Command(BaseCommand):
     help = "My shiny new management command."
@@ -69,6 +71,7 @@ class Command(BaseCommand):
                 "outcome_message_with_quoted_message": False,
                 "outcome_attachment_description_as_new_message": False,
                 "supress_visitor_name": False,
+                "include_connector_status": True,
                 "force_close_message": "This is a default closing message per connector.",
             }
             connector.save()
@@ -112,9 +115,20 @@ class Command(BaseCommand):
         connector.config = {
             "webhook": "http://django:8000/connector/WPP_EXTERNAL_TOKEN/",
             "endpoint": "http://wppconnect:21465",
-            "secret_key": "My53cr3tKY",
+            "secret_key": "THISISMYSECURETOKEN",
             "instance_name": "test",
+            "include_connector_status": True,
             "outcome_attachment_description_as_new_message": True,
+            "active_chat_webhook_integration_token": "WPP_ZAPIT_TOKEN",
+            "session_management_token": "session_management_secret_token",
+            "department_triage_payload": {
+                "title": "Title for Button goes here",
+                "footer": "This is the footer for the message. Its optional to send",
+                "message": "Test Sending Buttons. Let me know what you think about this function in wppconnect?",
+            },
+            "no_agent_online_alert_admin": "No agent online!. **Message**: {{body}} **From**: {{from}}",
+            "session_taken_alert_template": "You are now talking with {{agent.name}}"
+            + "{% if department %}at department {{department.name}}{% endif %}",
         }
         connector.name = "WPPCONNECT CONNECTOR"
         connector.connector_type = "wppconnect"
@@ -153,7 +167,7 @@ class Command(BaseCommand):
         for user in ["agent1", "agent2"]:
             data = {
                 "email": user + "@email.com",
-                "name": user,
+                "name": user + " Name",
                 "password": user,
                 "username": user,
             }
@@ -271,11 +285,17 @@ class Command(BaseCommand):
             user_id = rocket.users_info(username="admin").json()["user"]["_id"]
             channel_id = channel.json()["channel"]["_id"]
             rocket.channels_invite(room_id=channel_id, user_id=user_id)
+
+        # create teams
+        public_team = rocket.teams_create("team-public", 0)
+        private_team = rocket.teams_create("team-private", 1)
+        print("teams created, public n private: ", public_team, private_team)
         # configure server webhook api
         configs = [
-            ["Site_Url", "http://rocketchat:3000"],
+            ["Site_Url", "http://localhost:3000"],
             ["Livechat_webhookUrl", "http://django:8000/server/SERVER_EXTERNAL_TOKEN/"],
             ["Livechat_enabled", True],
+            ["Livechat_AllowedDomainsList", "localhost"],
             ["Livechat_accept_chats_with_no_agents", True],
             ["Livechat_secret_token", "secret_token"],
             ["Livechat_webhook_on_start", True],
@@ -289,9 +309,61 @@ class Command(BaseCommand):
             ["Accounts_TwoFactorAuthentication_By_Email_Enabled", False],
             ["API_Enable_Rate_Limiter", False],
             ["Log_Level", "2"],
+            ["Livechat_Routing_Method", "Manual_Selection"],
         ]
         for config in configs:
             rocket.settings_update(config[0], config[1])
+
+        # create if dont exist:
+        r = rocket.call_api_get(
+            "integrations.get", integrationId="wppconnect-integration"
+        )
+        if not r.ok:
+            print("CREATING WEBHOOK FOR ZAPIT  OUTGOING")
+            payload = {
+                "_id": "wppconnect-integration",
+                "type": "webhook-outgoing",
+                "name": "WPPCONNECT ACTIVE CHAT INTEGRATION",
+                "event": "sendMessage",
+                "enabled": True,
+                "username": "rocket.cat",
+                "urls": ["http://django:8000/connector/WPP_EXTERNAL_TOKEN/"],
+                "scriptEnabled": False,
+                "channel": "#manager_channel",
+                "triggerWords": [
+                    "zapit",
+                ],
+                "token": "WPP_ZAPIT_TOKEN",
+            }
+            rocket.call_api_post("integrations.create", **payload)
+        else:
+            print("WEBHOOK FOR ZAPIT OUTGOING ALREADY EXISTS")
+
+        # create webhook wppconnect manager:
+        r = rocket.call_api_get(
+            "integrations.get", integrationId="wppconnect-manager-integration"
+        )
+        if not r.ok:
+            print("CREATING WEBHOOK FOR WPPCONNECT MANAGER OUTGOING")
+            payload = {
+                "_id": "wppconnect-manager-integration",
+                "type": "webhook-outgoing",
+                "name": "WPPCONNECT MANAGER INTEGRATION",
+                "event": "sendMessage",
+                "enabled": True,
+                "username": "rocket.cat",
+                "urls": ["http://django:8000/connector/WPP_EXTERNAL_TOKEN/"],
+                "scriptEnabled": True,
+                "script": wpp_admin_script,
+                "channel": "#manager_channel",
+                "triggerWords": [
+                    "rc",
+                ],
+                "token": "session_management_secret_token",
+            }
+            rocket.call_api_post("integrations.create", **payload)
+        else:
+            print("WEBHOOK FOR ZAPIT OUTGOING ALREADY EXISTS")
 
     def handle(self, *args, **options):
         self.handle_django()

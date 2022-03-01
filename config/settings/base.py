@@ -1,6 +1,7 @@
 """
 Base settings to build other settings files upon.
 """
+from email.utils import parseaddr
 from pathlib import Path
 
 import environ
@@ -36,6 +37,9 @@ USE_L10N = True
 USE_TZ = True
 # https://docs.djangoproject.com/en/dev/ref/settings/#locale-paths
 LOCALE_PATHS = [str(ROOT_DIR / "locale")]
+
+DATA_UPLOAD_MAX_MEMORY_SIZE = env("DJANGO_DATA_UPLOAD_MAX_MEMORY_SIZE", default=2621440)
+
 
 # DATABASES
 # ------------------------------------------------------------------------------
@@ -84,6 +88,8 @@ LOCAL_APPS = [
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
+DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
+
 # MIGRATIONS
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#migration-modules
@@ -99,7 +105,7 @@ AUTHENTICATION_BACKENDS = [
 # https://docs.djangoproject.com/en/dev/ref/settings/#auth-user-model
 AUTH_USER_MODEL = "users.User"
 # https://docs.djangoproject.com/en/dev/ref/settings/#login-redirect-url
-LOGIN_REDIRECT_URL = "users:redirect"
+LOGIN_REDIRECT_URL = env("DJANGO_LOGIN_REDIRECT_URL", default="home")
 # https://docs.djangoproject.com/en/dev/ref/settings/#login-url
 LOGIN_URL = "account_login"
 
@@ -229,7 +235,14 @@ EMAIL_TIMEOUT = 5
 # Django Admin URL.
 ADMIN_URL = "admin/"
 # https://docs.djangoproject.com/en/dev/ref/settings/#admins
-ADMINS = [("""Duda Nogueira""", "dudanogueira@gmail.com")]
+
+MANAGERS_ENV = env("DJANGO_ADMINS", default=None)
+if MANAGERS_ENV:
+    ADMINS = list(parseaddr(email) for email in MANAGERS_ENV.split(","))
+else:
+    ADMINS = None
+
+
 # https://docs.djangoproject.com/en/dev/ref/settings/#managers
 MANAGERS = ADMINS
 
@@ -286,9 +299,9 @@ ACCOUNT_ALLOW_REGISTRATION = env.bool("DJANGO_ACCOUNT_ALLOW_REGISTRATION", True)
 # https://django-allauth.readthedocs.io/en/latest/configuration.html
 ACCOUNT_AUTHENTICATION_METHOD = "username"
 # https://django-allauth.readthedocs.io/en/latest/configuration.html
-ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_EMAIL_REQUIRED = env.bool("DJANGO_ACCOUNT_EMAIL_REQUIRED", True)
 # https://django-allauth.readthedocs.io/en/latest/configuration.html
-ACCOUNT_EMAIL_VERIFICATION = "mandatory"
+ACCOUNT_EMAIL_VERIFICATION = env.str("DJANGO_ACCOUNT_EMAIL_VERIFICATION", "mandatory")
 # https://django-allauth.readthedocs.io/en/latest/configuration.html
 ACCOUNT_ADAPTER = "rocket_connect.users.adapters.AccountAdapter"
 # https://django-allauth.readthedocs.io/en/latest/configuration.html

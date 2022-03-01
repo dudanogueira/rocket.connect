@@ -1,8 +1,6 @@
 import datetime
 import json
 
-import requests
-from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Max, Q
@@ -11,8 +9,8 @@ from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render, reverse
 from django.views.decorators.csrf import csrf_exempt
 from envelope.models import LiveChatRoom
+from instance.forms import NewConnectorForm, NewServerForm
 from instance.models import Connector, Server
-from rocketchat_API.APIExceptions.RocketExceptions import RocketAuthenticationException
 
 
 @csrf_exempt
@@ -47,12 +45,12 @@ def server_endpoint(request, server_id):
         server.secret_token
         and request.headers.get("X-Rocketchat-Livechat-Token") != server.secret_token
     ):
-        return HttpResponse("Unauthorized", status=401)
+        return HttpResponse(
+            "Unauthorized. No X-Rocketchat-Livechat-Token provided.", status=401
+        )
     # income message, we have a body
     if request.body:
         raw_message = json.loads(request.body)
-        if settings.DEBUG is True:
-            print("INGOING", request.body)
         #
         # roketchat test message
         #
@@ -97,18 +95,8 @@ def server_endpoint(request, server_id):
 @must_be_yours
 def server_detail_view(request, server_id):
     server = get_object_or_404(Server.objects, external_token=server_id)
-    # try to get the client
-    auth_error = False
-    alive = False
-    info = None
-    try:
-        client = server.get_rocket_client()
-        alive = True
-        info = client.info().json()
-    except (requests.ConnectionError, json.JSONDecodeError):
-        alive = False
-    except RocketAuthenticationException:
-        auth_error = True
+    # get server status
+    status = server.status()
     if request.GET.get("force_connector_delivery"):
         connector = get_object_or_404(
             server.connectors,
@@ -157,9 +145,7 @@ def server_detail_view(request, server_id):
         "base_uri": base_uri,
         "server": server,
         "connectors": connectors,
-        "alive": alive,
-        "info": info,
-        "auth_error": auth_error,
+        "status": status,
     }
     return render(request, "instance/server_detail_view.html", context)
 
@@ -170,9 +156,14 @@ def connector_analyze(request, server_id, connector_id):
     connector = get_object_or_404(
         Connector.objects, server__external_token=server_id, external_token=connector_id
     )
+    # get base uri
+    uri = request.build_absolute_uri()
+    base_uri = uri.replace(request.get_full_path(), "")
+    # get status session
+    connector_action_response = {}
+    connector_action_response["status_session"] = connector.status_session()
     undelivered_messages = None
     date = None
-    connector_action_response = {}
 
     if request.GET.get("connector_action") == "status_session":
         connector_action_response["status_session"] = connector.status_session()
@@ -180,12 +171,22 @@ def connector_analyze(request, server_id, connector_id):
     if request.GET.get("connector_action") == "initialize":
         connector_action_response["initialize"] = connector.initialize()
 
-    if request.GET.get("date") or request.GET.get("action"):
+    if request.GET.get("connector_action") == "close_session":
+        connector_action_response["close_session"] = connector.close_session()
+        connector_action_response["status_session"] = connector.status_session()
+
+    if request.GET.get("date") or request.GET.get("action") or request.GET.get("id"):
+        # select messages to action
         if request.GET.get("date"):
             date = datetime.datetime.strptime(request.GET.get("date"), "%Y-%m-%d")
             undelivered_messages = connector.messages.filter(
                 created__date=date, delivered=False
             )
+        if request.GET.get("id"):
+            undelivered_messages = connector.messages.filter(
+                id=request.GET.get("id"), delivered=False
+            )
+        # act on messages
         if request.GET.get("action") == "force_delivery":
             for message in undelivered_messages:
                 delivery_happened = message.force_delivery()
@@ -205,6 +206,10 @@ def connector_analyze(request, server_id, connector_id):
                     )
         if request.GET.get("action") == "mark_as_delivered":
             undelivered_messages.update(delivered=True)
+            for um in undelivered_messages:
+                messages.success(
+                    request, "Message #{0} marked as delivered".format(um.id)
+                )
         if request.GET.get("action") == "show":
             # we want to show the messages, so just pass
             # as the other actions will redirect
@@ -226,11 +231,87 @@ def connector_analyze(request, server_id, connector_id):
         .order_by("-date")
     )
 
+    # get form
+    config_form = connector.get_connector_config_form()
+    # process or render
+    if request.POST:
+        config_form = config_form(request.POST or None, connector=connector)
+        if config_form.is_valid():
+            # TODO: better save here
+            config_form.save()
+            messages.success(
+                request, "Configurations changed for {0}".format(connector.name)
+            )
+    else:
+        if config_form:
+            config_form = config_form(connector=connector)
+
     context = {
         "connector": connector,
         "messages_undelivered_by_date": messages_undelivered_by_date,
         "undelivered_messages": undelivered_messages,
         "date": date,
         "connector_action_response": connector_action_response,
+        "config_form": config_form,
+        "base_uri": base_uri,
     }
     return render(request, "instance/connector_analyze.html", context)
+
+
+@login_required(login_url="/accounts/login/")
+@must_be_yours
+def new_connector(request, server_id):
+    server = get_object_or_404(Server, external_token=server_id)
+    form = NewConnectorForm(request.POST or None, server=server)
+    if request.POST:
+        if form.is_valid():
+            new_connector = form.save(commit=False)
+            new_connector.server = server
+            new_connector.config = {}
+            if form.cleaned_data["custom_connector_type"]:
+                new_connector.connector_type = form.cleaned_data[
+                    "custom_connector_type"
+                ]
+            new_connector.save()
+            # make sure we have the default form values
+            form = NewConnectorForm(instance=new_connector, server=server)
+            if form.is_valid():
+                new_connector = form.save()
+            messages.success(
+                request, "New connector {0} created.".format(new_connector.name)
+            )
+            return redirect(
+                reverse(
+                    "instance:connector_analyze",
+                    args=[
+                        new_connector.server.external_token,
+                        new_connector.external_token,
+                    ],
+                )
+            )
+    context = {"server": server, "form": form}
+    return render(request, "instance/new_connector.html", context)
+
+
+@login_required(login_url="/accounts/login/")
+def new_server(request):
+    form = NewServerForm(request.POST or None)
+    form.fields["admin_user_id"].required = True
+    form.fields["admin_user_token"].required = True
+    if form.is_valid():
+        server = form.save(commit=False)
+        server.bot_user_id = server.admin_user_id
+        server.bot_user_token = server.admin_user_token
+        status = server.status()
+        if status["alive"] and not status["auth_error"]:
+            server.save()
+            server.owners.add(request.user)
+            messages.success(request, "Server Created")
+            return redirect(
+                reverse("instance:server_detail", args=[server.external_token])
+            )
+        else:
+            messages.error(request, "Error {0}".format(status))
+
+    context = {"form": form}
+    return render(request, "instance/new_server.html", context)

@@ -12,3 +12,4 @@ REDIS_URL=redis://redis:6379/0
 # Flower
 CELERY_FLOWER_USER=admin
 CELERY_FLOWER_PASSWORD=admin
+#DJANGO_ADMINS="First Last" <example@mail.com>, "Foo Bar" <foo@bar.com>
