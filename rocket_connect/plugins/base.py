@@ -465,15 +465,17 @@ class Connector(object):
                     message = {"msg": self.config.get("welcome_message")}
                     self.outgo_text_message(message)
                     # if room was created
-                if room and self.config.get(
-                    "alert_agent_of_automated_message_sent", False
-                ):
-                    # let the agent know
-                    self.outcome_text(
-                        room.room_id,
-                        "MESSAGE SENT: {0}".format(self.config.get("welcome_message")),
-                        message_id=self.get_message_id() + "WELCOME",
-                    )
+                    if room and self.config.get(
+                        "alert_agent_of_automated_message_sent", False
+                    ):
+                        # let the agent know
+                        self.outcome_text(
+                            room.room_id,
+                            "MESSAGE SENT: {0}".format(
+                                self.config.get("welcome_message")
+                            ),
+                            message_id=self.get_message_id() + "WELCOME",
+                        )
             if self.config.get("welcome_vcard") != {}:
                 # only send welcome vcard when
                 #
