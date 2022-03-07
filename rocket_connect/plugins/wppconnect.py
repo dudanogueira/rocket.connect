@@ -745,7 +745,11 @@ class Connector(ConnectorBase):
         session = self.get_request_session()
         unread_contacts = session.get(endpoint)
         if unread_contacts.ok:
-            self.logger_error("PROCESSING UNREAD CONTACTS ON START")
+            self.logger_error(
+                "PROCESSING UNREAD {0} CONTACTS ON START".format(
+                    len(unread_contacts.get("response"))
+                )
+            )
             unread_contacts = unread_contacts.json()
             for contact in unread_contacts.get("response"):
                 for message in contact["messages"]:
