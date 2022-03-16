@@ -9,6 +9,7 @@ volumes:
   local_rocket_db_dump: {}
   local_waautomate_data: {}
   local_wppconnect_data: {}
+  local_wppconnect_tokens: {}
   local_prometeus_data: {}
   nodemodules: {}
 
@@ -120,7 +121,7 @@ services:
     command: /start-flower
 
   rocketchat:
-    image: registry.rocket.chat/rocketchat/rocket.chat:4.5.0
+    image: registry.rocket.chat/rocketchat/rocket.chat:4.5.2
     command: >
       bash -c
         "for i in `seq 1 30`; do
@@ -137,7 +138,7 @@ services:
       - ADMIN_PASS=admin
       - ADMIN_EMAIL=admin@example.com
       - PORT=3000
-      - ROOT_URL=http://localhost:3000
+      #- ROOT_URL=http://localhost:3000
       - MONGO_URL=mongodb://mongo:27017/rocketchat
       - MONGO_OPLOG_URL=mongodb://mongo:27017/local
       - OVERWRITE_SETTING_Accounts_TwoFactorAuthentication_Enforce_Password_Fallback=false
@@ -145,6 +146,7 @@ services:
       - OVERWRITE_SETTING_SMTP_Port=1025
       - OVERWRITE_SETTING_From_Email=from@email.com
       - OVERWRITE_SETTING_API_Enable_Rate_Limiter=false
+      - OVERWRITE_SETTING_Livechat_validate_offline_email=false
       - CREATE_TOKENS_FOR_USERS=true
       - OVERWRITE_SETTING_Accounts_SystemBlockedUsernameList=administrator,system,user
     depends_on:
@@ -234,15 +236,10 @@ services:
   wppconnect:
     image: wppconnect/server-cli:main
     # for command options: https://github.com/wppconnect-team/server-cli/blob/main/src/program.js
-    command: wppserver --log-level DEBUG --secretKey THISISMYSECURETOKEN --port 21465
-      --startAllSession
-      #--webhook-allUnreadOnStart
-      #--no-webhook-onPresenceChanged
-      #--no-webhook-onParticipantsChanged
-      #--no-webhook-listenAcks
-      #--archive-daysToArchive 30
+    command: wppserver
     volumes:
       - local_wppconnect_data:/usr/src/server-cli/userDataDir
+      #- local_wppconnect_tokens:/usr/src/server-cli/tokens
       - ./compose/local/wppconnect/config.json:/usr/src/server-cli/node_modules/@wppconnect/server/dist/config.json
     ports:
       - "21465:21465"
@@ -251,7 +248,7 @@ services:
   #   image: dudanogueira/wpp-server:latest
   #   volumes:
   #     - ./compose/local/wppconnect/config.json:/usr/src/wpp-server/src/config.json
-  #     - local_wppconnect_data:/usr/src/wpp-server/tokens
+  #     - local_wppconnect_data:/usr/src/server-cli/userDataDir
   #   ports:
   #     - "21465:21465"
 

@@ -12,7 +12,7 @@
     "autoDownload": true,
     "uploadS3": false,
     "readMessage": true,
-    "allUnreadOnStart": false,
+    "allUnreadOnStart": true,
     "listenAcks": true,
     "onPresenceChanged": true,
     "onParticipantsChanged": true
@@ -23,7 +23,7 @@
     "daysToArchive": 45
   },
   "log": {
-    "level": "error",
+    "level": "debug",
     "logger": ["console", "file"]
   },
   "createOptions": {
