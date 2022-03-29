@@ -104,31 +104,31 @@ def send_message_or_thread(payload, room_id, base_url="http://rocketchat:3000"):
     return new_message
 
 
-payload = {
-    "Event": "QueueCallerAbandon",
-    "Privilege": "agent,all",
-    "Channel": "SIP/123123123-00003841",
-    "ChannelState": "6",
-    "ChannelStateDesc": "Up",
-    "CallerIDNum": "+553335222332",
-    "CallerIDName": "CO:+55353522123123",
-    "ConnectedLineNum": "<unknown>",
-    "ConnectedLineName": "<unknown>",
-    "Language": "pt_BR",
-    "AccountCode": "",
-    "Context": "ext-queues",
-    "Exten": "2001",
-    "Priority": "40",
-    "Uniqueid": "1648498996.318653",
-    "Linkedid": "1648498996.318653",
-    "Queue": "2001",
-    "Position": "1",
-    "OriginalPosition": "4",
-    "HoldTime": "168",
-    "content": "",
-}
+# payload = {
+#     "Event": "QueueCallerAbandon",
+#     "Privilege": "agent,all",
+#     "Channel": "SIP/123123123-00003841",
+#     "ChannelState": "6",
+#     "ChannelStateDesc": "Up",
+#     "CallerIDNum": "+55353522123123",
+#     "CallerIDName": "CO:+55353522123123",
+#     "ConnectedLineNum": "<unknown>",
+#     "ConnectedLineName": "<unknown>",
+#     "Language": "pt_BR",
+#     "AccountCode": "",
+#     "Context": "ext-queues",
+#     "Exten": "2001",
+#     "Priority": "40",
+#     "Uniqueid": "1648498996.318653",
+#     "Linkedid": "1648498996.318653",
+#     "Queue": "2001",
+#     "Position": "1",
+#     "OriginalPosition": "4",
+#     "HoldTime": "168",
+#     "content": "",
+# }
 
-a = send_message_or_thread(payload, room_id)
+# a = send_message_or_thread(payload, room_id)
 
 #
 # AMI CONF in ASTERISK
