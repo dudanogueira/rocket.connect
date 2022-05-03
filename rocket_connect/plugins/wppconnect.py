@@ -253,11 +253,11 @@ class Connector(ConnectorBase):
                                 room_id=room_id,
                                 msg_id=msg_id,
                                 text=self.message.get("text")
-                                + "\n:warning: {0} NO DEPARTMENT FOUND".format(now_str),
+                                + "\n:warning: AGENT {0} NOT ONLINE".format(department),
                             )
                             return {
                                 "success": False,
-                                "message": "NO DEPARTMENT FOUND",
+                                "message": "AGENT {0} NOT ONLINE".format(department),
                                 "available_agents": available_agents,
                             }
                     # > 1 departments found
@@ -319,7 +319,7 @@ class Connector(ConnectorBase):
                         }
                         # TODO: known issue:
                         # it doesn't get client info when the client never sent a message
-                        # possible hacky fix is send a message to the user first
+                        # possiage to the usble hacky fix is send a messer first
                         # then get number info and then augment message
                         # augment name from contact API
                         self.check_number_info(
@@ -490,7 +490,7 @@ class Connector(ConnectorBase):
             text = "Session: {0}. Status: {1}".format(
                 self.message.get("session"), self.message.get("status")
             )
-            if self.message.get("status") in ["isLogged", "inChat"]:
+            if self.message.get("status") in ["isLogged", "inChat", "qrReadSuccess"]:
                 text = (
                     text
                     + ":white_check_mark::white_check_mark::white_check_mark:"
