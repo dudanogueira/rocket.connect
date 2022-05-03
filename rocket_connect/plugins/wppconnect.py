@@ -4,11 +4,13 @@ import json
 import time
 import urllib.parse as urlparse
 
+import pytz
 import requests
 from django import forms
 from django.conf import settings
 from django.core import validators
 from django.http import HttpResponse, JsonResponse
+from django.utils import timezone
 from instance import tasks
 
 from .base import BaseConnectorConfigForm
@@ -92,6 +94,113 @@ class Connector(ConnectorBase):
             status = status_req.json()
             return status
         return False
+
+    def livechat_manager(self, payload):
+        """
+        options:
+        rc livechat forward 30d alice Consultas - This will *forward* all messages created 30+ minutes
+        ago with the user alice to department Consultas',
+        rc livechat forward 30m * Consultas - Same as above, but for all agents
+        rc livechat close 30d alice - This will *close* all messages created 30+ days ago served by the user alice',
+        rc livechat close 30m - This will *close* all messages created 30+ minutes ago,'
+
+        """
+        text = payload.get("text")
+        parts = text.split(" ")
+        messages = ["server return: " + text]
+        minutes = None
+        days = None
+        try:
+            time = parts[3]
+            minutes = int(time)
+        except ValueError:
+            time = parts[3]
+            try:
+                if time.endswith("m"):
+                    minutes = int(time[:-1])
+                if time.endswith("d"):
+                    days = int(time[:-1])
+            except ValueError:
+                messages.append(
+                    "Invalid time. It must be, ex: 30m for 30 minutes, or 10d for 10 days"
+                )
+                return {"success": False, "message": "\n".join(messages)}
+        if minutes or minutes == 0:
+            date_created_ago = timezone.now() - datetime.timedelta(minutes=minutes)
+        if days or days == 0:
+            date_created_ago = timezone.now() - datetime.timedelta(days=days)
+
+        kwargs = {
+            "open": "true",
+            "createdAt": '{"end": "'
+            + date_created_ago.isoformat().replace("+00:00", "Z")
+            + '"}',
+        }
+
+        if parts[2] == "close":
+            local_time = date_created_ago.replace(tzinfo=pytz.utc).astimezone(
+                pytz.timezone(self.timezone)
+            )
+            messages.append(
+                "Closing rooms created before: {0}".format(
+                    str(local_time),
+                )
+            )
+            # defining agent
+            try:
+                agent = parts[4]
+                if agent != "*":
+                    kwargs["agents"] = [agent]
+                serving_agent = agent if agent else "ALL"
+                msg = "Rooms with agent serving: {0}".format(serving_agent)
+                messages.append(msg)
+            except IndexError:
+                # the close action may not have agent
+                pass
+
+        if parts[2] == "forward":
+            messages.append(
+                "Forwarding open rooms created before: " + date_created_ago.isoformat()
+            )
+            # defining agent
+            try:
+                agent = parts[4]
+                if agent != "*":
+                    kwargs["agents"] = [agent]
+                serving_agent = agent if agent else "ALL"
+                msg = "Rooms with agent serving: {0}".format(serving_agent)
+                messages.append(msg)
+            except IndexError:
+                messages.append("ERROR! No Agent Provided.")
+                return {"success": False, "message": "\n".join(messages)}
+            # defining department
+
+        self.get_rocket_client()
+
+        rooms = self.rocket.livechat_rooms(**kwargs).json()
+        messages.append("Rooms found:" + str(len(rooms["rooms"])))
+        for room in rooms["rooms"]:
+            if parts[2] == "close":
+                room_id = room["_id"]
+                close = self.rocket.call_api_post(
+                    "livechat/room.close", rid=room_id, token=room["v"]["token"]
+                )
+                room_url = "{0}/omnichannel/current/{1}/room-info".format(
+                    self.connector.server.url, room_id
+                )
+                if close.ok:
+                    messages.append(
+                        ":heavy_check_mark: [Room closed: {0}]({1})".format(
+                            room_id, room_url
+                        )
+                    )
+                else:
+                    messages.append(
+                        ":stop_sign: (ERROR CLOSING ROOM: {0}]({1})".format(
+                            room_id, room_url
+                        )
+                    )
+        return {"success": True, "message": "\n".join(messages)}
 
     def check_number_status(self, number):
         endpoint = "{0}/api/{1}/check-number-status/{2}".format(
@@ -476,9 +585,12 @@ class Connector(ConnectorBase):
                         response = self.connector.status_session()
                     if action == "close":
                         response = self.connector.close_session()
+                    if action == "livechat":
+                        response = self.livechat_manager(self.message)
 
                     # return status
                     output = {**output, **response}
+                    self.logger_info("RETURN OF ACTION MESSAGE: {0}".format(output))
                     return JsonResponse(output)
 
         if self.message.get("event") == "qrcode":
