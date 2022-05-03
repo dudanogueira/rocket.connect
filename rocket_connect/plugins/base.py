@@ -680,9 +680,10 @@ class Connector(object):
                 print("LivechatSessionForwarded")
         if self.message.get("type") == "LivechatSessionQueued":
             #
-            # This message is sent when the message if Forwarded
+            # This message is sent when the Livechat is queued
             if settings.DEBUG:
                 print("LivechatSessionQueued")
+            self.handle_livechat_session_queued()
         if self.message.get("type") == "Message":
             message, created = self.register_message()
             if not message.delivered:
@@ -772,6 +773,9 @@ class Connector(object):
                     self.room.room_id,
                     text=self.config.get("convert_incoming_audio_to_text"),
                 )
+
+    def handle_livechat_session_queued(self):
+        self.logger_info("HANDLING LIVECHATSESSION QUEUED")
 
     def handle_livechat_session_taken(self):
         self.logger_info("HANDLING LIVECHATSESSION TAKEN")
