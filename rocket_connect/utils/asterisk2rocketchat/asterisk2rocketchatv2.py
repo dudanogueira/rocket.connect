@@ -12,9 +12,24 @@ headers = {
     "X-User-Id": "avmX38wqkezv55obK",
 }
 rocketchat_url = "http://rocketchat:3000"
-room_id = "GENERAL"
+# room_id = "GENERAL"
 #
 #
+
+
+def get_room_id(payload):
+    """
+    this method will return the room ID
+    so you depending on the message, or Queue
+    you have have different rooms
+    """
+    # if payload.get("Queue") in ["2002", 2002]:
+    #     room_id = "vPQnQiSDb6xFKiNj6"
+    # else:
+    #     room_id = "sJFFZKZJtzKPFh2d7"
+    # return room_id
+    # uncomment above to use room per queue, otherwise goes to GENERAL
+    return "GENERAL"
 
 
 def from_payload_to_message(payload):
@@ -31,6 +46,8 @@ def from_payload_to_message(payload):
 
 
 def get_default_payload(payload, room_id=None):
+    if room_id is None:
+        room_id = get_room_id(payload)
     return {
         "message": {
             # "msg": from_payload_to_message(payload),
@@ -82,16 +99,16 @@ def get_grouper_id(payload):
     this will return how we want to group messages by
     """
     n = re.sub("[^0-9]", "", payload.get("CallerIDNum"))
-    return str(datetime.date.today()) + "_" + n  # + '_' + payload.get("Queue")
+    return str(datetime.date.today()) + "_" + n + "_" + payload.get("Queue")
 
 
-def send_message_or_thread(payload, room_id, base_url="http://rocketchat:3000"):
+def send_message_or_thread(payload, base_url="http://rocketchat:3000"):
     grouper_id = get_grouper_id(payload)
     # search message
     url_search = base_url + "/api/v1/chat.getThreadMessages?tmid={0}".format(grouper_id)
     response = requests.get(url_search, headers=headers)
     # discussion already open
-    payload = get_default_payload(payload, room_id)
+    payload = get_default_payload(payload)
     if response.ok:
         # we already have a grouper
         payload["message"]["tmid"] = grouper_id
@@ -167,10 +184,7 @@ def callback(manager, message):
         # if event == "QueueCallerAbandon":
         # if event == "OtherEvent":
         payload = dict(message.items())
-        send_message_or_thread(
-            payload,
-            room_id,
-        )
+        send_message_or_thread(payload, base_url=rocketchat_url)
 
 
 def main():
