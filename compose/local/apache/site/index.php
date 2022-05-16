@@ -100,6 +100,11 @@
             j.async = true; j.src = 'http://localhost:3000/livechat/rocketchat-livechat.min.js?_=201903270000';
             h.parentNode.insertBefore(j, h);
         })(window, document, 'script', 'http://localhost:3000/livechat');
+
+        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        RocketChat(function() {
+            this.setCustomField('timezone', tz);
+        });
     </script>
 </body>
 
