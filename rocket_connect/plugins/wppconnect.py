@@ -252,11 +252,12 @@ class Connector(ConnectorBase):
             name_order = self.config.get(
                 "name_extraction_order", "pushname,name,shortName"
             )
-            for order in name_order.split(","):
-                if number_info.get("response", {}).get(order, False):
-                    self.message["sender"][order] = number_info.get("response", {}).get(
-                        order
-                    )
+            if number_info:
+                for order in name_order.split(","):
+                    if number_info.get("response", {}).get(order, False):
+                        self.message["sender"][order] = number_info.get(
+                            "response", {}
+                        ).get(order)
 
         return number_info_req.json()
 
