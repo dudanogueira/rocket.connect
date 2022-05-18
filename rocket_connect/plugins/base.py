@@ -749,6 +749,16 @@ class Connector:
                     self.room.room_id,
                     text=self.config.get("convert_incoming_call_to_text"),
                 )
+        # mark incoming call message as delivered
+        m = self.message_object
+        m.delivered = True
+        m.save()
+        self.message_object = m
+        self.logger_info(
+            "handle_incoming_call marked message {} as read".format(
+                self.message_object.id
+            )
+        )
 
     def handle_ptt(self):
         if self.config.get("auto_answer_on_audio_message"):
