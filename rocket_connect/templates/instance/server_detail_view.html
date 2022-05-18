@@ -12,6 +12,11 @@
 </div>
 <div class="container p-5" id="server-header">
     <h1>
+        {% if request.user.is_staff %}
+        <a name="" id="" class="btn btn-primary" href="{% url 'admin:instance_server_change' server.id %}" role="button">
+            <i class="fa fa-edit" aria-hidden="true"></i>
+        </a>
+        {% endif %}
         {{server}} <span class="text-{{ server.enabled|yesno:'success,danger' }}">{{ server.enabled|yesno:"Active,Inactive" }}</span>
     </h1>
     <hr />

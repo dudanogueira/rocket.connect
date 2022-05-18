@@ -36,6 +36,7 @@ qrcode[pil]
 # HELPERS
 #
 requests-toolbelt==0.9.1
+fontawesomefree==5.15.4
 
 
 # ASTERISK CONNECTOR PLUGIN

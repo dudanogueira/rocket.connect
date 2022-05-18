@@ -9,6 +9,11 @@
     <span class="breadcrumb-item active">{{connector}} </span>
 </nav>
 <h1>
+    {% if request.user.is_staff %}
+    <a name="" id="" class="btn btn-primary" href="{% url 'admin:instance_connector_change' connector.id %}" role="button">
+        <i class="fa fa-edit" aria-hidden="true"></i>
+    </a>
+    {% endif %}
     {{connector}}
     <span class="text-{{ connector.enabled|yesno:'success,danger' }}">
         {{connector.enabled|yesno:"Active,Inactive" }}
