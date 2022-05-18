@@ -153,6 +153,11 @@ class Server(models.Model):
             return True
         return False
 
+    def get_external_url(self):
+        if not self.external_url:
+            return self.url
+        return self.external_url
+
     uuid = models.UUIDField(default=uuid.uuid4, editable=False)
     owners = models.ManyToManyField(
         settings.AUTH_USER_MODEL, related_name="servers", blank=True
@@ -167,6 +172,11 @@ class Server(models.Model):
     name = models.CharField(max_length=50)
     enabled = models.BooleanField(default=True)
     url = models.CharField(max_length=150)
+    external_url = models.CharField(
+        max_length=150,
+        blank=True,
+        help_text="This field is used to link to actual server. If blank, url is used.",
+    )
     admin_user = models.CharField(max_length=50)
     admin_password = models.CharField(max_length=50)
     admin_user_id = models.CharField(

@@ -31,6 +31,7 @@ class Command(BaseCommand):
         else:
             print("SERVER UPDATED")
         server.url = "http://rocketchat:3000"
+        server.external_url = "http://localhost:3000"
         server.admin_user = "admin"
         server.admin_password = "admin"
         server.bot_user = "bot"

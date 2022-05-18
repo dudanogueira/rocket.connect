@@ -20,7 +20,7 @@
         {{server}} <span class="text-{{ server.enabled|yesno:'success,danger' }}">{{ server.enabled|yesno:"Active,Inactive" }}</span>
     </h1>
     <hr />
-    <a href="{{server.url}}">{{server.url}}</a>
+    <a href="{{server.get_external_url}}">{{server.get_external_url}}</a>
     {% if status.alive %}
         <span class="badge badge-success">UP</span>
         <span class="badge badge-info">Version: {{status.info.info.version}}</span>
@@ -35,7 +35,7 @@
     <hr />
     <i>
         Add to Rocket.Chat's Omnichannel WebHook Endpoint:<br />
-        {{base_uri}}/server/{{server.external_token}}/
+        {{server.url}}/server/{{server.external_token}}/
     </i>
 </div>
 

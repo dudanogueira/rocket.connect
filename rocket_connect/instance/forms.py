@@ -8,6 +8,7 @@ class NewServerForm(ModelForm):
         fields = [
             "name",
             "url",
+            "external_url",
             "secret_token",
             "admin_user_id",
             "admin_user_token",

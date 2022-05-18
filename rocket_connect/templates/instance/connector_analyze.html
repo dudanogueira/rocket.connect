@@ -124,7 +124,7 @@ Endpoint: {{base_uri}}/connector/{{connector.external_token}}/
                         <h2>
                             {{rooms.grouper}}
                             <a
-                                href="http://{{rooms.list.0.connector.server.url}}/live/{{rooms.grouper.room_id}}">link</a>
+                                href="{{rooms.list.0.connector.server.get_external_url}}/live/{{rooms.grouper.room_id}}">link</a>
                         </h2>
                     </h4>
                     <p class="card-text">
@@ -137,10 +137,12 @@ Endpoint: {{base_uri}}/connector/{{connector.external_token}}/
                         </button>
                     </p>
                     <div class="collapse" id="collapse-{{message.id}}">
-                        <a name="" id="" class="btn btn-danger" href="?id={{message.id}}&action=force_delivery"
-                            role="button">force delivery</a>
-                        <a name="" id="" class="btn btn-success" href="?id={{message.id}}&action=mark_as_delivered"
-                            role="button">mark as delivered</a>
+                        <p class="text-center">
+                            <a name="" id="" class="btn btn-danger" href="?id={{message.id}}&action=force_delivery"
+                                role="button">force delivery</a>
+                            <a name="" id="" class="btn btn-success" href="?id={{message.id}}&action=mark_as_delivered"
+                                role="button">mark as delivered</a>
+                        </p>
                         <div class="card card-body m-3">
                             <pre>{{message.raw_message|pprint}}</pre>
                         </div>
