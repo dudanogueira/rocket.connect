@@ -138,6 +138,21 @@ class Server(models.Model):
         for connector in self.connectors.all():
             connector.force_delivery()
 
+    def multiple_connector_admin_message(self, text):
+        """
+        this method will send an admin message to all active connectors
+        """
+        output = []
+        for connector in self.connectors.filter(enabled=True):
+            Connector = connector.get_connector_class()
+            conncetor_cls = Connector(connector, message={}, type="outgoing")
+            text = f"{connector.name} > {text}"
+            message_sent = conncetor_cls.outcome_admin_message(text=text)
+            output.append(message_sent)
+        if output and all(output):
+            return True
+        return False
+
     uuid = models.UUIDField(default=uuid.uuid4, editable=False)
     owners = models.ManyToManyField(
         settings.AUTH_USER_MODEL, related_name="servers", blank=True

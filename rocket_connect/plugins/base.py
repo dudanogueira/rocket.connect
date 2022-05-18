@@ -235,6 +235,7 @@ class Connector:
         return img_str
 
     def outcome_admin_message(self, text):
+        output = []
         managers = self.connector.get_managers()
         managers_channel = self.connector.get_managers_channel(as_string=False)
         if settings.DEBUG:
@@ -250,16 +251,18 @@ class Connector:
             if response.get("success"):
                 if settings.DEBUG:
                     print("SENDING ADMIN MESSAGE")
-                self.rocket.chat_post_message(
+                direct_message = self.rocket.chat_post_message(
                     alias=self.connector.name,
                     text=text_message,
                     room_id=response["room"]["rid"],
                 )
+                output.append(direct_message.ok)
             # send to managers channel
             for manager_channel in managers_channel:
                 manager_channel_message = self.rocket.chat_post_message(
                     text=text_message, channel=manager_channel.replace("#", "")
                 )
+                output.append(manager_channel_message.ok)
                 if manager_channel_message.ok:
                     self.logger_info(
                         "OK! manager_channel_message payload received: {}".format(
@@ -272,6 +275,10 @@ class Connector:
                             manager_channel_message.json()
                         )
                     )
+            if output and all(output):
+                return True
+        # return false
+        return False
 
     def get_visitor_name(self):
         try:

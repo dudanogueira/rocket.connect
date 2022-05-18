@@ -55,7 +55,15 @@ def server_endpoint(request, server_id):
         # roketchat test message
         #
         if raw_message.get("_id") == "fasd6f5a4sd6f8a4sdf":
-            return JsonResponse({})
+            message_sent = server.multiple_connector_admin_message(
+                "Rocket.Chat Omnichannel Connection Test was Received. This is the response."
+            )
+            if message_sent:
+                return JsonResponse({})
+            else:
+                return HttpResponse(
+                    "Unauthorized. No X-Rocketchat-Livechat-Token provided.", status=401
+                )
         else:
             # process ingoing message
             try:
