@@ -82,7 +82,7 @@ def server_endpoint(request, server_id):
                     secondary_connector, request.body, "ingoing", request
                 )
                 connector.logger_info(
-                    "RUNING SECONDARY CONNECTOR *{0}* WITH BODY {1}:".format(
+                    "RUNING SECONDARY CONNECTOR *{}* WITH BODY {}:".format(
                         sconnector.connector, request.body
                     )
                 )
@@ -109,14 +109,14 @@ def server_detail_view(request, server_id):
             if message.delivered:
                 messages.success(
                     request,
-                    "Sucess! Message #{0} was delivered at connector {1}".format(
+                    "Sucess! Message #{} was delivered at connector {}".format(
                         message.id, message.connector.name
                     ),
                 )
             else:
                 messages.error(
                     request,
-                    "Error! Could not deliver Message #{0} at connector {1}".format(
+                    "Error! Could not deliver Message #{} at connector {}".format(
                         message.id, message.connector.name
                     ),
                 )
@@ -193,23 +193,21 @@ def connector_analyze(request, server_id, connector_id):
                 if delivery_happened:
                     messages.success(
                         request,
-                        "Success! Message #{0} was delivered at connector {1}".format(
+                        "Success! Message #{} was delivered at connector {}".format(
                             message.id, connector.name
                         ),
                     )
                 else:
                     messages.error(
                         request,
-                        "Error! Could not deliver Message #{0} at connector {1}".format(
+                        "Error! Could not deliver Message #{} at connector {}".format(
                             message.id, connector.name
                         ),
                     )
         if request.GET.get("action") == "mark_as_delivered":
             undelivered_messages.update(delivered=True)
             for um in undelivered_messages:
-                messages.success(
-                    request, "Message #{0} marked as delivered".format(um.id)
-                )
+                messages.success(request, f"Message #{um.id} marked as delivered")
         if request.GET.get("action") == "show":
             # we want to show the messages, so just pass
             # as the other actions will redirect
@@ -239,9 +237,7 @@ def connector_analyze(request, server_id, connector_id):
         if config_form.is_valid():
             # TODO: better save here
             config_form.save()
-            messages.success(
-                request, "Configurations changed for {0}".format(connector.name)
-            )
+            messages.success(request, f"Configurations changed for {connector.name}")
     else:
         if config_form:
             config_form = config_form(connector=connector)
@@ -277,9 +273,7 @@ def new_connector(request, server_id):
             form = NewConnectorForm(instance=new_connector, server=server)
             if form.is_valid():
                 new_connector = form.save()
-            messages.success(
-                request, "New connector {0} created.".format(new_connector.name)
-            )
+            messages.success(request, f"New connector {new_connector.name} created.")
             return redirect(
                 reverse(
                     "instance:connector_analyze",
@@ -311,7 +305,7 @@ def new_server(request):
                 reverse("instance:server_detail", args=[server.external_token])
             )
         else:
-            messages.error(request, "Error {0}".format(status))
+            messages.error(request, f"Error {status}")
 
     context = {"form": form}
     return render(request, "instance/new_server.html", context)

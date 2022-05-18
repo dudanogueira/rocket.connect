@@ -65,7 +65,7 @@ class Connector(ConnectorBase):
                 return HttpResponse("Rocket Down!", status=503)
             self.outcome_qrbase64(self.message["data"]["base64Qrimg"])
             self.outcome_admin_message(
-                "Attempt: {0}".format(self.message["data"]["attempts"])
+                "Attempt: {}".format(self.message["data"]["attempts"])
             )
 
         if self.message.get("event") == "onStateChanged":

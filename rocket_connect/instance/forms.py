@@ -18,7 +18,7 @@ class NewServerForm(ModelForm):
 class NewConnectorForm(ModelForm):
     def __init__(self, *args, **kwargs):
         server = kwargs.pop("server")
-        super(NewConnectorForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         connector_choices = [("wppconnect", "WPPConnect"), ("facebook", "Facebook")]
         # get departments
         rocket = server.get_rocket_client()

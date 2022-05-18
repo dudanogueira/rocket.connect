@@ -72,8 +72,7 @@ services:
     command: /start-docs
 
   mailhog:
-    image: mailhog/mailhog:v1.0.0
-    container_name: mailhog
+    image: mailhog/mailhog:v1.0.1
     ports:
       - "8025:8025"
 

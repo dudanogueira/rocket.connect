@@ -187,7 +187,7 @@ class Connector(models.Model):
     def get_connector_class(self):
         connector_type = self.connector_type
         # import the connector plugin
-        plugin_string = "rocket_connect.plugins.{0}".format(connector_type)
+        plugin_string = f"rocket_connect.plugins.{connector_type}"
         try:
             plugin = __import__(plugin_string, fromlist=["Connector"])
         # no connector plugin, going base
@@ -204,7 +204,7 @@ class Connector(models.Model):
     def get_connector_config_form(self):
         connector_type = self.connector_type
         # import the connector plugin
-        plugin_string = "rocket_connect.plugins.{0}".format(connector_type)
+        plugin_string = f"rocket_connect.plugins.{connector_type}"
         try:
             plugin = __import__(plugin_string, fromlist=["ConnectorConfigForm"])
             # return form or false
@@ -274,7 +274,7 @@ class Connector(models.Model):
             )
             # log it
             connector.logger_info(
-                "RUNING SECONDARY CONNECTOR *{0}* WITH BODY {1}:".format(
+                "RUNING SECONDARY CONNECTOR *{}* WITH BODY {}:".format(
                     sconnector.connector, request.body
                 )
             )

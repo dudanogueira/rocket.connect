@@ -1,33 +1,34 @@
 pytz  # https://github.com/stub42/pytz
-python-slugify==5.0.2  # https://github.com/un33k/python-slugify
-Pillow==8.4.0  # https://github.com/python-pillow/Pillow
-argon2-cffi==21.1.0  # https://github.com/hynek/argon2_cffi
-whitenoise==5.3.0  # https://github.com/evansd/whitenoise
-redis==3.5.3  # https://github.com/andymccurdy/redis-py
+python-slugify==6.1.2  # https://github.com/un33k/python-slugify
+Pillow==9.1.1  # https://github.com/python-pillow/Pillow
+argon2-cffi==21.3.0  # https://github.com/hynek/argon2_cffi
+whitenoise==6.1.0  # https://github.com/evansd/whitenoise
+redis==4.3.1  # https://github.com/andymccurdy/redis-py
 hiredis==2.0.0  # https://github.com/redis/hiredis-py
-celery==5.2.0  # pyup: < 5.0,!=4.4.7  # https://github.com/celery/celery
+celery==5.2.6  # pyup: < 5.0,!=4.4.7  # https://github.com/celery/celery
 django-celery-beat==2.2.1  # https://github.com/celery/django-celery-beat
 flower==1.0.0  # https://github.com/mher/flower
-uvicorn[standard]==0.15.0  # https://github.com/encode/uvicorn
+uvicorn[standard]==0.17.6  # https://github.com/encode/uvicorn
 
 # Django
 # ------------------------------------------------------------------------------
-django==3.2.9  # pyup: < 3.2  # https://www.djangoproject.com/
+django==3.2.13  # pyup: < 3.2  # https://www.djangoproject.com/
 django-environ==0.8.1  # https://github.com/joke2k/django-environ
 django-model-utils==4.2.0  # https://github.com/jazzband/django-model-utils
-django-allauth==0.45.0  # https://github.com/pennersr/django-allauth
-django-crispy-forms==1.13.0  # https://github.com/django-crispy-forms/django-crispy-forms
-django-redis==5.0.0  # https://github.com/jazzband/django-redis
+django-allauth==0.50.0  # https://github.com/pennersr/django-allauth
+django-crispy-forms==1.14.0  # https://github.com/django-crispy-forms/django-crispy-forms
+django-redis==5.2.0  # https://github.com/jazzband/django-redis
 # Django REST Framework
-djangorestframework==3.12.4  # https://github.com/encode/django-rest-framework
-django-cors-headers==3.10.0 # https://github.com/adamchainz/django-cors-headers
+djangorestframework==3.13.1  # https://github.com/encode/django-rest-framework
+django-cors-headers==3.12.0 # https://github.com/adamchainz/django-cors-headers
 
 # RocketChat
 # ------------------------------------------------------------------------------
-rocketchat-API==1.20.0 # https://github.com/jadolg/rocketchat_API/
+rocketchat-API==1.25.0 # https://github.com/jadolg/rocketchat_API/
 
 # QR
 # ------------------------------------------------------------------------------
+#zbar
 zbarlight
 qrcode[pil]
 

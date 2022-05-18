@@ -22,7 +22,7 @@ from PIL import Image
 from emojipy import emojipy
 
 
-class Connector(object):
+class Connector:
     def __init__(self, connector, message, type, request=None):
         self.connector = connector
         self.type = type
@@ -49,23 +49,21 @@ class Connector(object):
         return True
 
     def logger_info(self, message):
-        output = "{0} > {1} > {2}".format(self.connector, self.type.upper(), message)
+        output = f"{self.connector} > {self.type.upper()} > {message}"
         if self.message:
             if self.get_message_id():
-                output = "MESSAGE ID {0} > ".format(self.get_message_id()) + output
+                output = f"MESSAGE ID {self.get_message_id()} > " + output
         self.logger.info(output)
 
     def logger_error(self, message):
-        self.logger.error(
-            "{0} > {1} > {2}".format(self.connector, self.type.upper(), message)
-        )
+        self.logger.error(f"{self.connector} > {self.type.upper()} > {message}")
 
     def incoming(self):
         """
         this method will process the incoming messages
         and ajust what necessary, to output to rocketchat
         """
-        self.logger_info("INCOMING MESSAGE: {0}".format(self.message))
+        self.logger_info(f"INCOMING MESSAGE: {self.message}")
         return JsonResponse(
             {
                 "connector": self.connector.name,
@@ -97,7 +95,7 @@ class Connector(object):
                 rocket.rooms_upload(
                     rid=im_room_created["room"]["rid"],
                     file=tmp.name,
-                    msg=":rocket: Connect > *Connector Name*: {0}".format(
+                    msg=":rocket: Connect > *Connector Name*: {}".format(
                         self.connector.name
                     ),
                     description="Scan this QR Code at your Whatsapp Phone:",
@@ -113,19 +111,19 @@ class Connector(object):
                         send_qr_code = rocket.rooms_upload(
                             rid=rid,
                             file=tmp.name,
-                            msg=":rocket: Connect > *Connector Name*: {0}".format(
+                            msg=":rocket: Connect > *Connector Name*: {}".format(
                                 self.connector.name
                             ),
                             description="Scan this QR Code at your Whatsapp Phone:",
                         )
                         self.logger_info(
-                            "SENDING QRCODE TO ROOM... {0}: {1}".format(
+                            "SENDING QRCODE TO ROOM... {}: {}".format(
                                 channel, send_qr_code.json()
                             )
                         )
                 else:
                     self.logger_error(
-                        "FAILED TO SEND QRCODE TO ROOM... {0}: {1}".format(
+                        "FAILED TO SEND QRCODE TO ROOM... {}: {}".format(
                             channel, room_infos.json()
                         )
                     )
@@ -151,11 +149,11 @@ class Connector(object):
             data = {}
             if description:
                 data["description"] = description
-            url = "{0}/api/v1/livechat/upload/{1}".format(
+            url = "{}/api/v1/livechat/upload/{}".format(
                 self.connector.server.url, room_id
             )
             deliver = requests.post(url, headers=headers, files=files, data=data)
-            self.logger_info("RESPONSE OF FILE OUTCOME: {0}".format(deliver.json()))
+            self.logger_info(f"RESPONSE OF FILE OUTCOME: {deliver.json()}")
             timestamp = int(time.time())
             if self.message_object:
                 self.message_object.payload[timestamp] = {
@@ -187,13 +185,11 @@ class Connector(object):
             self.message_object.payload[timestamp] = json.loads(deliver.request.body)
             self.message_object.response[timestamp] = deliver.json()
         if settings.DEBUG:
-            self.logger_info("DELIVERING... {0}".format(deliver.request.body))
-            self.logger_info("RESPONSE... {0}".format(deliver.json()))
+            self.logger_info(f"DELIVERING... {deliver.request.body}")
+            self.logger_info(f"RESPONSE... {deliver.json()}")
         if deliver.ok:
             if settings.DEBUG:
-                self.logger_info(
-                    "MESSAGE DELIVERED... {0}".format(deliver.request.body)
-                )
+                self.logger_info(f"MESSAGE DELIVERED... {deliver.request.body}")
             if self.message_object:
                 self.message_object.delivered = True
                 self.message_object.room = self.room
@@ -250,7 +246,7 @@ class Connector(object):
             response = im_room.json()
             if settings.DEBUG:
                 print("CREATE ADMIN ROOM TO OUTCOME", im_room.json())
-            text_message = ":rocket: CONNECT {0}".format(text)
+            text_message = f":rocket: CONNECT {text}"
             if response.get("success"):
                 if settings.DEBUG:
                     print("SENDING ADMIN MESSAGE")
@@ -266,13 +262,13 @@ class Connector(object):
                 )
                 if manager_channel_message.ok:
                     self.logger_info(
-                        "OK! manager_channel_message payload received: {0}".format(
+                        "OK! manager_channel_message payload received: {}".format(
                             manager_channel_message.json()
                         )
                     )
                 else:
                     self.logger_info(
-                        "ERROR! manager_channel_message: {0}".format(
+                        "ERROR! manager_channel_message: {}".format(
                             manager_channel_message.json()
                         )
                     )
@@ -286,7 +282,7 @@ class Connector(object):
 
     def get_visitor_username(self):
         try:
-            visitor_username = "whatsapp:{0}".format(
+            visitor_username = "whatsapp:{}".format(
                 # works for wa-automate
                 self.message.get("data", {}).get("from")
             )
@@ -370,7 +366,7 @@ class Connector(object):
         try:
             # this works for wa-automate EASYAPI
             visitor_id = self.get_visitor_id()
-            visitor_id = "whatsapp:{0}".format(visitor_id)
+            visitor_id = f"whatsapp:{visitor_id}"
             return visitor_id
         except IndexError:
             return "channel:visitor-id"
@@ -471,7 +467,7 @@ class Connector(object):
                         # let the agent know
                         self.outcome_text(
                             room.room_id,
-                            "MESSAGE SENT: {0}".format(
+                            "MESSAGE SENT: {}".format(
                                 self.config.get("welcome_message")
                             ),
                             message_id=self.get_message_id() + "WELCOME",
@@ -498,7 +494,7 @@ class Connector(object):
                         # let the agent know
                         self.outcome_text(
                             room_id=room.room_id,
-                            text="VCARD SENT: {0}".format(
+                            text="VCARD SENT: {}".format(
                                 self.config.get("welcome_vcard")
                             ),
                             message_id=self.get_message_id() + "VCARD",
@@ -521,7 +517,7 @@ class Connector(object):
 
     def room_send_text(self, room_id, text, message_id=None):
         if settings.DEBUG:
-            print("SENDING MESSAGE TO ROOM ID {0}: {1}".format(room_id, text))
+            print(f"SENDING MESSAGE TO ROOM ID {room_id}: {text}")
         if not message_id:
             message_id = self.get_message_id()
         rocket = self.get_rocket_client()
@@ -532,11 +528,11 @@ class Connector(object):
             _id=message_id,
         )
         if settings.DEBUG:
-            self.logger_info("MESSAGE SENT. RESPONSE: {0}".format(response.json()))
+            self.logger_info(f"MESSAGE SENT. RESPONSE: {response.json()}")
         return response
 
     def register_message(self, type=None):
-        self.logger_info("REGISTERING MESSAGE: {0}".format(self.message))
+        self.logger_info(f"REGISTERING MESSAGE: {self.message}")
         try:
             if not type:
                 type = self.type
@@ -548,17 +544,15 @@ class Connector(object):
                 self.message_object.room = self.room
             self.message_object.save()
             if created:
-                self.logger_info(
-                    "NEW MESSAGE REGISTERED: {0}".format(self.message_object.id)
-                )
+                self.logger_info(f"NEW MESSAGE REGISTERED: {self.message_object.id}")
             else:
                 self.logger_info(
-                    "EXISTING MESSAGE REGISTERED: {0}".format(self.message_object.id)
+                    f"EXISTING MESSAGE REGISTERED: {self.message_object.id}"
                 )
             return self.message_object, created
         except IntegrityError:
             self.logger_info(
-                "CANNOT CREATE THIS MESSAGE AGAIN: {0}".format(self.get_message_id())
+                f"CANNOT CREATE THIS MESSAGE AGAIN: {self.get_message_id()}"
             )
             return "", False
 
@@ -592,7 +586,7 @@ class Connector(object):
             # this works for wa-automate EASYAPI
             message_body = self.message.get("data", {}).get("body")
         except IndexError:
-            message_body = "New Message: {0}".format(
+            message_body = "New Message: {}".format(
                 "".join(random.choice(string.ascii_letters) for i in range(10))
             )
         return message_body
@@ -620,7 +614,7 @@ class Connector(object):
     def decrypt_media(self, message_id=None):
         if not message_id:
             message_id = self.get_message_id()
-        url_decrypt = "{0}/decryptMedia".format(self.config["endpoint"])
+        url_decrypt = "{}/decryptMedia".format(self.config["endpoint"])
         payload = {"args": {"message": message_id}}
         s = self.get_request_session()
         decrypted_data_request = s.post(url_decrypt, json=payload)
@@ -654,7 +648,7 @@ class Connector(object):
         this method will process the outcoming messages
         comming from Rocketchat, and deliver to the connector
         """
-        self.logger_info("RECEIVED: {0}".format(self.message))
+        self.logger_info(f"RECEIVED: {self.message}")
         # Session start
         if self.message.get("type") == "LivechatSessionStart":
             if settings.DEBUG:
@@ -732,20 +726,18 @@ class Connector(object):
         this method should be overwritten to send the message back to the client
         """
         if agent_name:
-            self.logger_info(
-                "OUTGOING MESSAGE {0} FROM AGENT {1}".format(message, agent_name)
-            )
+            self.logger_info(f"OUTGOING MESSAGE {message} FROM AGENT {agent_name}")
         else:
-            self.logger_info("OUTGOING MESSAGE {0}".format(message))
+            self.logger_info(f"OUTGOING MESSAGE {message}")
         return True
 
     def outgo_vcard(self, vcard_json):
-        self.logger_info("OUTGOING VCARD {0}".format(vcard_json))
+        self.logger_info(f"OUTGOING VCARD {vcard_json}")
 
     def handle_incoming_call(self):
         if self.config.get("auto_answer_incoming_call"):
             self.logger_info(
-                "auto_answer_incoming_call: {0}".format(
+                "auto_answer_incoming_call: {}".format(
                     self.config.get("auto_answer_incoming_call")
                 )
             )
@@ -761,7 +753,7 @@ class Connector(object):
     def handle_ptt(self):
         if self.config.get("auto_answer_on_audio_message"):
             self.logger_info(
-                "auto_answer_on_audio_message: {0}".format(
+                "auto_answer_on_audio_message: {}".format(
                     self.config.get("auto_answer_on_audio_message")
                 )
             )
@@ -792,21 +784,21 @@ class Connector(object):
                 ignore_departments = [i for i in departments_list]
                 if transferred_department in ignore_departments:
                     self.logger_info(
-                        "IGNORING LIVECHATSESSION Alert for DEPARTMENT {0}".format(
+                        "IGNORING LIVECHATSESSION Alert for DEPARTMENT {}".format(
                             self.message.get("department")
                         )
                     )
                     # ignore this message
                     return {
                         "success": False,
-                        "message": "Ignoring department {0}".format(
+                        "message": "Ignoring department {}".format(
                             self.message.get("department")
                         ),
                     }
             self.get_rocket_client()
             # enrich context with department data
             department = self.rocket.call_api_get(
-                "livechat/department/{0}".format(self.message.get("departmentId"))
+                "livechat/department/{}".format(self.message.get("departmentId"))
             ).json()
             self.message["department"] = department["department"]
             template = Template(self.config.get("session_taken_alert_template"))
@@ -820,13 +812,11 @@ class Connector(object):
                 # let the agent know
                 self.outcome_text(
                     self.room.room_id,
-                    "MESSAGE SENT: {0}".format(message),
+                    f"MESSAGE SENT: {message}",
                     message_id=self.get_message_id() + "SESSION_TAKEN",
                 )
             outgo_text_obj = self.outgo_text_message(message_payload)
-            self.logger_info(
-                "HANDLING LIVECHATSESSION TAKEN {0}".format(outgo_text_obj)
-            )
+            self.logger_info(f"HANDLING LIVECHATSESSION TAKEN {outgo_text_obj}")
             return outgo_text_obj
 
 

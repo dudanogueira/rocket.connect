@@ -10,7 +10,7 @@ class LiveChatRoom(models.Model):
         verbose_name_plural = "Live Chat Rooms"
 
     def __str__(self):
-        return "{0} at {1}".format(self.token, self.room_id)
+        return f"{self.token} at {self.room_id}"
 
     uuid = models.UUIDField(default=uuid.uuid4, editable=False)
     connector = models.ForeignKey(
