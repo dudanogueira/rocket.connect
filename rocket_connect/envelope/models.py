@@ -79,6 +79,7 @@ class Message(models.Model):
     )
     response = models.JSONField(blank=True, null=True, default=dict)
     delivered = models.BooleanField(default=False)
+    ack = models.BooleanField(default=False)
     # meta
     created = models.DateTimeField(
         blank=True, auto_now_add=True, verbose_name="Created"

@@ -843,6 +843,7 @@ class Connector(ConnectorBase):
         return JsonResponse({})
 
     def handle_ack_fromme_message(self):
+        self.get_rocket_client()
         # activate this if default_fromme_ack_department is set
         if self.config.get("default_fromme_ack_department") and self.config.get(
             "default_fromme_ack_department_trigger"
@@ -850,14 +851,36 @@ class Connector(ConnectorBase):
             if self.config.get(
                 "default_fromme_ack_department_trigger"
             ) in self.message.get("body"):
-                self.get_rocket_client()
+
                 self.get_room(
                     department=self.config.get("default_fromme_ack_department")
                 )
-                self.logger_info(
-                    f"HANDLING ACK FROMME MESSAGE TRIGGER. PAYLOAD {self.message}"
+        if self.config.get("enable_ack_receipt"):
+            # get the sent message
+            message_id = self.message.get("id", {}).get("_serialized")
+            self.logger_info(f"enable_ack_receipt for {message_id}")
+            for message in self.connector.messages.filter(
+                response__id__contains=message_id
+            ):
+                if self.message["ack"] == 1:
+                    mark = ":ballot_box_with_check: "
+                else:
+                    mark = ":white_check_mark:"
+
+                original_message = self.rocket.chat_get_message(
+                    msg_id=message.envelope_id
                 )
-                # get the room at the specified
+                body = original_message.json()["message"]["msg"]
+                self.rocket.chat_update(
+                    room_id=message.room.room_id,
+                    msg_id=message.envelope_id,
+                    text=f"{mark} {body}",
+                )
+                message.ack = True
+                message.save()
+
+            # get it's envelop_id
+            # update rocketchat with to display the ack receipt
 
     def intake_unread_messages(self):
         """
@@ -998,6 +1021,15 @@ class Connector(ConnectorBase):
             if self.message_object:
                 self.message_object.delivered = sent.ok
                 self.message_object.response[timestamp] = sent.json()
+                if not self.message_object.response.get("id"):
+                    self.message_object.response["id"] = [
+                        sent.json()["response"][0]["id"]
+                    ]
+                else:
+                    self.message_object.response["id"].append(
+                        sent.json()["response"][0]["id"]
+                    )
+
         except requests.ConnectionError:
             if self.message_object:
                 self.message_object.delivered = False
@@ -1122,6 +1154,11 @@ class ConnectorConfigForm(BaseConnectorConfigForm):
     default_fromme_ack_department_trigger = forms.CharField(
         required=False,
         help_text="This is trigger word a message must have in order to trigger the ack from me feature",
+    )
+
+    enable_ack_receipt = forms.BooleanField(
+        required=False,
+        help_text="This will update the ingoing message to show it was delivered and received",
     )
 
     field_order = [

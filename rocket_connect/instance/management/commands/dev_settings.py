@@ -119,6 +119,7 @@ class Command(BaseCommand):
             "secret_key": "THISISMYSECURETOKEN",
             "instance_name": "test",
             "include_connector_status": True,
+            "enable_ack_receipt": True,
             "outcome_attachment_description_as_new_message": True,
             "active_chat_webhook_integration_token": "WPP_ZAPIT_TOKEN",
             "session_management_token": "session_management_secret_token",
