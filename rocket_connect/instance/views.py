@@ -22,6 +22,20 @@ def connector_endpoint(request, connector_id):
     return return_response
 
 
+@csrf_exempt
+def connector_inbound_endpoint(request, connector_id):
+    connector = get_object_or_404(
+        Connector, external_token=connector_id, enabled=True, server__enabled=True
+    )
+    return_response = connector.inbound_intake(request)
+    # it can request a redirect
+    if return_response.get("redirect"):
+        return redirect(return_response["redirect"])
+    if return_response.get("notfound"):
+        return HttpResponse(return_response.get("notfound"), status=404)
+    return JsonResponse(return_response)
+
+
 # Custom decorator
 def must_be_yours(func):
     def check_and_call(request, *args, **kwargs):

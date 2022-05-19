@@ -836,6 +836,18 @@ class Connector:
             self.logger_info(f"HANDLING LIVECHATSESSION TAKEN {outgo_text_obj}")
             return outgo_text_obj
 
+    def handle_inbound(self, request):
+        """
+        this method will handle inbound payloads
+        you can return
+
+        {"success": True, "redirect":"http://rocket.chat"}
+
+        for redirecting to a new page.
+        """
+        self.logger_info("HANDLING INBOUND, returning default")
+        return {"success": True, "redirect": "http://rocket.chat"}
+
 
 class BaseConnectorConfigForm(forms.Form):
     def __init__(self, *args, **kwargs):

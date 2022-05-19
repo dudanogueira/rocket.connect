@@ -238,8 +238,7 @@ class Connector(ConnectorBase):
             token = self.config.get("token", {}).get("token")
 
         headers = {"Authorization": "Bearer " + token}
-        data = {"webhook": self.config.get("webhook")}
-        number_info_req = requests.get(endpoint, headers=headers, json=data)
+        number_info_req = requests.get(endpoint, headers=headers)
         number_info = number_info_req.json()
         self.logger.info(f"CHECKING CONTACT INFO FOR  NUMBER {number}: {number_info}")
         if augment_message:
@@ -287,11 +286,8 @@ class Connector(ConnectorBase):
         self.message["visitor"] = {"token": "whatsapp:" + number}
         check_number = self.check_number_status(number)
         # could not get number validation
-        if (
-            not check_number.get("response")
-            and check_number.get("status") == "Disconnected"
-        ) or not check_number.get("success", True):
-            alert = f"CONNECTOR *{self.connector.name}* IS DISCONNECTED"
+        if not check_number.get("response", {}).get("numberExists", False):
+            alert = f"COULD NOT SEND ACTIVE MESSAGE TO *{self.connector.name}*"
             self.logger_info(alert)
             self.rocket.chat_update(
                 room_id=room_id,
@@ -842,46 +838,6 @@ class Connector(ConnectorBase):
 
         return JsonResponse({})
 
-    def handle_ack_fromme_message(self):
-        self.get_rocket_client()
-        # activate this if default_fromme_ack_department is set
-        if self.config.get("default_fromme_ack_department") and self.config.get(
-            "default_fromme_ack_department_trigger"
-        ):
-            if self.config.get(
-                "default_fromme_ack_department_trigger"
-            ) in self.message.get("body"):
-
-                self.get_room(
-                    department=self.config.get("default_fromme_ack_department")
-                )
-        if self.config.get("enable_ack_receipt"):
-            # get the sent message
-            message_id = self.message.get("id", {}).get("_serialized")
-            self.logger_info(f"enable_ack_receipt for {message_id}")
-            for message in self.connector.messages.filter(
-                response__id__contains=message_id
-            ):
-                if self.message["ack"] == 1:
-                    mark = ":ballot_box_with_check: "
-                else:
-                    mark = ":white_check_mark:"
-
-                original_message = self.rocket.chat_get_message(
-                    msg_id=message.envelope_id
-                )
-                body = original_message.json()["message"]["msg"]
-                self.rocket.chat_update(
-                    room_id=message.room.room_id,
-                    msg_id=message.envelope_id,
-                    text=f"{mark} {body}",
-                )
-                message.ack = True
-                message.save()
-
-            # get it's envelop_id
-            # update rocketchat with to display the ack receipt
-
     def intake_unread_messages(self):
         """
         intake unread messages
@@ -979,7 +935,10 @@ class Connector(ConnectorBase):
 
     def outgo_text_message(self, message, agent_name=None):
         sent = False
-        content = message["msg"]
+        if type(message) == str:
+            content = message
+        else:
+            content = message["msg"]
         url = self.connector.config["endpoint"] + "/api/{}/send-message".format(
             self.connector.config["instance_name"]
         )
@@ -1102,6 +1061,65 @@ class Connector(ConnectorBase):
             self.message_object.payload[timestamp] = payload
             self.message_object.save()
 
+    def handle_inbound(self, request):
+        if request.GET.get("phone"):
+            check = self.check_number_status(request.GET.get("phone"))
+            if check["response"]["numberExists"]:
+                serialized_id = check.get("response").get("id").get("_serialized")
+                # get proper number
+                proper_number = check["response"]["id"]["user"]
+
+                department = request.GET.get("department", None)
+                if not department:
+                    department = self.config.get("default_inbound_department", None)
+
+                self.message = {
+                    "from": serialized_id,
+                    "chatId": serialized_id,
+                    "id": self.message.get("message_id"),
+                    "visitor": {"token": "whatsapp:" + serialized_id},
+                }
+                self.check_number_info(proper_number, augment_message=True)
+                self.message["visitor"] = {"token": "whatsapp:" + serialized_id}
+                self.get_rocket_client()
+                room = self.get_room(department, allow_welcome_message=False)
+                if room:
+                    # outcome message
+                    if request.GET.get("text"):
+                        # send message to channel
+                        self.rocket.chat_post_message(
+                            text=request.GET.get("text"), room_id=room.room_id
+                        )
+                    base_url = self.connector.server.external_url
+                    external_url = f"{base_url}/omnichannel/current/{room.room_id}"
+                    return {"success": True, "redirect": external_url}
+            else:
+                return {
+                    "success": False,
+                    "notfound": f"{request.GET.get('phone')} was not found",
+                }
+
+            self.logger_info(f"INBOUND MESSAGE. {request.GET}")
+
+    def handle_ack_fromme_message(self):
+        # activate this if default_fromme_ack_department is set
+        if self.config.get("default_fromme_ack_department") and self.config.get(
+            "default_fromme_ack_department_trigger"
+        ):
+            if self.config.get(
+                "default_fromme_ack_department_trigger"
+            ) in self.message.get("body"):
+                self.get_rocket_client()
+                self.get_room(
+                    department=self.config.get("default_fromme_ack_department"),
+                    allow_welcome_message=False,
+                )
+                self.logger_info(
+                    f"HANDLING ACK FROMME MESSAGE TRIGGER. PAYLOAD {self.message}"
+                )
+                # message was send previously
+                # TODO: check if can send alert message, based on config
+
 
 class ConnectorConfigForm(BaseConnectorConfigForm):
 
@@ -1159,6 +1177,11 @@ class ConnectorConfigForm(BaseConnectorConfigForm):
     enable_ack_receipt = forms.BooleanField(
         required=False,
         help_text="This will update the ingoing message to show it was delivered and received",
+    )
+
+    default_inbound_department = forms.CharField(
+        required=False,
+        help_text="This is the deparment that will be opened inbound active messages to by default",
     )
 
     field_order = [

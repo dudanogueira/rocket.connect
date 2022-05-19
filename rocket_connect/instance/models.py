@@ -315,6 +315,14 @@ class Connector(models.Model):
         # income message
         connector.outgoing()
 
+    def inbound_intake(self, request):
+        # get connector
+        Connector = self.get_connector_class()
+        # initiate with raw message
+        connector = Connector(self, {}, "inbound")
+        # handle inbound requests
+        return connector.handle_inbound(request)
+
     def get_managers(self, as_string=True):
         """
         this method will return the managers both from server and
