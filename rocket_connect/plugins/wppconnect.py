@@ -622,6 +622,7 @@ class Connector(ConnectorBase):
                 self.logger_info(f"PROCESSING UNREAD MESSAGE. PAYLOAD {self.message}")
                 # if it's a message from Me, ignore:
                 if self.message.get("id", {}).get("fromMe"):
+                    self.handle_ack_fromme_message()
                     return JsonResponse({})
                 # adapt unread messages to intake like a regular message
                 pass
@@ -818,6 +819,10 @@ class Connector(ConnectorBase):
                         )
                     )
 
+        # handle ack fromme
+        if self.message.get("event") == "onack":
+            self.handle_ack_fromme_message()
+
         # unread messages - just logging
         if self.message.get("event") == "unreadmessages":
             if "status@broadcast" not in self.message.get(
@@ -836,6 +841,23 @@ class Connector(ConnectorBase):
                 return JsonResponse(req)
 
         return JsonResponse({})
+
+    def handle_ack_fromme_message(self):
+        # activate this if default_fromme_ack_department is set
+        if self.config.get("default_fromme_ack_department") and self.config.get(
+            "default_fromme_ack_department_trigger"
+        ):
+            if self.config.get(
+                "default_fromme_ack_department_trigger"
+            ) in self.message.get("body"):
+                self.get_rocket_client()
+                self.get_room(
+                    department=self.config.get("default_fromme_ack_department")
+                )
+                self.logger_info(
+                    f"HANDLING ACK FROMME MESSAGE TRIGGER. PAYLOAD {self.message}"
+                )
+                # get the room at the specified
 
     def intake_unread_messages(self):
         """
@@ -873,11 +895,16 @@ class Connector(ConnectorBase):
             return self.message.get("id", {}).get("_serialized")
         if self.message.get("type") == "active_chat":
             return self.message.get("message_id")
+        if self.message.get("event") == "onack":
+            return self.message.get("id", {}).get("id")
         return self.message.get("id")
 
     def get_incoming_visitor_id(self):
         if self.message.get("event") == "incomingcall":
             return self.message.get("peerJid")
+        if self.message.get("event") == "onack":
+            if self.message.get("id", {}).get("fromMe"):
+                return self.message.get("id").get("remote")
         else:
             if self.message.get("event") == "unreadmessages":
                 return self.message.get("from")
@@ -1086,6 +1113,16 @@ class ConnectorConfigForm(BaseConnectorConfigForm):
     outcome_message_with_quoted_message = forms.BooleanField(required=False)
 
     session_management_token = forms.CharField(required=False)
+
+    default_fromme_ack_department = forms.CharField(
+        required=False,
+        help_text="This is a deparment where should be created a message sent from the mobile",
+    )
+
+    default_fromme_ack_department_trigger = forms.CharField(
+        required=False,
+        help_text="This is trigger word a message must have in order to trigger the ack from me feature",
+    )
 
     field_order = [
         "webhook",
