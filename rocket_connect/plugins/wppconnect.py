@@ -656,31 +656,36 @@ class Connector(ConnectorBase):
                                         not in department_triage_to_ignore
                                     ):
                                         button = {
-                                            "buttonId": department.get("_id"),
-                                            "buttonText": {
-                                                "displayText": department.get("name")
-                                            },
-                                            "type": 1,
+                                            "id": department.get("_id"),
+                                            "text": department.get("name"),
                                         }
                                         buttons.append(button)
                             # the message is a button reply. we now register the room
                             # with the choosen department and return
-                            if self.message.get("quotedMsg", {}).get(
-                                "isDynamicReplyButtonsMsg", False
-                            ):
+                            if self.message.get("type") == "template_button_reply":
                                 # the department text is body
                                 choosen_department = self.message.get("body")
                                 department_map = {}
                                 for b in buttons:
-                                    department_map[b["buttonText"]["displayText"]] = b[
-                                        "buttonId"
-                                    ]
+                                    department_map[b["text"]] = b["buttonId"]
                                 department = department_map[choosen_department]
                             else:
                                 # add destination phone
                                 payload = self.config.get("department_triage_payload")
+                                if not payload.get("options"):
+                                    payload["options"] = {"buttons": []}
+                                if not payload.get("options").get("buttons"):
+                                    payload["options"]["buttons"] = []
                                 payload["phone"] = self.get_visitor_id()
-                                payload["buttons"] = buttons
+                                payload_buttons = payload["options"]["buttons"]
+                                # limit to 3 department buttons, otherwise will not work
+                                payload["options"]["buttons"] = (
+                                    buttons[:3] + payload_buttons
+                                )
+                                payload["options"]["buttons"] = payload["options"][
+                                    "buttons"
+                                ][:5]
+                                # payload["options"]["buttons"] = buttons
                                 # outcome buttons
                                 message = {"msg": json.dumps(payload)}
                                 self.outgo_text_message(message)
