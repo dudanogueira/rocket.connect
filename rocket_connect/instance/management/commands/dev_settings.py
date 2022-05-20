@@ -124,9 +124,20 @@ class Command(BaseCommand):
             "active_chat_webhook_integration_token": "WPP_ZAPIT_TOKEN",
             "session_management_token": "session_management_secret_token",
             "department_triage_payload": {
-                "title": "Title for Button goes here",
-                "footer": "This is the footer for the message. Its optional to send",
-                "message": "Test Sending Buttons. Let me know what you think about this function in wppconnect?",
+                "message": "Message for your buttons",
+                "options": {
+                    "title": "Title text",
+                    "footer": "Footer text",
+                    "useTemplateButtons": "true",
+                    "buttons": [
+                        {"id": "2", "phoneNumber": "5531999999999", "text": "Call Us"},
+                        {
+                            "id": "3",
+                            "url": "https://wppconnect-team.github.io/",
+                            "text": "Long Life WPPCONNECT",
+                        },
+                    ],
+                },
             },
             "no_agent_online_alert_admin": "No agent online!. **Message**: {{body}} **From**: {{from}}",
             "session_taken_alert_template": "You are now talking with {{agent.name}}"
