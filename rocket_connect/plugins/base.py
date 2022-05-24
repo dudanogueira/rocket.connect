@@ -719,7 +719,7 @@ class Connector:
                         else:
                             self.outgo_text_message(message, agent_name=agent_name)
             else:
-                self.logger_info("MESSAGE ALREADY SEND. IGNORING.")
+                self.logger_info("MESSAGE ALREADY SENT. IGNORING.")
 
     def get_agent_name(self, message):
         agent_name = message.get("u", {}).get("name", {})

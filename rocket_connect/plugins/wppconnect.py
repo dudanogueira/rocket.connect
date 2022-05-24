@@ -1122,8 +1122,31 @@ class Connector(ConnectorBase):
                 self.logger_info(
                     f"HANDLING ACK FROMME MESSAGE TRIGGER. PAYLOAD {self.message}"
                 )
-                # message was send previously
-                # TODO: check if can send alert message, based on config
+        # ack receipt
+        if self.config.get("enable_ack_receipt"):
+            # get the sent message
+            self.get_rocket_client()
+            message_id = self.message.get("id", {}).get("_serialized")
+            self.logger_info(f"enable_ack_receipt for {message_id}")
+            for message in self.connector.messages.filter(
+                response__id__contains=message_id
+            ):
+                if self.message["ack"] == 1:
+                    mark = ":ballot_box_with_check: "
+                else:
+                    mark = ":white_check_mark:"
+
+                original_message = self.rocket.chat_get_message(
+                    msg_id=message.envelope_id
+                )
+                body = original_message.json()["message"]["msg"]
+                self.rocket.chat_update(
+                    room_id=message.room.room_id,
+                    msg_id=message.envelope_id,
+                    text=f"{mark} {body}",
+                )
+                message.ack = True
+                message.save()
 
 
 class ConnectorConfigForm(BaseConnectorConfigForm):
