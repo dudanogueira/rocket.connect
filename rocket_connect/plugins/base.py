@@ -454,6 +454,7 @@ class Connector:
         # optionally allow welcome message
         if allow_welcome_message:
             if self.config.get("welcome_message"):
+
                 # only send welcome message when
                 # 1 - open_room is False and there is a welcome_message
                 # 2 - open_room is True, room_created is True and there is a welcome_message
@@ -465,20 +466,22 @@ class Connector:
                     and room_created
                     and self.config.get("welcome_message")
                 ):
-                    message = {"msg": self.config.get("welcome_message")}
-                    self.outgo_text_message(message)
-                    # if room was created
-                    if room and self.config.get(
-                        "alert_agent_of_automated_message_sent", False
-                    ):
-                        # let the agent know
-                        self.outcome_text(
-                            room.room_id,
-                            "MESSAGE SENT: {}".format(
-                                self.config.get("welcome_message")
-                            ),
-                            message_id=self.get_message_id() + "WELCOME",
+                    # if we have room, send it using the room
+                    if room_created:
+                        payload = {
+                            "rid": self.room.room_id,
+                            "msg": self.config.get("welcome_message"),
+                        }
+                        a = self.outgo_message_from_rocketchat(payload)
+                        print("AQUI! ", a)
+                        self.logger_info(
+                            "OUTWENT welcome message from Rocket.Chat " + str(payload)
                         )
+                    # no room, send directly
+                    else:
+                        message = {"msg": self.config.get("welcome_message")}
+                        self.outgo_text_message(message)
+
             if self.config.get("welcome_vcard") != {}:
                 # only send welcome vcard when
                 #
@@ -598,10 +601,10 @@ class Connector:
             )
         return message_body
 
-    def get_rocket_client(self, bot=False):
+    def get_rocket_client(self, bot=False, force=False):
         # this will prevent multiple client initiation at the same
         # Classe initiation
-        if not self.rocket:
+        if not self.rocket or force:
             try:
                 self.rocket = self.connector.server.get_rocket_client(bot=bot)
             except requests.exceptions.ConnectionError:
@@ -609,6 +612,10 @@ class Connector:
                 self.rocket_down()
                 self.rocket = False
         return self.rocket
+
+    def outgo_message_from_rocketchat(self, payload):
+        self.get_rocket_client(bot=True, force=True)
+        return self.rocket.chat_send_message(payload)
 
     def rocket_down(self):
         if settings.DEBUG:

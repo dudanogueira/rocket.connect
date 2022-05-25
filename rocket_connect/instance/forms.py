@@ -20,7 +20,11 @@ class NewConnectorForm(ModelForm):
     def __init__(self, *args, **kwargs):
         server = kwargs.pop("server")
         super().__init__(*args, **kwargs)
-        connector_choices = [("wppconnect", "WPPConnect"), ("facebook", "Facebook")]
+        connector_choices = [
+            ("wppconnect", "WPPConnect"),
+            ("facebook", "Facebook"),
+            ("metacloudapi_whatsapp", "Meta Cloud WhatsApp"),
+        ]
         # get departments
         rocket = server.get_rocket_client()
         departments_raw = rocket.call_api_get("livechat/department").json()

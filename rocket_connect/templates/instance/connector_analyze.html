@@ -8,6 +8,7 @@
         href="{% url 'instance:server_detail' connector.server.external_token %}">{{connector.server}}</a>
     <span class="breadcrumb-item active">{{connector}} </span>
 </nav>
+<h3><span class="badge bg-info float-right badge-lg">{{connector.connector_type}}</span> </h3>
 <h1>
     {% if request.user.is_staff %}
     <a name="" id="" class="btn btn-primary" href="{% url 'admin:instance_connector_change' connector.id %}" role="button">
@@ -18,43 +19,59 @@
     <span class="text-{{ connector.enabled|yesno:'success,danger' }}">
         {{connector.enabled|yesno:"Active,Inactive" }}
     </span>
+
 </h1>
 
+
 Endpoint: {{base_uri}}/connector/{{connector.external_token}}/
+
 {% if connector.connector_type == "wppconnect" %}
-<div class="container">
-    <p>
-        <a name="" id="" class="btn btn-primary" href="?connector=wppconnect&connector_action=status_session" role="button">get
-            status</a>
-        <a name="" id="" class="btn btn-primary" href="?connector=wppconnect&connector_action=initialize"
-            role="button">initialize</a>
-        {% if connector_action_response.status_session.status == "CONNECTED" %}
-        <a name="" id="" class="btn btn-danger" href="?connector=wppconnect&connector_action=close_session"
-        role="button">close session</a>
-        {% endif %}
-
-    </p>
-</div>
-
-
-{% if connector_action_response %}
-
-<div class="card">
-    <div class="card-body">
-        <h4 class="card-title">Connector Response</h4>
-        <p class="card-text">
-            {% if connector_action_response.initialize.qrcode %}
-            <img src="{{connector_action_response.initialize.qrcode}}" alt="QRCODE" />
+<div id="wppconnect">
+    <div class="container">
+        <p>
+            <a name="" id="" class="btn btn-primary" href="?connector=wppconnect&connector_action=status_session" role="button">get
+                status</a>
+            <a name="" id="" class="btn btn-primary" href="?connector=wppconnect&connector_action=initialize"
+                role="button">initialize</a>
+            {% if connector_action_response.status_session.status == "CONNECTED" %}
+            <a name="" id="" class="btn btn-danger" href="?connector=wppconnect&connector_action=close_session"
+            role="button">close session</a>
             {% endif %}
-            {% if connector_action_response.status_session.qrcode %}
-            <img src="{{connector_action_response.status_session.qrcode}}" alt="QRCODE" />
-            {% endif %}
-        <pre>{{connector_action_response|pprint}}</pre>
+
         </p>
     </div>
+
+    {% if connector_action_response %}
+
+    <div class="card">
+        <div class="card-body">
+            <h4 class="card-title">Connector Response</h4>
+            <p class="card-text">
+                {% if connector_action_response.initialize.qrcode %}
+                <img src="{{connector_action_response.initialize.qrcode}}" alt="QRCODE" />
+                {% endif %}
+                {% if connector_action_response.status_session.qrcode %}
+                <img src="{{connector_action_response.status_session.qrcode}}" alt="QRCODE" />
+                {% endif %}
+            <pre>{{connector_action_response|pprint}}</pre>
+            </p>
+        </div>
+    </div>
+    {% endif %}
 </div>
 {% endif %}
 
+{% if connector.connector_type == "metacloudapi_whatsapp"%}
+<div id="metacloudapi_whatsapp">
+    <div class="card">
+        <div class="card-body">
+            <h4 class="card-title">Connector Response</h4>
+            <p class="card-text">
+            <pre>{{connector_action_response|pprint}}</pre>
+            </p>
+        </div>
+    </div>
+</div>
 {% endif %}
 
 <hr />
