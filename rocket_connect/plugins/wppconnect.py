@@ -1111,7 +1111,11 @@ class Connector(ConnectorBase):
             # here we will return the last message that has the trigger word
             # for a triggered phone
             if request.GET.get("trigger_id"):
-                phone = request.GET.get("trigger_id").split("@")[0]
+                trigger_id = request.GET.get("trigger_id")
+                phone = trigger_id.split("@")[0]
+                if "whatsapp" in phone:
+                    phone = phone.replace("whatsapp:", "")
+
                 # get the last triggered message
                 session = self.get_request_session()
                 url = self.connector.config[
@@ -1121,6 +1125,12 @@ class Connector(ConnectorBase):
                 )
                 last_messages_req = session.get(url).json()
                 last_messages = last_messages_req["response"]
+                if not last_messages_req["response"]:
+                    output = {
+                        "success": False,
+                        "notfound": f"{trigger_id} trigger id was not found",
+                    }
+                    return output
                 # as the message may be recent, this can save some processing
                 last_messages.reverse()
                 # find the trigger message
