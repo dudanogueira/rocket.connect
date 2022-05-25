@@ -1106,6 +1106,33 @@ class Connector(ConnectorBase):
 
             self.logger_info(f"INBOUND MESSAGE. {request.GET}")
 
+        trigger_word = self.config.get("default_fromme_ack_department_trigger")
+        if trigger_word:
+            # here we will return the last message that has the trigger word
+            # for a triggered phone
+            if request.GET.get("trigger_id"):
+                phone = request.GET.get("trigger_id").split("@")[0]
+                # get the last triggered message
+                session = self.get_request_session()
+                url = self.connector.config[
+                    "endpoint"
+                ] + "/api/{}/all-messages-in-chat/{}".format(
+                    self.connector.config["instance_name"], phone
+                )
+                last_messages_req = session.get(url).json()
+                last_messages = last_messages_req["response"]
+                # as the message may be recent, this can save some processing
+                last_messages.reverse()
+                # find the trigger message
+                trigger_message = None
+                i = 0
+                for message in last_messages:
+                    i += 1
+                    if trigger_word in message["body"]:
+                        trigger_message = message
+                        break
+                return trigger_message
+
     def handle_ack_fromme_message(self):
         # activate this if default_fromme_ack_department is set
         if self.config.get("default_fromme_ack_department") and self.config.get(
@@ -1131,8 +1158,13 @@ class Connector(ConnectorBase):
             for message in self.connector.messages.filter(
                 response__id__contains=message_id
             ):
+                # TODO: if ack == 2, it must have both ack and seen
+                # what is happening, due to race condition,
+                # it can leave only with the green one.
+                # Solution: replace the ballot_box_with_check if present,
+                # or add only the white check
                 if self.message["ack"] == 1:
-                    mark = ":ballot_box_with_check: "
+                    mark = ":ballot_box_with_check:"
                 else:
                     mark = ":white_check_mark:"
 
