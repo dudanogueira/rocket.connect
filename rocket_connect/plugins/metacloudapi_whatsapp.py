@@ -86,11 +86,23 @@ class Connector(ConnectorBase):
             # outcome text message
             #
             self.outcome_text(room.room_id, self.message["text"]["body"])
-
-        if self.message.get("type") in ["audio", "image", "video"]:
+        allowed_media_types = self.config.get(
+            "allowed_media_types", "audio,image,video,documento,sticker"
+        ).split(",")
+        if self.message.get("type") in allowed_media_types:
             # outcome text message
             #
             self.handle_media()
+        else:
+            # outcome text message, alerting this is not allowed
+            # TODO, improve this to outcome and outgo customizable messages
+            payload = {
+                "rid": self.room.room_id,
+                "msg": "This media type is not allowed",
+            }
+            self.outgo_message_from_rocketchat(payload)
+            message.delivered = True
+            message.save()
 
         # no room was generated
         #
@@ -228,8 +240,10 @@ class ConnectorConfigForm(BaseConnectorConfigForm):
         help_text="The bearer token for the Meta Cloud account",
     )
 
-    field_order = [
-        "endpoint",
-        "verify_token",
-        "bearer_token",
-    ]
+    allowed_media_types = forms.CharField(
+        help_text="Allowed Media Types",
+        required=True,
+        initial="audio,image,video,documento,sticker",
+    )
+
+    field_order = ["endpoint", "verify_token", "bearer_token", "allowed_media_types"]
