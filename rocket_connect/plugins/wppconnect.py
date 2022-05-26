@@ -981,8 +981,9 @@ class Connector(ConnectorBase):
 
         timestamp = int(time.time())
         try:
+            self.logger_info(f"OUTGOING TEXT MESSAGE: URL and PAYLOAD {url} {payload}")
             sent = session.post(url, json=payload)
-            if self.message_object:
+            if self.message_object and sent.ok:
                 self.message_object.delivered = sent.ok
                 self.message_object.response[timestamp] = sent.json()
                 if not self.message_object.response.get("id"):
@@ -1173,15 +1174,18 @@ class Connector(ConnectorBase):
                 # it can leave only with the green one.
                 # Solution: replace the ballot_box_with_check if present,
                 # or add only the white check
+                original_message = self.rocket.chat_get_message(
+                    msg_id=message.envelope_id
+                )
+                body = original_message.json()["message"]["msg"]
+                # remove previous markers
+                body = body.replace(":ballot_box_with_check:", "")
+                body = body.replace(":white_check_mark:", "")
                 if self.message["ack"] == 1:
                     mark = ":ballot_box_with_check:"
                 else:
                     mark = ":white_check_mark:"
 
-                original_message = self.rocket.chat_get_message(
-                    msg_id=message.envelope_id
-                )
-                body = original_message.json()["message"]["msg"]
                 self.rocket.chat_update(
                     room_id=message.room.room_id,
                     msg_id=message.envelope_id,
