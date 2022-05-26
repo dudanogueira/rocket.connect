@@ -25,6 +25,8 @@ services:
     depends_on:
       - postgres
       - mailhog
+      - redis
+      - celeryworker
     volumes:
       - .:/app:z
     env_file:
@@ -120,7 +122,7 @@ services:
     command: /start-flower
 
   rocketchat:
-    image: registry.rocket.chat/rocketchat/rocket.chat:latest
+    image: registry.rocket.chat/rocketchat/rocket.chat:release-candidate
     command: >
       bash -c
         "for i in `seq 1 30`; do

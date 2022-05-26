@@ -40,7 +40,7 @@ class Command(BaseCommand):
         server.external_token = "SERVER_EXTERNAL_TOKEN"
         server.owners.add(admin)
         server.save()
-        # crete default 2 WA-automate connectors
+        # crete default WA-automate connector
         connectors2create = [
             {
                 "external_token": "CONNECTOR_EXTERNAL_TOKEN1",
@@ -171,6 +171,25 @@ class Command(BaseCommand):
         else:
             print("CONNECTOR UPDATED: ", connector)
 
+        # create default 1 meta cloud connector
+        connector, connector_created = server.connectors.get_or_create(
+            external_token="META_CLOUD_API_WHATSAPP"
+        )
+        connector.config = {
+            "verify_token": "verify_token_here",
+            "bearer_token": "generate this at facebook for developers",
+            "endpoint": "https://graph.facebook.com/v13.0/111042638282794/",
+        }
+        connector.name = "META CLOUD API WHATSAPP"
+        connector.connector_type = "metacloudapi_whatsapp"
+        connector.managers = ""
+        connector.department = "METACLOUD-DEPARTMENT"
+        connector.save()
+        if connector_created:
+            print("CONNECTOR CREATED: ", connector)
+        else:
+            print("CONNECTOR UPDATED: ", connector)
+
     def handle_rocketchat(self):
         server = Server.objects.first()
         rocket = server.get_rocket_client()
@@ -249,6 +268,28 @@ class Command(BaseCommand):
                         "email": "wppconnect@email.com",
                         "name": "WPPCONNECT-DEPARTMENT",
                         "description": """wppconect department created by dev_settings""",
+                    },
+                    "agents": [
+                        {
+                            "agentId": aa[user].json()["user"]["_id"],
+                            "username": aa[user].json()["user"]["username"],
+                            "count": 0,
+                            "order": 0,
+                        }
+                    ],
+                }
+                #
+                # ADD META CLOUD API DEPARTMENT
+                #
+                new_department = {
+                    "department": {
+                        "_id": "metacloud_api_department",
+                        "enabled": True,
+                        "showOnRegistration": True,
+                        "showOnOfflineForm": True,
+                        "email": "metacloud@email.com",
+                        "name": "METACLOUD-DEPARTMENT",
+                        "description": """meta cloud department created by dev_settings""",
                     },
                     "agents": [
                         {

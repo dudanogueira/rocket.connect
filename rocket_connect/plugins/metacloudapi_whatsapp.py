@@ -144,10 +144,13 @@ class Connector(ConnectorBase):
                 )
                 # retry with different number
                 sent = session.post(url, json=payload)
-                timestamp = int(time.time())
-                if self.message_object:
-                    self.message_object.delivered = sent.ok
-                    self.message_object.response[timestamp] = sent.json()
+        # we got the message sent!
+        if sent.ok:
+            timestamp = int(time.time())
+            if self.message_object:
+                self.message_object.delivered = sent.ok
+                self.message_object.response[timestamp] = sent.json()
+                if sent.ok:
                     if not self.message_object.response.get("id"):
                         self.message_object.response["id"] = [
                             sent.json()["messages"][0]["id"]
@@ -156,11 +159,14 @@ class Connector(ConnectorBase):
                         self.message_object.response["id"].append(
                             sent.json()["messages"][0]["id"]
                         )
+            self.message_object.save()
+            # message not sent
+        else:
+            self.logger_info(f"ERROR SENDING MESSAGE {sent.json()}")
+            if self.message_object:
+                self.message_object.delivered = False
+                self.logger_info(f"CONNECTOR DOWN: {self.connector}")
 
-            if not sent.ok:
-                if self.message_object:
-                    self.message_object.delivered = False
-                    self.logger_info(f"CONNECTOR DOWN: {self.connector}")
         return sent
 
     def status_session(self):
