@@ -1,3 +1,4 @@
+import base64
 import time
 
 import requests
@@ -45,7 +46,8 @@ class Connector(ConnectorBase):
                                 self.handle_message()
                         # it has a status receipt
                         if change["value"].get("statuses"):
-                            print("AQUI")
+                            # TODO: handle read receipt
+                            pass
 
         return JsonResponse({})
 
@@ -79,16 +81,44 @@ class Connector(ConnectorBase):
 
     def handle_message(self):
         message, created = self.register_message()
-        if self.message["type"] == "text":
-            if not message.delivered:
-                room = self.get_room()
-                # outcome text message
-                #
-                self.outcome_text(room.room_id, self.message["text"]["body"])
-                # no room was generated
-                #
-                if not room:
-                    return JsonResponse({"message": "no room generated"})
+        room = self.get_room()
+        if self.message.get("type") == "text":
+            # outcome text message
+            #
+            self.outcome_text(room.room_id, self.message["text"]["body"])
+
+        if self.message.get("type") in ["audio", "image", "video"]:
+            # outcome text message
+            #
+            self.handle_media()
+
+        # no room was generated
+        #
+        if not room:
+            return JsonResponse({"message": "no room generated"})
+
+    def handle_media(self):
+        # register message
+        message, created = self.register_message()
+        room = self.get_room()
+        # get media id
+        media_type = self.message["type"]
+        media_id = self.message[media_type]["id"]
+        # get media url
+        url = "https://graph.facebook.com/v13.0/" + media_id
+        session = self.get_request_session()
+        media_info = session.get(
+            url,
+        )
+        mime = media_info.json().get("mime_type")
+        description = None
+        if self.message.get("image", {}).get("caption"):
+            description = self.message.get("image", {}).get("caption")
+
+        # get media base64
+        media_url = media_info.json().get("url")
+        base64_data = base64.b64encode(session.get(media_url).content)
+        self.outcome_file(base64_data, room.room_id, mime, description)
 
     def get_incoming_message_id(self):
         return self.message.get("id")
