@@ -28,6 +28,8 @@ def connector_inbound_endpoint(request, connector_id):
         Connector, external_token=connector_id, enabled=True, server__enabled=True
     )
     return_response = connector.inbound_intake(request)
+    if not return_response:
+        return HttpResponse("No inbound return.", status=404)
     # it can request a redirect
     if return_response.get("redirect"):
         return redirect(return_response["redirect"])

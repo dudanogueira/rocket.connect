@@ -186,7 +186,7 @@ class Connector(ConnectorBase):
                     "livechat/room.close", rid=room_id, token=room["v"]["token"]
                 )
                 room_url = "{}/omnichannel/current/{}/room-info".format(
-                    self.connector.server.url, room_id
+                    self.connector.server.external_url, room_id
                 )
                 if close.ok:
                     messages.append(
@@ -1136,12 +1136,12 @@ class Connector(ConnectorBase):
                 last_messages.reverse()
                 # find the trigger message
                 trigger_message = None
-                i = 0
                 for message in last_messages:
-                    i += 1
                     if trigger_word in message["body"]:
                         trigger_message = message
                         break
+                # enhance trigger_message with external_url
+                trigger_message["external_url"] = self.connector.server.external_url
                 return trigger_message
 
     def handle_ack_fromme_message(self):
