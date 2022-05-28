@@ -1144,6 +1144,9 @@ class Connector(ConnectorBase):
                 trigger_message["external_url"] = self.connector.server.external_url
                 return trigger_message
 
+        if request.GET.get("check-phone"):
+            return self.check_number_status(request.GET.get("check-phone"))
+
     def handle_ack_fromme_message(self):
         # activate this if default_fromme_ack_department is set
         if self.config.get("default_fromme_ack_department") and self.config.get(
