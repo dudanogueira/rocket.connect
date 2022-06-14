@@ -1,12 +1,9 @@
-version: "3.4"
+version: "3.7"
 
 volumes:
   local_postgres_data: {}
   local_postgres_data_backups: {}
-  local_rocket_uploads: {}
-  local_rocket_db: {}
-  local_rocket_db_config: {}
-  local_rocket_db_dump: {}
+  local_rocket_mongodb_data: { driver: local }
   local_waautomate_data: {}
   local_wppconnect_data: {}
   local_wppconnect_tokens: {}
@@ -121,45 +118,55 @@ services:
       retries: 3
     command: /start-flower
 
+
   rocketchat:
-    image: registry.rocket.chat/rocketchat/rocket.chat:release-candidate
-    command: >
-      bash -c
-        "for i in `seq 1 30`; do
-          node main.js &&
-          s=$$? && break || s=$$?;
-          echo \"Tried $$i times. Waiting 5 secs...\";
-          sleep 5;
-        done; (exit $$s)"
+    image: registry.rocket.chat/rocketchat/rocket.chat:${RELEASE:-latest}
+    restart: on-failure
+    environment:
+      MONGO_URL: "${MONGO_URL:-\
+        mongodb://${MONGODB_ADVERTISED_HOSTNAME:-mongodb}:${MONGODB_INITIAL_PRIMARY_PORT_NUMBER:-27017}/\
+          ${MONGODB_DATABASE:-rocketchat}?replicaSet=${MONGODB_REPLICA_SET_NAME:-rs0}}"
+      MONGO_OPLOG_URL: "${MONGO_OPLOG_URL:\
+        -mongodb://${MONGODB_ADVERTISED_HOSTNAME:-mongodb}:${MONGODB_INITIAL_PRIMARY_PORT_NUMBER:-27017}/\
+          local?replicaSet=${MONGODB_REPLICA_SET_NAME:-rs0}}"
+      ROOT_URL: ${ROOT_URL:-http://localhost:${HOST_PORT:-3000}}
+      PORT: ${PORT:-3000}
+      ADMIN_USERNAME: admin
+      ADMIN_PASS: admin
+      ADMIN_EMAIL: admin@example.com
+      OVERWRITE_SETTING_Accounts_TwoFactorAuthentication_Enforce_Password_Fallback: "false"
+      OVERWRITE_SETTING_SMTP_Host: mailhog
+      OVERWRITE_SETTING_SMTP_Port: 1025
+      OVERWRITE_SETTING_From_Email: from@email.com
+      OVERWRITE_SETTING_API_Enable_Rate_Limiter: "false"
+      OVERWRITE_SETTING_Livechat_validate_offline_email: "false"
+      CREATE_TOKENS_FOR_USERS: "true"
+      OVERWRITE_SETTING_Accounts_SystemBlockedUsernameList: administrator,system,user
+    depends_on:
+      - mongodb
+    expose:
+      - ${PORT:-3000}
+    ports:
+      - host_ip: ${BIND_IP:-0.0.0.0}
+        target: ${PORT:-3000}
+        published: ${HOST_PORT:-3000}
+        protocol: tcp
+        mode: host
+
+  mongodb:
+    image: docker.io/bitnami/mongodb:${MONGODB_VERSION:-4.4}
     restart: on-failure
     volumes:
-      - local_rocket_uploads:/app/uploads
+      - local_rocket_mongodb_data:/bitnami/mongodb
     environment:
-      - ADMIN_USERNAME=admin
-      - ADMIN_PASS=admin
-      - ADMIN_EMAIL=admin@example.com
-      - PORT=3000
-      #- ROOT_URL=http://localhost:3000
-      - MONGO_URL=mongodb://mongo:27017/rocketchat
-      - MONGO_OPLOG_URL=mongodb://mongo:27017/local
-      - OVERWRITE_SETTING_Accounts_TwoFactorAuthentication_Enforce_Password_Fallback=false
-      - OVERWRITE_SETTING_SMTP_Host=mailhog
-      - OVERWRITE_SETTING_SMTP_Port=1025
-      - OVERWRITE_SETTING_From_Email=from@email.com
-      - OVERWRITE_SETTING_API_Enable_Rate_Limiter=false
-      - OVERWRITE_SETTING_Livechat_validate_offline_email=false
-      - CREATE_TOKENS_FOR_USERS=true
-      - OVERWRITE_SETTING_Accounts_SystemBlockedUsernameList=administrator,system,user
-    depends_on:
-      - mongo
-    ports:
-      - 3000:3000
-    healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:3000/api/info" ]
-      interval: 1m30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
+      MONGODB_REPLICA_SET_MODE: primary
+      MONGODB_REPLICA_SET_NAME: ${MONGODB_REPLICA_SET_NAME:-rs0}
+      MONGODB_PORT_NUMBER: ${MONGODB_PORT_NUMBER:-27017}
+      MONGODB_INITIAL_PRIMARY_HOST: ${MONGODB_INITIAL_PRIMARY_HOST:-mongodb}
+      MONGODB_INITIAL_PRIMARY_PORT_NUMBER: ${MONGODB_INITIAL_PRIMARY_PORT_NUMBER:-27017}
+      MONGODB_ADVERTISED_HOSTNAME: ${MONGODB_ADVERTISED_HOSTNAME:-mongodb}
+      MONGODB_ENABLE_JOURNAL: ${MONGODB_ENABLE_JOURNAL:-true}
+      ALLOW_EMPTY_PASSWORD: ${ALLOW_EMPTY_PASSWORD:-yes}
 
   webdav:
     image: bytemark/webdav
@@ -173,27 +180,6 @@ services:
     ports:
       - 8011:80
 
-  mongo:
-    image: mongo:4.4
-    restart: on-failure
-    ports:
-      - 27017:27017
-    volumes:
-      - local_rocket_db:/data/db
-      - local_rocket_db_config:/data/configdb
-      - local_rocket_db_dump:/dump
-    command: mongod --oplogSize 128 --replSet rs0 --storageEngine=wiredTiger
-    labels:
-      - "traefik.enable=false"
-
-  mongo-init-replica:
-    image: mongo:4.4
-    command: 'bash -c "for i in `seq 1 30`; do mongo mongo/rocketchat --eval
-      \"rs.initiate({ _id: ''rs0'', members: [ { _id: 0, host:
-      ''localhost:27017'' } ]})\" && s=$$? && break || s=$$?; echo \"Tried $$i
-      times. Waiting 5 secs...\"; sleep 5; done; (exit $$s)"'
-    depends_on:
-      - mongo
 
   browser:
     image: browserless/chrome:1.48.0-chrome-stable
