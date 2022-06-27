@@ -378,7 +378,13 @@ class Connector:
         except IndexError:
             return "channel:visitor-id"
 
-    def get_room(self, department=None, create=True, allow_welcome_message=True):
+    def get_room(
+        self,
+        department=None,
+        create=True,
+        allow_welcome_message=True,
+        check_if_open=False,
+    ):
         room = None
         room_created = False
         connector_token = self.get_visitor_token()
@@ -386,7 +392,20 @@ class Connector:
             room = LiveChatRoom.objects.get(
                 connector=self.connector, token=connector_token, open=True
             )
-            print("get_room, got: ", room)
+            self.logger_info(f"get_room, got {room}")
+            if check_if_open:
+                self.logger_info("checking if room is open")
+                open_rooms = self.rocket.livechat_rooms(open="true").json()
+                open_rooms_id = [r["_id"] for r in open_rooms["rooms"]]
+                if room.room_id not in open_rooms_id:
+                    self.logger_info(
+                        "room was open in Rocket.Connect, but not in Rocket.Chat"
+                    )
+                    # close room
+                    room.open = False
+                    room.save()
+                    raise LiveChatRoom.DoesNotExist
+
         except LiveChatRoom.MultipleObjectsReturned:
             # this should not happen. Mitigation for issue #12
             # TODO: replicate error at development
@@ -399,7 +418,7 @@ class Connector:
             )
         except LiveChatRoom.DoesNotExist:
             if create:
-                print("get_room, didnt get for: ", connector_token)
+                self.logger_info("get_room, didn't got room")
                 if self.config.get("open_room", True):
                     # room not available, let's create one.
                     # get the visitor json
