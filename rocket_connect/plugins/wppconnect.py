@@ -1166,6 +1166,7 @@ class Connector(ConnectorBase):
                 self.get_room(
                     department=self.config.get("default_fromme_ack_department"),
                     allow_welcome_message=False,
+                    check_if_open=True,
                 )
                 self.logger_info(
                     f"HANDLING ACK FROMME MESSAGE TRIGGER. PAYLOAD {self.message}"
