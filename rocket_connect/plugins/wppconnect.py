@@ -995,6 +995,11 @@ class Connector(ConnectorBase):
                         sent.json()["response"][0]["id"]
                     )
 
+            if sent.ok:
+                self.logger_info(f"OUTGOING TEXT MESSAGE SUCCESS: {sent.json()}")
+            else:
+                self.logger_info(f"OUTGOING TEXT MESSAGE ERROR: {sent.json()}")
+
         except requests.ConnectionError:
             if self.message_object:
                 self.message_object.delivered = False
