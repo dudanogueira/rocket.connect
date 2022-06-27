@@ -430,7 +430,9 @@ class Connector(ConnectorBase):
                             f"ACTIVE MESSAGE PAYLOAD GENERATED: {self.message}"
                         )
                         # register room
-                        room = self.get_room(department, allow_welcome_message=False)
+                        room = self.get_room(
+                            department, allow_welcome_message=False, check_if_open=True
+                        )
                         if room:
                             self.logger_info(f"ACTIVE CHAT GOT A ROOM {room}")
                             # send the message to the room, in order to be delivered to the
