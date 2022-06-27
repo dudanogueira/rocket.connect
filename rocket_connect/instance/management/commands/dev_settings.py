@@ -278,6 +278,7 @@ class Command(BaseCommand):
                         }
                     ],
                 }
+                rocket.call_api_post("livechat/department", **new_department)
                 #
                 # ADD META CLOUD API DEPARTMENT
                 #
@@ -369,53 +370,67 @@ class Command(BaseCommand):
             rocket.settings_update(config[0], config[1])
 
         # create if dont exist:
-        r = rocket.call_api_get(
-            "integrations.get", integrationId="wppconnect-integration"
-        )
-        if not r.ok:
+        integrations = rocket.call_api_get("integrations.list").json()
+        existing_integrations_name = [a["name"] for a in integrations["integrations"]]
+        if "WPPCONNECT ACTIVE CHAT INTEGRATION" not in existing_integrations_name:
             print("CREATING WEBHOOK FOR ZAPIT  OUTGOING")
             payload = {
-                "_id": "wppconnect-integration",
                 "type": "webhook-outgoing",
-                "name": "WPPCONNECT ACTIVE CHAT INTEGRATION",
-                "event": "sendMessage",
                 "enabled": True,
-                "username": "rocket.cat",
+                "impersonateUser": True,
+                "event": "sendMessage",
                 "urls": ["http://django:8000/connector/WPP_EXTERNAL_TOKEN/"],
-                "scriptEnabled": False,
+                "triggerWords": ["zapit"],
+                "targetRoom": "",
                 "channel": "#manager_channel",
-                "triggerWords": [
-                    "zapit",
-                ],
+                "username": "rocket.cat",
+                "name": "WPPCONNECT ACTIVE CHAT INTEGRATION",
+                "alias": "",
+                "avatar": "",
+                "emoji": "",
+                "scriptEnabled": False,
+                "script": "",
+                "retryFailedCalls": True,
+                "retryCount": 6,
+                "retryDelay": "powers-of-ten",
+                "triggerWordAnywhere": False,
+                "runOnEdits": False,
                 "token": "WPP_ZAPIT_TOKEN",
             }
-            rocket.call_api_post("integrations.create", **payload)
+
+            c = rocket.call_api_post("integrations.create", **payload)
+            print(c.json())
         else:
             print("WEBHOOK FOR ZAPIT OUTGOING ALREADY EXISTS")
 
         # create webhook wppconnect manager:
-        r = rocket.call_api_get(
-            "integrations.get", integrationId="wppconnect-manager-integration"
-        )
-        if not r.ok:
+        if "WPPCONNECT MANAGER INTEGRATION" not in existing_integrations_name:
             print("CREATING WEBHOOK FOR WPPCONNECT MANAGER OUTGOING")
             payload = {
-                "_id": "wppconnect-manager-integration",
                 "type": "webhook-outgoing",
-                "name": "WPPCONNECT MANAGER INTEGRATION",
-                "event": "sendMessage",
                 "enabled": True,
-                "username": "rocket.cat",
+                "impersonateUser": True,
+                "event": "sendMessage",
                 "urls": ["http://django:8000/connector/WPP_EXTERNAL_TOKEN/"],
+                "triggerWords": ["rc"],
+                "targetRoom": "",
+                "channel": "#manager_channel",
+                "username": "rocket.cat",
+                "name": "WPPCONNECT MANAGER INTEGRATION",
+                "alias": "",
+                "avatar": "",
+                "emoji": "",
                 "scriptEnabled": True,
                 "script": wpp_admin_script,
-                "channel": "#manager_channel",
-                "triggerWords": [
-                    "rc",
-                ],
+                "retryFailedCalls": True,
+                "retryCount": 6,
+                "retryDelay": "powers-of-ten",
+                "triggerWordAnywhere": False,
+                "runOnEdits": False,
                 "token": "session_management_secret_token",
             }
-            rocket.call_api_post("integrations.create", **payload)
+            c = rocket.call_api_post("integrations.create", **payload)
+            print(c.json())
         else:
             print("WEBHOOK FOR ZAPIT OUTGOING ALREADY EXISTS")
 
