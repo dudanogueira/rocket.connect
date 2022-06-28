@@ -680,10 +680,8 @@ class Connector:
 
     def close_room(self):
         if self.room:
-            if settings.DEBUG:
-                print("Closing Message...")
-            self.room.open = False
-            self.room.save()
+            # close all room from connector with same room_id
+            self.connector.rooms.filter(room_id=self.room.room_id).update(open=False)
             self.post_close_room()
 
     def post_close_room(self):
