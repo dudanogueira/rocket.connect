@@ -271,7 +271,7 @@ class Connector(ConnectorBase):
         self.type = "active_chat"
         self.message["type"] = self.type
         department = False
-        transfer = False
+        department_id = None
         # get client
         self.get_rocket_client()
         now_str = datetime.datetime.now().replace(microsecond=0).isoformat()
@@ -392,6 +392,7 @@ class Connector(ConnectorBase):
                             agent_id = departments[0].split(":")[1]
                         else:
                             department = departments[0]["name"]
+                            department_id = departments[0]["_id"]
 
                         # define message type
                         self.type = "active_chat"
@@ -429,9 +430,14 @@ class Connector(ConnectorBase):
                         self.logger_info(
                             f"ACTIVE MESSAGE PAYLOAD GENERATED: {self.message}"
                         )
+                        # if force transfer for active chat, for it.
+
                         # register room
                         room = self.get_room(
-                            department, allow_welcome_message=False, check_if_open=True
+                            department,
+                            allow_welcome_message=False,
+                            check_if_open=True,
+                            force_transfer=department_id,
                         )
                         if room:
                             self.logger_info(f"ACTIVE CHAT GOT A ROOM {room}")
@@ -1231,6 +1237,12 @@ class ConnectorConfigForm(BaseConnectorConfigForm):
         validators=[validators.validate_slug],
     )
 
+    active_chat_force_department_transfer = forms.BooleanField(
+        help_text="If the Chat is already open, force the transfer to this department",
+        required=False,
+        initial=False,
+    )
+
     name_extraction_order = forms.CharField(
         required=False,
         help_text="The prefered order to extract a visitor name",
@@ -1275,6 +1287,7 @@ class ConnectorConfigForm(BaseConnectorConfigForm):
         "secret_key",
         "instance_name",
         "active_chat_webhook_integration_token",
+        "active_chat_force_department_transfer",
         "session_management_token",
         "name_extraction_order",
         "process_unread_messages_on_start",
