@@ -1169,13 +1169,21 @@ class Connector(ConnectorBase):
                 "default_fromme_ack_department_trigger"
             ) in self.message.get("body"):
                 self.get_rocket_client()
-                self.get_room(
+                # lets force it to transfer if room is open
+                if self.config.get("fromme_ack_department_force_transfer"):
+                    force_transfer = self.config.get("default_fromme_ack_department")
+                else:
+                    # no forcing, leave it at the department
+                    force_transfer = None
+                # get the room
+                room_response = self.get_room(
                     department=self.config.get("default_fromme_ack_department"),
                     allow_welcome_message=False,
                     check_if_open=True,
+                    force_transfer=force_transfer,
                 )
                 self.logger_info(
-                    f"HANDLING ACK FROMME MESSAGE TRIGGER. PAYLOAD {self.message}"
+                    f"HANDLING ACK FROMME MESSAGE TRIGGER. PAYLOAD {self.message}, room response: {room_response}"
                 )
         # ack receipt
         if self.config.get("enable_ack_receipt"):
@@ -1264,6 +1272,12 @@ class ConnectorConfigForm(BaseConnectorConfigForm):
     default_fromme_ack_department = forms.CharField(
         required=False,
         help_text="This is a deparment where should be created a message sent from the mobile",
+    )
+
+    fromme_ack_department_force_transfer = forms.BooleanField(
+        help_text="Force the transfer if chat is already open with visitor",
+        initial=True,
+        required=False,
     )
 
     default_fromme_ack_department_trigger = forms.CharField(
