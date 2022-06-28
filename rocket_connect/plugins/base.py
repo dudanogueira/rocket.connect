@@ -384,7 +384,9 @@ class Connector:
         create=True,
         allow_welcome_message=True,
         check_if_open=False,
+        force_transfer=None,
     ):
+        open_rooms = None
         room = None
         room_created = False
         connector_token = self.get_visitor_token()
@@ -470,6 +472,21 @@ class Connector:
                                 if settings.DEBUG:
                                     print("Erro! No Agents Online")
         self.room = room
+        # optionally force transfer to department
+        if force_transfer:
+            payload = {
+                "rid": self.room.room_id,
+                "token": self.room.token,
+                "department": force_transfer,
+            }
+            force_transfer_response = self.rocket.call_api_post(
+                "livechat/room.transfer", **payload
+            )
+            if force_transfer_response.ok:
+                self.logger_info(f"Force Transfer Response: {force_transfer_response}")
+            else:
+                self.logger_error(f"Force Transfer ERROR: {force_transfer_response}")
+
         # optionally allow welcome message
         if allow_welcome_message:
             if self.config.get("welcome_message"):
