@@ -78,10 +78,10 @@ class Connector(ConnectorBase):
                             if attachment.get("type") == "location":
                                 lat = attachment["payload"]["coordinates"]["lat"]
                                 lng = attachment["payload"]["coordinates"]["long"]
-                                link = "https://www.google.com/maps/search/?api=1&query={0}+{1}".format(
+                                link = "https://www.google.com/maps/search/?api=1&query={}+{}".format(
                                     lat, lng
                                 )
-                                text = "Lat:{0}, Long:{1}: Link: {2}".format(
+                                text = "Lat:{}, Long:{}: Link: {}".format(
                                     lat, lng, link
                                 )
                                 deliver = self.outcome_text(room.room_id, text)
@@ -116,11 +116,11 @@ class Connector(ConnectorBase):
 
     def get_visitor_token(self):
         visitor_id = self.get_visitor_id()
-        token = "facebook:{0}".format(visitor_id)
+        token = f"facebook:{visitor_id}"
         return token
 
     def get_visitor_username(self):
-        return "facebook:{0}".format(self.get_visitor_id())
+        return f"facebook:{self.get_visitor_id()}"
 
     def get_visitor_json(self):
         # cal api to get more infos
@@ -131,7 +131,7 @@ class Connector(ConnectorBase):
             print("GETTING FACEBOOK CONTACT: ", url)
             print("GOT: ", data.json())
         if data.ok:
-            visitor_name = "{0} {1}".format(
+            visitor_name = "{} {}".format(
                 data.json()["first_name"], data.json()["last_name"]
             )
         else:
@@ -177,7 +177,7 @@ class Connector(ConnectorBase):
             content = message["msg"]
         # replace emojis
         content = self.joypixel_to_unicode(content)
-        url = "https://graph.facebook.com/v2.6/me/messages?access_token={0}".format(
+        url = "https://graph.facebook.com/v2.6/me/messages?access_token={}".format(
             self.connector.config["access_token"]
         )
         payload = {"recipient": {"id": visitor_id}, "message": {"text": content}}

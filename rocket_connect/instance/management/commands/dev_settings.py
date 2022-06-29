@@ -31,6 +31,7 @@ class Command(BaseCommand):
         else:
             print("SERVER UPDATED")
         server.url = "http://rocketchat:3000"
+        server.external_url = "http://localhost:3000"
         server.admin_user = "admin"
         server.admin_password = "admin"
         server.bot_user = "bot"
@@ -39,7 +40,7 @@ class Command(BaseCommand):
         server.external_token = "SERVER_EXTERNAL_TOKEN"
         server.owners.add(admin)
         server.save()
-        # crete default 2 WA-automate connectors
+        # crete default WA-automate connector
         connectors2create = [
             {
                 "external_token": "CONNECTOR_EXTERNAL_TOKEN1",
@@ -118,13 +119,25 @@ class Command(BaseCommand):
             "secret_key": "THISISMYSECURETOKEN",
             "instance_name": "test",
             "include_connector_status": True,
+            "enable_ack_receipt": True,
             "outcome_attachment_description_as_new_message": True,
             "active_chat_webhook_integration_token": "WPP_ZAPIT_TOKEN",
             "session_management_token": "session_management_secret_token",
             "department_triage_payload": {
-                "title": "Title for Button goes here",
-                "footer": "This is the footer for the message. Its optional to send",
-                "message": "Test Sending Buttons. Let me know what you think about this function in wppconnect?",
+                "message": "Message for your buttons",
+                "options": {
+                    "title": "Title text",
+                    "footer": "Footer text",
+                    "useTemplateButtons": "true",
+                    "buttons": [
+                        {"id": "2", "phoneNumber": "5531999999999", "text": "Call Us"},
+                        {
+                            "id": "3",
+                            "url": "https://wppconnect-team.github.io/",
+                            "text": "Long Life WPPCONNECT",
+                        },
+                    ],
+                },
             },
             "no_agent_online_alert_admin": "No agent online!. **Message**: {{body}} **From**: {{from}}",
             "session_taken_alert_template": "You are now talking with {{agent.name}}"
@@ -152,6 +165,25 @@ class Command(BaseCommand):
         connector.connector_type = "facebook"
         connector.managers = "agent1,manager1"
         connector.department = "FACEBOOK-DEPARTMENT"
+        connector.save()
+        if connector_created:
+            print("CONNECTOR CREATED: ", connector)
+        else:
+            print("CONNECTOR UPDATED: ", connector)
+
+        # create default 1 meta cloud connector
+        connector, connector_created = server.connectors.get_or_create(
+            external_token="META_CLOUD_API_WHATSAPP"
+        )
+        connector.config = {
+            "verify_token": "verify_token_here",
+            "bearer_token": "generate this at facebook for developers",
+            "endpoint": "https://graph.facebook.com/v13.0/111042638282794/",
+        }
+        connector.name = "META CLOUD API WHATSAPP"
+        connector.connector_type = "metacloudapi_whatsapp"
+        connector.managers = ""
+        connector.department = "METACLOUD-DEPARTMENT"
         connector.save()
         if connector_created:
             print("CONNECTOR CREATED: ", connector)
@@ -247,6 +279,29 @@ class Command(BaseCommand):
                     ],
                 }
                 rocket.call_api_post("livechat/department", **new_department)
+                #
+                # ADD META CLOUD API DEPARTMENT
+                #
+                new_department = {
+                    "department": {
+                        "_id": "metacloud_api_department",
+                        "enabled": True,
+                        "showOnRegistration": True,
+                        "showOnOfflineForm": True,
+                        "email": "metacloud@email.com",
+                        "name": "METACLOUD-DEPARTMENT",
+                        "description": """meta cloud department created by dev_settings""",
+                    },
+                    "agents": [
+                        {
+                            "agentId": aa[user].json()["user"]["_id"],
+                            "username": aa[user].json()["user"]["username"],
+                            "count": 0,
+                            "order": 0,
+                        }
+                    ],
+                }
+                rocket.call_api_post("livechat/department", **new_department)
 
         for user in ["manager1", "manager2"]:
             data = {
@@ -315,53 +370,67 @@ class Command(BaseCommand):
             rocket.settings_update(config[0], config[1])
 
         # create if dont exist:
-        r = rocket.call_api_get(
-            "integrations.get", integrationId="wppconnect-integration"
-        )
-        if not r.ok:
+        integrations = rocket.call_api_get("integrations.list").json()
+        existing_integrations_name = [a["name"] for a in integrations["integrations"]]
+        if "WPPCONNECT ACTIVE CHAT INTEGRATION" not in existing_integrations_name:
             print("CREATING WEBHOOK FOR ZAPIT  OUTGOING")
             payload = {
-                "_id": "wppconnect-integration",
                 "type": "webhook-outgoing",
-                "name": "WPPCONNECT ACTIVE CHAT INTEGRATION",
-                "event": "sendMessage",
                 "enabled": True,
-                "username": "rocket.cat",
+                "impersonateUser": True,
+                "event": "sendMessage",
                 "urls": ["http://django:8000/connector/WPP_EXTERNAL_TOKEN/"],
-                "scriptEnabled": False,
+                "triggerWords": ["zapit"],
+                "targetRoom": "",
                 "channel": "#manager_channel",
-                "triggerWords": [
-                    "zapit",
-                ],
+                "username": "rocket.cat",
+                "name": "WPPCONNECT ACTIVE CHAT INTEGRATION",
+                "alias": "",
+                "avatar": "",
+                "emoji": "",
+                "scriptEnabled": False,
+                "script": "",
+                "retryFailedCalls": True,
+                "retryCount": 6,
+                "retryDelay": "powers-of-ten",
+                "triggerWordAnywhere": False,
+                "runOnEdits": False,
                 "token": "WPP_ZAPIT_TOKEN",
             }
-            rocket.call_api_post("integrations.create", **payload)
+
+            c = rocket.call_api_post("integrations.create", **payload)
+            print(c.json())
         else:
             print("WEBHOOK FOR ZAPIT OUTGOING ALREADY EXISTS")
 
         # create webhook wppconnect manager:
-        r = rocket.call_api_get(
-            "integrations.get", integrationId="wppconnect-manager-integration"
-        )
-        if not r.ok:
+        if "WPPCONNECT MANAGER INTEGRATION" not in existing_integrations_name:
             print("CREATING WEBHOOK FOR WPPCONNECT MANAGER OUTGOING")
             payload = {
-                "_id": "wppconnect-manager-integration",
                 "type": "webhook-outgoing",
-                "name": "WPPCONNECT MANAGER INTEGRATION",
-                "event": "sendMessage",
                 "enabled": True,
-                "username": "rocket.cat",
+                "impersonateUser": True,
+                "event": "sendMessage",
                 "urls": ["http://django:8000/connector/WPP_EXTERNAL_TOKEN/"],
+                "triggerWords": ["rc"],
+                "targetRoom": "",
+                "channel": "#manager_channel",
+                "username": "rocket.cat",
+                "name": "WPPCONNECT MANAGER INTEGRATION",
+                "alias": "",
+                "avatar": "",
+                "emoji": "",
                 "scriptEnabled": True,
                 "script": wpp_admin_script,
-                "channel": "#manager_channel",
-                "triggerWords": [
-                    "rc",
-                ],
+                "retryFailedCalls": True,
+                "retryCount": 6,
+                "retryDelay": "powers-of-ten",
+                "triggerWordAnywhere": False,
+                "runOnEdits": False,
                 "token": "session_management_secret_token",
             }
-            rocket.call_api_post("integrations.create", **payload)
+            c = rocket.call_api_post("integrations.create", **payload)
+            print(c.json())
         else:
             print("WEBHOOK FOR ZAPIT OUTGOING ALREADY EXISTS")
 

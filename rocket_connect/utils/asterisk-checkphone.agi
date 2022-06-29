@@ -1,0 +1,18 @@
+#!/usr/bin/php -q
+<?php
+// this AGI will get Rocket.Connect WPPCONNET endpoint inbound and return if it's a valid
+// whatsapp number
+// author: Duda Nogueira <dudanogueira@gmail.com> MIT License
+include('phpagi.php');
+//$url = "http://localhost:8000/connector/WPP_EXTERNAL_TOKEN/inbound/?check-phone=5531XXXXXXXXX
+$url = $argv[1];
+$result = file_get_contents($url);
+$decoded = json_decode($result, true);
+$is_whatsapp = $decoded["response"]["numberExists"];
+if ($is_whatsapp == true) {
+    $agi->set_variable("WHATSAPP_ENABLED",1);
+} else {
+    $agi->set_variable("WHATSAPP_ENABLED",0);
+}
+exit(0);
+?>

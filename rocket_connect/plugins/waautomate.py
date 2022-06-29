@@ -143,10 +143,10 @@ class Connector(ConnectorBase):
                     ):
                         lat = self.message.get("data", {}).get("lat")
                         lng = self.message.get("data", {}).get("lng")
-                        link = "https://www.google.com/maps/search/?api=1&query={0}+{1}".format(
+                        link = "https://www.google.com/maps/search/?api=1&query={}+{}".format(
                             lat, lng
                         )
-                        text = "Lat:{0}, Long:{1}: Link: {2}".format(lat, lng, link)
+                        text = f"Lat:{lat}, Long:{lng}: Link: {link}"
                         self.outcome_text(room.room_id, text)
                     #
                     #
@@ -178,7 +178,7 @@ class Connector(ConnectorBase):
                                 else:
                                     message = self.get_message_body()
                             elif quote_type in ["document", "image", "ptt"]:
-                                message = "DOCUMENT RESENT:\n {0}".format(
+                                message = "DOCUMENT RESENT:\n {}".format(
                                     self.get_message_body()
                                 )
                                 quoted_id = self.message.get("data", {}).get(
@@ -210,7 +210,7 @@ class Connector(ConnectorBase):
                 return HttpResponse("Rocket Down!", status=503)
             # this prevent some bogus request from wa after logout on this event
             if self.message.get("data") and int(self.message.get("data")):
-                text_message = ":battery:\n:satellite:  Battery level: {0}%".format(
+                text_message = ":battery:\n:satellite:  Battery level: {}%".format(
                     self.message.get("data")
                 )
                 self.outcome_admin_message(text_message)
@@ -251,12 +251,10 @@ class Connector(ConnectorBase):
                 if not self.rocket:
                     return HttpResponse("Rocket Down!", status=503)
 
-                text_message = (
-                    ":information_source:\n:satellite: {0} > {1}: {2} ".format(
-                        self.message.get("sessionId"),
-                        self.message.get("event"),
-                        self.message.get("data"),
-                    )
+                text_message = ":information_source:\n:satellite: {} > {}: {} ".format(
+                    self.message.get("sessionId"),
+                    self.message.get("event"),
+                    self.message.get("data"),
                 )
                 self.outcome_admin_message(text_message)
 
@@ -319,7 +317,7 @@ class Connector(ConnectorBase):
                 base64_fixed_code = self.generate_qrcode(code)
                 self.outcome_qrbase64(base64_fixed_code)
             else:
-                text_message = ":information_source:\n:satellite: {0} > {1}: {2} ".format(
+                text_message = ":information_source:\n:satellite: {} > {}: {} ".format(
                     message.get("sessionId"),
                     message.get("namespace"),
                     message.get("data")

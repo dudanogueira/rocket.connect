@@ -22,6 +22,22 @@ def connector_endpoint(request, connector_id):
     return return_response
 
 
+@csrf_exempt
+def connector_inbound_endpoint(request, connector_id):
+    connector = get_object_or_404(
+        Connector, external_token=connector_id, enabled=True, server__enabled=True
+    )
+    return_response = connector.inbound_intake(request)
+    if not return_response:
+        return HttpResponse("No inbound return.", status=404)
+    # it can request a redirect
+    if return_response.get("redirect"):
+        return redirect(return_response["redirect"])
+    if return_response.get("notfound"):
+        return HttpResponse(return_response.get("notfound"), status=404)
+    return JsonResponse(return_response)
+
+
 # Custom decorator
 def must_be_yours(func):
     def check_and_call(request, *args, **kwargs):
@@ -55,7 +71,15 @@ def server_endpoint(request, server_id):
         # roketchat test message
         #
         if raw_message.get("_id") == "fasd6f5a4sd6f8a4sdf":
-            return JsonResponse({})
+            message_sent = server.multiple_connector_admin_message(
+                "Rocket.Chat Omnichannel Connection Test was Received. This is the response."
+            )
+            if message_sent:
+                return JsonResponse({})
+            else:
+                return HttpResponse(
+                    "Unauthorized. No X-Rocketchat-Livechat-Token provided.", status=401
+                )
         else:
             # process ingoing message
             try:
@@ -82,7 +106,7 @@ def server_endpoint(request, server_id):
                     secondary_connector, request.body, "ingoing", request
                 )
                 connector.logger_info(
-                    "RUNING SECONDARY CONNECTOR *{0}* WITH BODY {1}:".format(
+                    "RUNING SECONDARY CONNECTOR *{}* WITH BODY {}:".format(
                         sconnector.connector, request.body
                     )
                 )
@@ -95,6 +119,7 @@ def server_endpoint(request, server_id):
 @must_be_yours
 def server_detail_view(request, server_id):
     server = get_object_or_404(Server.objects, external_token=server_id)
+    room_sync = None
     # get server status
     status = server.status()
     if request.GET.get("force_connector_delivery"):
@@ -109,19 +134,26 @@ def server_detail_view(request, server_id):
             if message.delivered:
                 messages.success(
                     request,
-                    "Sucess! Message #{0} was delivered at connector {1}".format(
+                    "Sucess! Message #{} was delivered at connector {}".format(
                         message.id, message.connector.name
                     ),
                 )
             else:
                 messages.error(
                     request,
-                    "Error! Could not deliver Message #{0} at connector {1}".format(
+                    "Error! Could not deliver Message #{} at connector {}".format(
                         message.id, message.connector.name
                     ),
                 )
 
         return redirect(reverse("instance:server_detail", args=[server.external_token]))
+
+    if request.GET.get("check-room-sync"):
+        room_sync = server.room_sync()
+        if request.GET.get("do-check-room-sync"):
+            room_sync = server.room_sync(execute=True)
+            messages.success(request, "Sync Executed!")
+            room_sync = connector.room_sync()
 
     connectors = (
         server.connectors.distinct()
@@ -146,6 +178,7 @@ def server_detail_view(request, server_id):
         "server": server,
         "connectors": connectors,
         "status": status,
+        "room_sync": room_sync,
     }
     return render(request, "instance/server_detail_view.html", context)
 
@@ -164,6 +197,7 @@ def connector_analyze(request, server_id, connector_id):
     connector_action_response["status_session"] = connector.status_session()
     undelivered_messages = None
     date = None
+    room_sync = None
 
     if request.GET.get("connector_action") == "status_session":
         connector_action_response["status_session"] = connector.status_session()
@@ -193,23 +227,21 @@ def connector_analyze(request, server_id, connector_id):
                 if delivery_happened:
                     messages.success(
                         request,
-                        "Success! Message #{0} was delivered at connector {1}".format(
+                        "Success! Message #{} was delivered at connector {}".format(
                             message.id, connector.name
                         ),
                     )
                 else:
                     messages.error(
                         request,
-                        "Error! Could not deliver Message #{0} at connector {1}".format(
+                        "Error! Could not deliver Message #{} at connector {}".format(
                             message.id, connector.name
                         ),
                     )
         if request.GET.get("action") == "mark_as_delivered":
             undelivered_messages.update(delivered=True)
             for um in undelivered_messages:
-                messages.success(
-                    request, "Message #{0} marked as delivered".format(um.id)
-                )
+                messages.success(request, f"Message #{um.id} marked as delivered")
         if request.GET.get("action") == "show":
             # we want to show the messages, so just pass
             # as the other actions will redirect
@@ -221,6 +253,13 @@ def connector_analyze(request, server_id, connector_id):
                     args=[connector.server.external_token, connector.external_token],
                 )
             )
+
+    if request.GET.get("check-room-sync"):
+        room_sync = connector.room_sync()
+        if request.GET.get("do-check-room-sync"):
+            room_sync = connector.room_sync(execute=True)
+            messages.success(request, "Sync Executed!")
+            room_sync = connector.room_sync()
 
     messages_undelivered_by_date = (
         connector.messages.filter(delivered=False)
@@ -239,9 +278,7 @@ def connector_analyze(request, server_id, connector_id):
         if config_form.is_valid():
             # TODO: better save here
             config_form.save()
-            messages.success(
-                request, "Configurations changed for {0}".format(connector.name)
-            )
+            messages.success(request, f"Configurations changed for {connector.name}")
     else:
         if config_form:
             config_form = config_form(connector=connector)
@@ -251,6 +288,7 @@ def connector_analyze(request, server_id, connector_id):
         "messages_undelivered_by_date": messages_undelivered_by_date,
         "undelivered_messages": undelivered_messages,
         "date": date,
+        "room_sync": room_sync,
         "connector_action_response": connector_action_response,
         "config_form": config_form,
         "base_uri": base_uri,
@@ -277,9 +315,7 @@ def new_connector(request, server_id):
             form = NewConnectorForm(instance=new_connector, server=server)
             if form.is_valid():
                 new_connector = form.save()
-            messages.success(
-                request, "New connector {0} created.".format(new_connector.name)
-            )
+            messages.success(request, f"New connector {new_connector.name} created.")
             return redirect(
                 reverse(
                     "instance:connector_analyze",
@@ -311,7 +347,7 @@ def new_server(request):
                 reverse("instance:server_detail", args=[server.external_token])
             )
         else:
-            messages.error(request, "Error {0}".format(status))
+            messages.error(request, f"Error {status}")
 
     context = {"form": form}
     return render(request, "instance/new_server.html", context)

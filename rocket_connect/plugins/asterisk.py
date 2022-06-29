@@ -158,7 +158,7 @@ class Connector(ConnectorBase):
                 if notify[0] == "#":
                     if settings.DEBUG:
                         print(
-                            "NOTIFYING CHANNEL {0} CALLER LEFT QUEUE: ".format(notify),
+                            f"NOTIFYING CHANNEL {notify} CALLER LEFT QUEUE: ",
                             self.message,
                         )
                     # notify a channel
@@ -174,7 +174,7 @@ class Connector(ConnectorBase):
                 else:
                     if settings.DEBUG:
                         print(
-                            "NOTIFYING USER {0} CALLER LEFT QUEUE: ".format(notify),
+                            f"NOTIFYING USER {notify} CALLER LEFT QUEUE: ",
                             self.message,
                         )
                     room = self.rocket.im_create(username=notify)

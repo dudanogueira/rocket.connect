@@ -12,10 +12,18 @@
 </div>
 <div class="container p-5" id="server-header">
     <h1>
+        {% if request.user.is_staff %}
+        <a name="" id="" class="btn btn-primary" href="{% url 'admin:instance_server_change' server.id %}" role="button">
+            <i class="fa fa-edit" aria-hidden="true"></i>
+        </a>
+        <a name="" id="" class="btn btn-primary" href="?check-room-sync=1" role="button" title="check rooms sync">
+            <i class="fa fa-recycle" aria-hidden="true"></i>
+        </a>
+        {% endif %}
         {{server}} <span class="text-{{ server.enabled|yesno:'success,danger' }}">{{ server.enabled|yesno:"Active,Inactive" }}</span>
     </h1>
     <hr />
-    <a href="{{server.url}}">{{server.url}}</a>
+    <a href="{{server.get_external_url}}">{{server.get_external_url}}</a>
     {% if status.alive %}
         <span class="badge badge-success">UP</span>
         <span class="badge badge-info">Version: {{status.info.info.version}}</span>
@@ -30,8 +38,27 @@
     <hr />
     <i>
         Add to Rocket.Chat's Omnichannel WebHook Endpoint:<br />
-        {{base_uri}}/server/{{server.external_token}}/
+        {{server.url}}/server/{{server.external_token}}/
     </i>
+    {% if room_sync %}
+    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+      <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+      </button>
+        <strong> Unsync Rooms:</strong> {{room_sync.total}}
+            <small>(open here and closed in Rocket.Chat)</small>
+            {% if room_sync.total %}
+            <p class="mt-3">
+                <a name="" id="" class="btn btn-success" href="?check-room-sync=1&do-check-room-sync=1" role="button">sync!</a>
+            </p>
+            {% endif %}
+    </div>
+
+    <script>
+      $(".alert").alert();
+    </script>
+
+    {% endif %}
 </div>
 
 

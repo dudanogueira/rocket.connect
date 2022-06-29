@@ -25,6 +25,9 @@ urlpatterns = [
     path("accounts/", include("allauth.urls")),
     path("instance/", include("rocket_connect.instance.urls", namespace="instance")),
     # Your stuff: custom urls includes go here
+    re_path(
+        r"^connector/(?P<connector_id>\w+)/inbound/?$", views.connector_inbound_endpoint
+    ),
     re_path(r"^connector/(?P<connector_id>\w+)/?$", views.connector_endpoint),
     re_path(r"^server/(?P<server_id>\w+)/?$", views.server_endpoint),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

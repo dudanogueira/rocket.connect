@@ -105,7 +105,7 @@ def get_grouper_id(payload):
 def send_message_or_thread(payload, base_url="http://rocketchat:3000"):
     grouper_id = get_grouper_id(payload)
     # search message
-    url_search = base_url + "/api/v1/chat.getThreadMessages?tmid={0}".format(grouper_id)
+    url_search = base_url + f"/api/v1/chat.getThreadMessages?tmid={grouper_id}"
     response = requests.get(url_search, headers=headers)
     # discussion already open
     payload = get_default_payload(payload)

@@ -8,48 +8,97 @@
         href="{% url 'instance:server_detail' connector.server.external_token %}">{{connector.server}}</a>
     <span class="breadcrumb-item active">{{connector}} </span>
 </nav>
+<h3><span class="badge bg-info float-right badge-lg">{{connector.connector_type}}</span> </h3>
 <h1>
+    {% if request.user.is_staff %}
+    <a name="" id="" class="btn btn-primary" href="{% url 'admin:instance_connector_change' connector.id %}" role="button">
+        <i class="fa fa-edit" aria-hidden="true"></i>
+    </a>
+    {% endif %}
+    <a name="" id="" class="btn btn-primary" href="?check-room-sync=1" role="button" title="Sync Rooms">
+        <i class="fas fa-recycle"></i>
+    </a>
+
     {{connector}}
     <span class="text-{{ connector.enabled|yesno:'success,danger' }}">
         {{connector.enabled|yesno:"Active,Inactive" }}
     </span>
+
 </h1>
 
+
 Endpoint: {{base_uri}}/connector/{{connector.external_token}}/
+
+{% if room_sync %}
+    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+      <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+      </button>
+      <strong>
+        Unsync Rooms:
+        </strong>
+            {{room_sync.total}}
+            <small>(open here and closed in Rocket.Chat)</small>
+            {% if room_sync.total %}
+            <p class="mt-3">
+                <a name="" id="" class="btn btn-success" href="?check-room-sync=1&do-check-room-sync=1" role="button">sync!</a>
+            </p>
+            {% endif %}
+    </div>
+
+    <script>
+      $(".alert").alert();
+    </script>
+
+    {% endif %}
+
 {% if connector.connector_type == "wppconnect" %}
-<div class="container">
-    <p>
-        <a name="" id="" class="btn btn-primary" href="?connector=wppconnect&connector_action=status_session" role="button">get
-            status</a>
-        <a name="" id="" class="btn btn-primary" href="?connector=wppconnect&connector_action=initialize"
-            role="button">initialize</a>
-        {% if connector_action_response.status_session.status == "CONNECTED" %}
-        <a name="" id="" class="btn btn-danger" href="?connector=wppconnect&connector_action=close_session"
-        role="button">close session</a>
-        {% endif %}
-
-    </p>
-</div>
-
-
-{% if connector_action_response %}
-
-<div class="card">
-    <div class="card-body">
-        <h4 class="card-title">Connector Response</h4>
-        <p class="card-text">
-            {% if connector_action_response.initialize.qrcode %}
-            <img src="{{connector_action_response.initialize.qrcode}}" alt="QRCODE" />
+<div id="wppconnect">
+    <div class="container">
+        <p>
+            <a name="" id="" class="btn btn-primary" href="?connector=wppconnect&connector_action=status_session" role="button">get
+                status</a>
+            <a name="" id="" class="btn btn-primary" href="?connector=wppconnect&connector_action=initialize"
+                role="button">initialize</a>
+            {% if connector_action_response.status_session.status == "CONNECTED" %}
+            <a name="" id="" class="btn btn-danger" href="?connector=wppconnect&connector_action=close_session"
+            role="button">close session</a>
             {% endif %}
-            {% if connector_action_response.status_session.qrcode %}
-            <img src="{{connector_action_response.status_session.qrcode}}" alt="QRCODE" />
-            {% endif %}
-        <pre>{{connector_action_response|pprint}}</pre>
+
         </p>
     </div>
+
+    {% if connector_action_response %}
+
+    <div class="card">
+        <div class="card-body">
+            <h4 class="card-title">Connector Response</h4>
+            <p class="card-text">
+                {% if connector_action_response.initialize.qrcode %}
+                <img src="{{connector_action_response.initialize.qrcode}}" alt="QRCODE" />
+                {% endif %}
+                {% if connector_action_response.status_session.qrcode %}
+                <img src="{{connector_action_response.status_session.qrcode}}" alt="QRCODE" />
+                {% endif %}
+            <pre>{{connector_action_response|pprint}}</pre>
+            </p>
+        </div>
+    </div>
+    {% endif %}
 </div>
 {% endif %}
 
+{% if connector.connector_type == "metacloudapi_whatsapp"%}
+<div id="metacloudapi_whatsapp">
+    <div class="card">
+        <div class="card-body">
+            <h4 class="card-title">Connector Response</h4>
+            <p class="card-text">
+            <pre>{{connector_action_response|pprint}}</pre>
+            </p>
+        </div>
+    </div>
+</div>
 {% endif %}
 
 <hr />
@@ -119,7 +168,7 @@ Endpoint: {{base_uri}}/connector/{{connector.external_token}}/
                         <h2>
                             {{rooms.grouper}}
                             <a
-                                href="http://{{rooms.list.0.connector.server.url}}/live/{{rooms.grouper.room_id}}">link</a>
+                                href="{{rooms.list.0.connector.server.get_external_url}}/live/{{rooms.grouper.room_id}}">link</a>
                         </h2>
                     </h4>
                     <p class="card-text">
@@ -132,10 +181,12 @@ Endpoint: {{base_uri}}/connector/{{connector.external_token}}/
                         </button>
                     </p>
                     <div class="collapse" id="collapse-{{message.id}}">
-                        <a name="" id="" class="btn btn-danger" href="?id={{message.id}}&action=force_delivery"
-                            role="button">force delivery</a>
-                        <a name="" id="" class="btn btn-success" href="?id={{message.id}}&action=mark_as_delivered"
-                            role="button">mark as delivered</a>
+                        <p class="text-center">
+                            <a name="" id="" class="btn btn-danger" href="?id={{message.id}}&action=force_delivery"
+                                role="button">force delivery</a>
+                            <a name="" id="" class="btn btn-success" href="?id={{message.id}}&action=mark_as_delivered"
+                                role="button">mark as delivered</a>
+                        </p>
                         <div class="card card-body m-3">
                             <pre>{{message.raw_message|pprint}}</pre>
                         </div>
