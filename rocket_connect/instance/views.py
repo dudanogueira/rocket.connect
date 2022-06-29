@@ -119,6 +119,7 @@ def server_endpoint(request, server_id):
 @must_be_yours
 def server_detail_view(request, server_id):
     server = get_object_or_404(Server.objects, external_token=server_id)
+    room_sync = None
     # get server status
     status = server.status()
     if request.GET.get("force_connector_delivery"):
@@ -147,6 +148,13 @@ def server_detail_view(request, server_id):
 
         return redirect(reverse("instance:server_detail", args=[server.external_token]))
 
+    if request.GET.get("check-room-sync"):
+        room_sync = server.room_sync()
+        if request.GET.get("do-check-room-sync"):
+            room_sync = server.room_sync(execute=True)
+            messages.success(request, "Sync Executed!")
+            room_sync = connector.room_sync()
+
     connectors = (
         server.connectors.distinct()
         .annotate(
@@ -170,6 +178,7 @@ def server_detail_view(request, server_id):
         "server": server,
         "connectors": connectors,
         "status": status,
+        "room_sync": room_sync,
     }
     return render(request, "instance/server_detail_view.html", context)
 
@@ -188,6 +197,7 @@ def connector_analyze(request, server_id, connector_id):
     connector_action_response["status_session"] = connector.status_session()
     undelivered_messages = None
     date = None
+    room_sync = None
 
     if request.GET.get("connector_action") == "status_session":
         connector_action_response["status_session"] = connector.status_session()
@@ -244,6 +254,13 @@ def connector_analyze(request, server_id, connector_id):
                 )
             )
 
+    if request.GET.get("check-room-sync"):
+        room_sync = connector.room_sync()
+        if request.GET.get("do-check-room-sync"):
+            room_sync = connector.room_sync(execute=True)
+            messages.success(request, "Sync Executed!")
+            room_sync = connector.room_sync()
+
     messages_undelivered_by_date = (
         connector.messages.filter(delivered=False)
         .annotate(date=TruncDay("created"))
@@ -271,6 +288,7 @@ def connector_analyze(request, server_id, connector_id):
         "messages_undelivered_by_date": messages_undelivered_by_date,
         "undelivered_messages": undelivered_messages,
         "date": date,
+        "room_sync": room_sync,
         "connector_action_response": connector_action_response,
         "config_form": config_form,
         "base_uri": base_uri,

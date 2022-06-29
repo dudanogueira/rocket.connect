@@ -100,36 +100,27 @@ class Server(models.Model):
     def get_open_rooms(self):
         rocket = self.get_rocket_client()
         rooms = rocket.livechat_rooms(open="true")
-        if rooms.ok:
+        if rooms.ok and rooms.json().get("rooms"):
             return rooms.json()["rooms"]
         else:
             return []
 
-    def sync_open_rooms(self, default_connector=None, filter_token=None):
-        """This method will get the open rooms, filter by a word in token
-        and recreate the rooms binded to the default connector.
-        The idea is to help on a migration where the actual open rooms has no
-        reference at Rocket Connect
+    def room_sync(self, execute=False):
         """
-        rooms = self.get_open_rooms()
-        for room in rooms:
-            if filter_token:
-                # pass if do not match filter
-                if filter_token not in room.get("v", {}).get("token"):
-                    pass
-                else:
-                    LiveChatRoom = apps.get_model("envelope.LiveChatRoom")
-                    room_item, created = LiveChatRoom.objects.get_or_create(
-                        connector=default_connector,
-                        token=room.get("v", {}).get("token"),
-                        room_id=room.get("_id", {}),
-                    )
-                    room_item.open = True
-                    room_item.save()
-                    if created:
-                        print("ROOM CREATED:", room["v"]["token"])
-                    else:
-                        print("ROOM UPDATED:", room["v"]["token"])
+        Close all open rooms not open in Rocket.Chat
+        """
+        open_rooms = self.get_open_rooms()
+        open_rooms_id = [r["_id"] for r in open_rooms]
+        # get all open rooms in connector, except the actually open ones
+        LiveChatRoom = apps.get_model(app_label="envelope", model_name="LiveChatRoom")
+        close_rooms = LiveChatRoom.objects.filter(
+            connector__server=self, open=True
+        ).exclude(room_id__in=open_rooms_id)
+        total = close_rooms.count()
+        if execute:
+            close_rooms.update(open=False)
+        response = {"total": total}
+        return response
 
     def force_delivery(self):
         """
@@ -378,6 +369,21 @@ class Connector(models.Model):
             last_message=models.Max("created"),
             total_visitors=models.Count("room__token", distinct=True),
         )
+
+    def room_sync(self, execute=False):
+        """
+        Close all open rooms not open in Rocket.Chat
+        """
+        rocket = self.server.get_rocket_client()
+        open_rooms = rocket.livechat_rooms(open="true").json()
+        open_rooms_id = [r["_id"] for r in open_rooms["rooms"]]
+        # get all open rooms in connector, except the actually open ones
+        close_rooms = self.rooms.filter(open=True).exclude(room_id__in=open_rooms_id)
+        total = close_rooms.count()
+        if execute:
+            close_rooms.update(open=False)
+        response = {"total": total}
+        return response
 
     uuid = models.UUIDField(default=uuid.uuid4, editable=False)
     external_token = models.CharField(max_length=50, default=random_string, unique=True)
