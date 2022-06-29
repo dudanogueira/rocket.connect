@@ -141,7 +141,7 @@ class Command(BaseCommand):
             },
             "no_agent_online_alert_admin": "No agent online!. **Message**: {{body}} **From**: {{from}}",
             "session_taken_alert_template": "You are now talking with {{agent.name}}"
-            + "{% if department %}at department {{department.name}}{% endif %}",
+            + "{% if department %} at department {{department.name}}{% endif %}",
         }
         connector.name = "WPPCONNECT CONNECTOR"
         connector.connector_type = "wppconnect"
