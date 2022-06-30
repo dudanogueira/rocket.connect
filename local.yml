@@ -142,6 +142,7 @@ services:
       OVERWRITE_SETTING_Livechat_validate_offline_email: "false"
       CREATE_TOKENS_FOR_USERS: "true"
       OVERWRITE_SETTING_Accounts_SystemBlockedUsernameList: administrator,system,user
+      OVERWRITE_SETTING_Apps_Framework_Development_Mode: "true"
     depends_on:
       - mongodb
     expose:
