@@ -7,14 +7,14 @@ Run the development stack
 To run the development stack, you must haver docker and docker compose properly installed. You should run
     ::
     
-        docker-compose -f local.yml up -d
+        docker compose -f local.yml up -d
 
 
 We have created a nice management command to setup everything for you:
 
     ::
     
-        docker-compose -f local.yml run --rm django python manage.py dev_settings
+        docker compose -f local.yml run --rm django python manage.py dev_settings
 
 If everything went fine, you should have the following running services and exposed ports:
 

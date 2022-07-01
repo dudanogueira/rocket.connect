@@ -31,7 +31,7 @@ Add this to you /etc/asterisk/manager.conf (you can restrict access configure th
 
 Now, you need to run the Asterisk Script, that will connect to Asterisk AMI and send the events to the Asterisk Endpoint at Rocket Connect::
 
-    docker-compose -f local.yml run --rm django python rocket_connect/utils/clients/asterisk.py
+    docker compose -f local.yml run --rm django python rocket_connect/utils/clients/asterisk.py
 
 
 note that a few environment variables are necessary::
