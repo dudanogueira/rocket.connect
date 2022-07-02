@@ -168,7 +168,8 @@ services:
       MONGODB_ADVERTISED_HOSTNAME: ${MONGODB_ADVERTISED_HOSTNAME:-mongodb}
       MONGODB_ENABLE_JOURNAL: ${MONGODB_ENABLE_JOURNAL:-true}
       ALLOW_EMPTY_PASSWORD: ${ALLOW_EMPTY_PASSWORD:-yes}
-
+    ports:
+      - 27017:27017
   webdav:
     image: bytemark/webdav
     volumes:
