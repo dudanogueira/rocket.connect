@@ -153,7 +153,7 @@ def server_detail_view(request, server_id):
         if request.GET.get("do-check-room-sync"):
             room_sync = server.room_sync(execute=True)
             messages.success(request, "Sync Executed!")
-            room_sync = connector.room_sync()
+            room_sync = server.room_sync()
 
     connectors = (
         server.connectors.distinct()
