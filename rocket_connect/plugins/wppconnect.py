@@ -337,6 +337,7 @@ class Connector(ConnectorBase):
                             agent
                             for agent in agents["users"]
                             if agent["status"] == "online"
+                            and agent.get("statusLivechat")
                             and agent["statusLivechat"] == "available"
                         ]
                         self.logger_info(
