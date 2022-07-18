@@ -272,6 +272,7 @@ class Connector(ConnectorBase):
         self.message["type"] = self.type
         department = False
         department_id = None
+        transfer = False
         # get client
         self.get_rocket_client()
         now_str = datetime.datetime.now().replace(microsecond=0).isoformat()
@@ -324,10 +325,13 @@ class Connector(ConnectorBase):
                 # check if department is valid
                 if department:
                     department_check = self.rocket.call_api_get(
-                        "livechat/department", text=department, onlyMyDepartments=False
+                        "livechat/department",
+                        text=department,
+                        onlyMyDepartments="false",
                     )
                     # departments found
                     departments = department_check.json().get("departments")
+
                     if not departments:
                         # maybe department is an online agent. let's check if
                         agents = self.rocket.livechat_get_users(
@@ -337,7 +341,6 @@ class Connector(ConnectorBase):
                             agent
                             for agent in agents["users"]
                             if agent["status"] == "online"
-                            and agent.get("statusLivechat")
                             and agent["statusLivechat"] == "available"
                         ]
                         self.logger_info(
@@ -351,15 +354,19 @@ class Connector(ConnectorBase):
                                 departments = ["AGENT-DIRECT:" + agent.get("_id")]
                         # transfer the room for the agent
                         if not transfer:
+                            available_usernames = [
+                                u["username"] for u in available_agents
+                            ]
                             self.rocket.chat_update(
                                 room_id=room_id,
                                 msg_id=msg_id,
                                 text=self.message.get("text")
-                                + f"\n:warning: AGENT {department} NOT ONLINE",
+                                + f"\n:warning: AGENT {department} NOT AVAILABLE OR ONLINE"
+                                + f"\nAVAILABLE AGENTS {available_usernames}",
                             )
                             return {
                                 "success": False,
-                                "message": f"AGENT {department} NOT ONLINE",
+                                "message": f"AGENT {department} NOT AVAILABLE OR ONLINE",
                                 "available_agents": available_agents,
                             }
                     # > 1 departments found
@@ -420,11 +427,6 @@ class Connector(ConnectorBase):
                                 + check_number["response"]["id"]["_serialized"]
                             },
                         }
-                        # TODO: known issue:
-                        # it doesn't get client info when the client never sent a message
-                        # possiage to the usble hacky fix is send a messer first
-                        # then get number info and then augment message
-                        # augment name from contact API
                         self.check_number_info(
                             check_number["response"]["id"]["user"], augment_message=True
                         )
