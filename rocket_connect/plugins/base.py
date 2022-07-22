@@ -764,6 +764,13 @@ class Connector:
 
     def get_agent_name(self, message):
         agent_name = message.get("u", {}).get("name", {})
+        agent_username = message.get("u", {}).get("username", {})
+        # check if agent name supression is configured
+        supress = self.config.get("supress_agent_name", None)
+        if supress:
+            if supress == "*" or agent_username in supress.split(","):
+                agent_name = None
+
         return self.change_agent_name(agent_name)
 
     def change_agent_name(self, agent_name):
@@ -925,6 +932,10 @@ class BaseConnectorConfigForm(forms.Form):
         help_text="This might be necessary for the bot to react accordingly",
     )
     add_agent_name_at_close_message = forms.BooleanField(required=False)
+    supress_agent_name = forms.CharField(
+        required=False,
+        help_text="* for all agents, or agent1,agent2 for specific ones",
+    )
     overwrite_custom_fields = forms.BooleanField(
         required=False, help_text="overwrite custom fields on new visitor registration"
     )
