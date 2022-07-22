@@ -168,14 +168,14 @@ class Server(models.Model):
         blank=True,
         help_text="This field is used to link to actual server. If blank, url is used.",
     )
-    admin_user = models.CharField(max_length=50)
-    admin_password = models.CharField(max_length=50)
+    admin_user = models.CharField(max_length=50, blank=True)
+    admin_password = models.CharField(max_length=50, blank=True)
     admin_user_id = models.CharField(
         max_length=50, blank=True, help_text="Admin User Personal Access Token"
     )
     admin_user_token = models.CharField(max_length=50, blank=True)
-    bot_user = models.CharField(max_length=50)
-    bot_password = models.CharField(max_length=50)
+    bot_user = models.CharField(max_length=50, blank=True)
+    bot_password = models.CharField(max_length=50, blank=True)
     bot_user_id = models.CharField(
         max_length=50, blank=True, help_text="Bot User Personal Access Token"
     )
