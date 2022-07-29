@@ -9,12 +9,20 @@ To run the development stack, you must haver docker and docker compose properly 
     
         docker compose -f local.yml up -d
 
+Now you should wait a little bit. check the logs to see whats happening:
+    ::
+    
+        docker compose -f local.yml logs -f
 
-We have created a nice management command to setup everything for you:
+We have created a nice management command to setup everything for you.
 
     ::
     
         docker compose -f local.yml run --rm django python manage.py dev_settings
+
+
+
+You can `check what this command does <https://github.com/dudanogueira/rocket.connect/blob/master/rocket_connect/instance/management/commands/dev_settings.py>`_ to replicate it while deploying in production
 
 If everything went fine, you should have the following running services and exposed ports:
 
@@ -24,7 +32,7 @@ If everything went fine, you should have the following running services and expo
 * http://localhost:5555 - Flower, where you see how the tasks are running. User/Password: admin/admin
 * http://localhost:8025 - Mailhog - A nice mailserver. The stack is configured to deliver emails there
 * http://localhost:21465/api-docs/ - WPPCONNECT API DOCS
-
+* http://localhost:3001/ - Grafana Interface with Monitoring. admin/admin, then go to Dashboards > Manage > Rocket.Chat Metrics
 
 Generating and Scanning the QR CODE
 ----------------------------------------------------------------------
@@ -33,7 +41,7 @@ Go to Rocket.Connect (http://localhost:8000) login in (admin/admin), pick de def
 click at Initialize. Wait a little bit, and then click at get status.
 You should see the QR code at the website.
 
-.. figure:: wa-launch-messages.png
+.. figure:: wppconnect-launch-messages.png
 
 At the end, you should see the QR CODE, that should be scanned with the device you want to PAIR.
 
@@ -59,6 +67,11 @@ Which means that
 
 will also work.
 
+
+Monitoring with Grafana
+----------------------------------------------------------------------
+
+.. figure:: grafana-monitoring.png
 
 Emulating an incoming message
 ----------------------------------------------------------------------
@@ -109,7 +122,26 @@ you need to change the "generate this" with the token facebook will give you.
 
 After that messages to your facebook account should be connected to RocketChat. If something goes wrong, facebook will stop sending messages for a while. That's normal. 
 
+WPPCONNECT
+----------------------------------------------------------------------
+
+`WPPCONNECT <https://wppconnect.io/>`_ is our currently community supported connector.
+
+
 WAAUTOMATE
 ----------------------------------------------------------------------
 
 We will be deprecating WAAUTOMATE in favor of WPPCONNECT.
+
+
+META CLOUD API (SPONSORS NEEDED)
+----------------------------------------------------------------------
+
+`SPONSORS NEEDED <https://github.com/sponsors/dudanogueira/>`_
+We plan on supporting the official Meta Cloud API for WhatsApp.
+
+INSTAGRAM (SPONSORS NEEDED)
+----------------------------------------------------------------------
+
+`SPONSORS NEEDED <https://github.com/sponsors/dudanogueira/>`_
+We plan on supporting the official Meta Cloud API for Instagram.

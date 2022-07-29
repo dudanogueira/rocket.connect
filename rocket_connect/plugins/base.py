@@ -234,10 +234,11 @@ class Connector:
         img_str = base64.b64encode(buffered.getvalue()).decode("utf-8")
         return img_str
 
-    def outcome_admin_message(self, text):
+    def outcome_admin_message(self, text, managers_channel=None):
         output = []
         managers = self.connector.get_managers()
-        managers_channel = self.connector.get_managers_channel(as_string=False)
+        if not managers_channel:
+            managers_channel = self.connector.get_managers_channel(as_string=False)
         if settings.DEBUG:
             print("GOT MANAGERS: ", managers)
             print("GOT CHANNELS: ", managers_channel)
