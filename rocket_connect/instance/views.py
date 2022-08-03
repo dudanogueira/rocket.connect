@@ -351,3 +351,15 @@ def new_server(request):
 
     context = {"form": form}
     return render(request, "instance/new_server.html", context)
+
+
+@login_required(login_url="/accounts/login/")
+def server_monitor_view(request, server_id):
+    server = get_object_or_404(Server.objects, external_token=server_id)
+    order = request.GET.get("order", "agent")
+    if order == "agent":
+        open_rooms = server.get_open_rooms(sort='{"servedBy.username": 1}')
+    else:
+        open_rooms = server.get_open_rooms(sort='{"department.name": 1}')
+    context = {"server": server, "open_rooms": open_rooms, "order": order}
+    return render(request, "instance/server_monitor.html", context)

@@ -1,5 +1,6 @@
 import dateutil.parser
 import requests
+from django.template import Context, Template
 from django.utils import timezone
 from instance.models import Server
 
@@ -47,14 +48,15 @@ def alert_last_message_open_chat(
             if delta.total_seconds() >= seconds_last_message:
                 alerted_rooms.append(room["_id"])
                 # render notification_template
-                # context = {}
+                context = Context({})
+                template = Template(notification_template)
                 for target in notification_target.split(","):
-                    manager_channel_message = rocket.chat_post_message(
-                        text=notification_template, channel=target.replace("#", "")
+                    message = template.render(context)
+                    rocket.chat_post_message(
+                        text=message, channel=target.replace("#", "")
                     )
-                    print(manager_channel_message)
 
-    # alert
+    # return findings
     return {
         "alerted_rooms": alerted_rooms,
         "now": str(now),

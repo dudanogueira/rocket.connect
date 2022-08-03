@@ -5,10 +5,16 @@ from rocket_connect.instance.views import (
     new_connector,
     new_server,
     server_detail_view,
+    server_monitor_view,
 )
 
 app_name = "instance"
 urlpatterns = [
+    re_path(
+        r"^server/(?P<server_id>\w+)/monitor/?$",
+        view=server_monitor_view,
+        name="server_monitor",
+    ),
     re_path(
         r"^server/(?P<server_id>\w+)/?$", view=server_detail_view, name="server_detail"
     ),

@@ -325,10 +325,12 @@ class Command(BaseCommand):
             "name": "Bot",
             "password": "bot",
             "username": "bot",
-            "roles": ["bot"],
+            "roles": ["bot", "livechat-agent"],
             "verified": True,
         }
         bot = rocket.users_create(**data)
+        rocket.livechat_create_user(user_type="manager", username="bot")
+        rocket.livechat_create_user(user_type="agent", username="bot")
         if bot.ok and bot.json()["success"]:
             print("Bot user created")
 
@@ -340,6 +342,9 @@ class Command(BaseCommand):
             user_id = rocket.users_info(username="admin").json()["user"]["_id"]
             channel_id = channel.json()["channel"]["_id"]
             rocket.channels_invite(room_id=channel_id, user_id=user_id)
+            # add admin as manager
+            rocket.livechat_create_user(user_type="manager", username="admin")
+            rocket.livechat_create_user(user_type="agent", username="admin")
 
         # create teams
         public_team = rocket.teams_create("team-public", 0)

@@ -97,9 +97,9 @@ class Server(models.Model):
             return ",".join(managers_channel)
         return list(set(managers_channel))
 
-    def get_open_rooms(self):
+    def get_open_rooms(self, **kwargs):
         rocket = self.get_rocket_client()
-        rooms = rocket.livechat_rooms(open="true")
+        rooms = rocket.livechat_rooms(open="true", **kwargs)
         if rooms.ok and rooms.json().get("rooms"):
             return rooms.json()["rooms"]
         else:
