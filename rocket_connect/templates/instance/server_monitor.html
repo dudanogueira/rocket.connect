@@ -23,21 +23,26 @@
 {% for group in open_chat %}
 <div class="card mb-2">
     <div class="card-header">
-        {{group.grouper}} ({{group.list|length}})
-        <a class="btn btn-primary float-right text-white" type="button" data-toggle="collapse" data-target="#collapse-{{group.grouper}}" aria-expanded="false" aria-controls="collapse-{{group.grouper}}">
-            show
-        </a>
+        <h3>
+            {{group.grouper}} ({{group.list|length}} chat{{group.list|length|pluralize}})
+            <a class="btn btn-primary float-right text-white" type="button" data-toggle="collapse" data-target="#collapse-{{group.grouper}}" aria-expanded="false" aria-controls="collapse-{{group.grouper}}">
+                show
+            </a>
+        </h3>
     </div>
-    <div class="card-body collapse" id="collapse-{{group.grouper}}">
+    <div class="card-body" id="collapse-{{group.grouper}}">
         {% for chat in group.list %}
             <div id="chat-{{chat.lastMessage.rid}}">
+                <span class="badge badge-info" title="Created at {{ chat.ts_datetime|date:"SHORT_DATETIME_FORMAT"}}">
+                    <i class="fas fa-plus"></i> {{ chat.ts_datetime|timesince }} {{chat.msgs}}
+                </span>
                 <i class="fas fa-envelope-open" title="Total Messages"></i> {{chat.msgs}}
                 <i class="fas fa-users" title="Users in Chat"></i> {{chat.usersCount}}
                 <i class="fas fa-torii-gate" title="Source"></i> {{chat.source.type}}<br />
                 <i class="fas fa-comment-dots" title="Last Message"></i> <a href="{{server.external_url}}/omnichannel/current/{{chat.lastMessage.rid}}/room-info">Last Message: {{chat.lastMessage.msg}}</a>
-                by {{chat.lastMessage.u.name}} at {{chat.lastMessage.ts}} <small>{{chat.lastMessage.ts}}</small><br />
+                by {{chat.lastMessage.u.name}} at {{chat.lm_datetime|date:"SHORT_DATETIME_FORMAT"}} <small>{{chat.lm_datetime|timesince}}</small><br />
                 <i class="fas fa-door-open"></i> Visitor: {{chat.fname}} <small>{{chat.v.token}}</small><br />
-                <i class="fas fa-box    "></i> {{chat.department.name}}
+                <i class="fas fa-box"></i> {{chat.department.name}}
             </div>
 
         {% if not forloop.last %}

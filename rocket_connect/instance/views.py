@@ -1,6 +1,7 @@
 import datetime
 import json
 
+import pytz
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Max, Q
@@ -361,5 +362,11 @@ def server_monitor_view(request, server_id):
         open_rooms = server.get_open_rooms(sort='{"servedBy.username": 1}')
     else:
         open_rooms = server.get_open_rooms(sort='{"department.name": 1}')
+    # enhance open_rooms dates
+    for idx, room in enumerate(open_rooms):
+        lm = datetime.datetime.strptime(room["lm"], "%Y-%m-%dT%H:%M:%S.%fZ")
+        ts = datetime.datetime.strptime(room["ts"], "%Y-%m-%dT%H:%M:%S.%fZ")
+        open_rooms[idx]["lm_datetime"] = pytz.utc.localize(lm)
+        open_rooms[idx]["ts_datetime"] = pytz.utc.localize(ts)
     context = {"server": server, "open_rooms": open_rooms, "order": order}
     return render(request, "instance/server_monitor.html", context)
