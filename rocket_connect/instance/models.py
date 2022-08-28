@@ -5,6 +5,7 @@ import requests
 from django.apps import apps
 from django.conf import settings
 from django.db import models
+from django_celery_beat.models import CrontabSchedule, PeriodicTask
 from rocketchat_API.APIExceptions.RocketExceptions import RocketAuthenticationException
 from rocketchat_API.rocketchat import RocketChat
 
@@ -101,7 +102,7 @@ class Server(models.Model):
         rocket = self.get_rocket_client()
         rooms = rocket.livechat_rooms(open="true", **kwargs)
         if rooms.ok and rooms.json().get("rooms"):
-            return rooms.json()["rooms"]
+            return rooms.json()
         else:
             return []
 
@@ -109,7 +110,7 @@ class Server(models.Model):
         """
         Close all open rooms not open in Rocket.Chat
         """
-        open_rooms = self.get_open_rooms()
+        open_rooms = self.get_open_rooms().get("rooms", [])
         open_rooms_id = [r["_id"] for r in open_rooms]
         # get all open rooms in connector, except the actually open ones
         LiveChatRoom = apps.get_model(app_label="envelope", model_name="LiveChatRoom")
@@ -117,9 +118,11 @@ class Server(models.Model):
             connector__server=self, open=True
         ).exclude(room_id__in=open_rooms_id)
         total = close_rooms.count()
+        closed_rooms_id = close_rooms.values_list("room_id", flat=True)
+        response = {"total": total, "close_rooms_id": list(closed_rooms_id)}
         if execute:
-            close_rooms.update(open=False)
-        response = {"total": total}
+            close_room_response = close_rooms.update(open=False)
+            response["executed"] = close_room_response
         return response
 
     def force_delivery(self):
@@ -148,6 +151,78 @@ class Server(models.Model):
         if not self.external_url:
             return self.url
         return self.external_url
+
+    def install_server_tasks(self):
+        """
+        this method will create, if not created alread,
+        all the server tasks for a server, disabled by default
+        """
+        added_tasks = []
+        # server_maintenance
+        task = PeriodicTask.objects.filter(
+            task="instance.tasks.server_maintenance",
+            kwargs__contains=self.external_token,
+        )
+        if not task.exists():
+            crontab = CrontabSchedule.objects.first()
+            task = PeriodicTask.objects.create(
+                enabled=False,
+                name=f"General Maintenance for {self.name} (ID {self.id})",
+                crontab=crontab,
+                task="instance.tasks.server_maintenance",
+                kwargs=json.dumps({"server_token": self.external_token}),
+            )
+            self.tasks.add(task)
+            added_tasks.append(task)
+        # alert open
+        task = PeriodicTask.objects.filter(
+            task="instance.tasks.alert_last_message_open_chat",
+            kwargs__contains=self.external_token,
+        )
+        if not task.exists():
+            crontab = CrontabSchedule.objects.first()
+            task = PeriodicTask.objects.create(
+                enabled=False,
+                name=f"Alert Open Rooms for {self.name} (ID {self.id})",
+                crontab=crontab,
+                task="instance.tasks.alert_last_message_open_chat",
+                kwargs=json.dumps(
+                    {
+                        "server_token": self.external_token,
+                        "seconds_last_message": 30,
+                        "notification_target": "#general",
+                        "notification_template": ":warning: Open Omnichannel Room for "
+                        + "{{room.fname}}: {{external_url}}/omnichannel/current/{{room.id}}\n*Last Message*:"
+                        + " {{room.lastMessage.msg}} - {{room.lastMessage.u.name}}/ {{room.lastMessage.u.username}}"
+                        + "\n*Serverd by*: @{{room.servedBy.username}}\n*Last Message*: {{room.lm_obj}}"
+                        + "\n*Chat Started At*: {{room.ts_obj}} (_{{room.ts_obj|timesince}}_)",
+                    }
+                ),
+            )
+            self.tasks.add(task)
+            added_tasks.append(task)
+        # generic webhook
+        task = PeriodicTask.objects.filter(
+            task="instance.tasks.alert_open_rooms_generic_webhook",
+            kwargs__contains=self.external_token,
+        )
+        if not task.exists():
+            crontab = CrontabSchedule.objects.first()
+            task = PeriodicTask.objects.create(
+                enabled=False,
+                name=f"Generic Webhook for Open Rooms for {self.name} (ID {self.id})",
+                crontab=crontab,
+                task="instance.tasks.alert_open_rooms_generic_webhook",
+                kwargs=json.dumps(
+                    {
+                        "server_token": self.external_token,
+                        "endpoint": "https://rocketconnect.requestcatcher.com/test",
+                    }
+                ),
+            )
+            self.tasks.add(task)
+            added_tasks.append(task)
+        return added_tasks
 
     uuid = models.UUIDField(default=uuid.uuid4, editable=False)
     owners = models.ManyToManyField(

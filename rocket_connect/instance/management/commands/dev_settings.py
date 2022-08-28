@@ -30,6 +30,10 @@ class Command(BaseCommand):
             print("SERVER CREATED")
         else:
             print("SERVER UPDATED")
+        # create default server tasks
+        installed_tasks = server.install_server_tasks()
+        print("TASKS INSTALLED: ", installed_tasks)
+        #
         server.url = "http://rocketchat:3000"
         server.external_url = "http://localhost:3000"
         server.admin_user = "admin"

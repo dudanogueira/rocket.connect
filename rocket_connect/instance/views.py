@@ -2,6 +2,7 @@ import datetime
 import json
 
 import pytz
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Max, Q
@@ -68,6 +69,9 @@ def server_endpoint(request, server_id):
     # income message, we have a body
     if request.body:
         raw_message = json.loads(request.body)
+        if settings.DEBUG:
+            print("DEBUG: NEW SERVER PAYLOAD: ", raw_message)
+
         #
         # roketchat test message
         #
@@ -155,6 +159,15 @@ def server_detail_view(request, server_id):
             room_sync = server.room_sync(execute=True)
             messages.success(request, "Sync Executed!")
             room_sync = server.room_sync()
+
+    if request.GET.get("install-default-tasks"):
+        added_tasks = server.install_server_tasks()
+        for added_task in added_tasks:
+            messages.success(request, f"Added task {added_task} to this server")
+        if added_tasks:
+            messages.info(request, "All tasks are created disabled. Edit it to enable.")
+
+        return redirect(reverse("instance:server_detail", args=[server.external_token]))
 
     connectors = (
         server.connectors.distinct()

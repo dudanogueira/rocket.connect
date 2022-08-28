@@ -114,7 +114,8 @@
                     <i class="fa fa-edit" aria-hidden="true"></i>
                 </a>
                 {% endif %}
-                    {{task.name}} {% if task.enabled %} <span class="badge badge-success">enabled</span>{% else %} <span class="badge badge-danger">disabled</span>{% endif %}
+                    {{task.name}}
+                    {% if task.enabled %} <span class="badge badge-success float-right">enabled</span>{% else %} <span class="badge badge-danger">disabled</span>{% endif %}
                 </h2>
                 <small>{{task.description}}</small>
             </div>
@@ -125,9 +126,20 @@
                 kwargs: {{task.kwargs }}
             </div>
             <div class="card-footer text-muted">
-                last run: {{task.last_run_at}} ({{task.last_run_at|timesince}})
+                {% if task.last_run_at %}
+                    last run: {{task.last_run_at}} ({{task.last_run_at|timesince}}) (<small>Ps: this value has some delays</small>)
+                {% else %}
+                    <b>this task never runned</b>
+                {% endif %}
             </div>
         </div>
+        {% empty %}
+        <p class="my-5">
+            <h1>
+                No Tasks found!
+            </h1>
+            <a name="" id="" class="btn btn-primary" href="?install-default-tasks=1" role="button">add default tasks</a>
+        </p>
         {% endfor %}
     </div>
 </div>

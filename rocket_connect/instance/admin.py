@@ -5,6 +5,8 @@ from .models import Connector, Server
 
 @admin.register(Server)
 class ServerAdmin(admin.ModelAdmin):
+    actions = ("install_server_tasks",)
+
     list_display = (
         "id",
         "name",
@@ -20,6 +22,14 @@ class ServerAdmin(admin.ModelAdmin):
     )
     list_filter = ("enabled", "created", "updated")
     search_fields = ("name",)
+
+    def install_server_tasks(self, request, queryset):
+        for server in queryset.all():
+            added_tasks = server.install_server_tasks()
+            msg = f"Tasks added for server {server}: {len(added_tasks)}"
+            self.message_user(request, msg)
+
+    install_server_tasks.short_description = "Install Server Tasks"
 
 
 @admin.register(Connector)
