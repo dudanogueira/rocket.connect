@@ -388,6 +388,7 @@ def server_monitor_view(request, server_id):
     else:
         open_rooms = server.get_open_rooms(sort='{"department.name": 1}')
     # enhance open_rooms dates
+    open_rooms = open_rooms["rooms"]
     for idx, room in enumerate(open_rooms):
         lm = datetime.datetime.strptime(room["lm"], "%Y-%m-%dT%H:%M:%S.%fZ")
         ts = datetime.datetime.strptime(room["ts"], "%Y-%m-%dT%H:%M:%S.%fZ")
