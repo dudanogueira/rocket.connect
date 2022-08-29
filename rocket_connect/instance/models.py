@@ -10,8 +10,8 @@ from rocketchat_API.APIExceptions.RocketExceptions import RocketAuthenticationEx
 from rocketchat_API.rocketchat import RocketChat
 
 
-def random_string():
-    return uuid.uuid4().hex[:20].upper()
+def random_string(size=20):
+    return uuid.uuid4().hex[:size].upper()
 
 
 class Server(models.Model):
@@ -223,6 +223,51 @@ class Server(models.Model):
             self.tasks.add(task)
             added_tasks.append(task)
         return added_tasks
+
+    def install_omnichannel_webhook(
+        self, rocketconnect_url="http://rocketconnect:5000"
+    ):
+        rocket = self.get_rocket_client()
+        configs = [
+            [
+                "Livechat_webhookUrl",
+                f"{rocketconnect_url}/server/{self.external_token}/",
+            ],
+            ["Livechat_enabled", True],
+            ["Livechat_accept_chats_with_no_agents", True],
+            ["Livechat_secret_token", self.secret_token],
+            ["Livechat_webhook_on_start", True],
+            ["Livechat_webhook_on_close", True],
+            ["Livechat_webhook_on_agent_message", True],
+            ["Livechat_webhook_on_chat_taken", True],
+            ["Livechat_webhook_on_chat_queued", True],
+            ["Livechat_webhook_on_forward", True],
+            ["Livechat_webhook_on_offline_msg", True],
+            ["Accounts_TwoFactorAuthentication_Enabled", False],
+            ["Accounts_TwoFactorAuthentication_By_Email_Enabled", False],
+            ["Log_Level", "2"],
+            ["Livechat_Routing_Method", "Manual_Selection"],
+        ]
+        for config in configs:
+            rocket.settings_update(config[0], config[1])
+
+    def add_default_wppconnect(self, name="WPPCONNECT"):
+        random = random_string(size=5)
+        name = f"{name} {random}"
+        connector = self.connectors.create(
+            name=name,
+            connector_type="wppconnect",
+        )
+        config = {
+            "webhook": f"http://rocketconnect:5000/connector/{connector.external_token}/",
+            "endpoint": "http://wppconnect:21465",
+            "open_room": True,
+            "secret_key": "My53cr3tKY",
+            "instance_name": f"wppconnect_connector_{random}",
+            "enable_ack_receipt": True,
+        }
+        connector.config = config
+        connector.save()
 
     uuid = models.UUIDField(default=uuid.uuid4, editable=False)
     owners = models.ManyToManyField(
@@ -478,7 +523,7 @@ class Connector(models.Model):
         help_text="separate users or channels with comma, eg: user1,user2,user3,#channel1,#channel2",
     )
     config = models.JSONField(
-        blank=True, null=True, help_text="Connector General configutarion"
+        blank=True, null=True, help_text="Connector General configutarion", default=dict
     )
     secondary_connectors = models.ManyToManyField("self", blank=True)
     enabled = models.BooleanField(default=True)

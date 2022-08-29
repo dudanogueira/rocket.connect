@@ -63,6 +63,12 @@ def server_endpoint(request, server_id):
         server.secret_token
         and request.headers.get("X-Rocketchat-Livechat-Token") != server.secret_token
     ):
+        # TODO:
+        # alert manager channel
+        server.multiple_connector_admin_message(
+            ":warning:  Rocket.Chat Omnichannel Connection Test was Received."
+            + "It was *not successfull*, as the secret token is different"
+        )
         return HttpResponse(
             "Unauthorized. No X-Rocketchat-Livechat-Token provided.", status=401
         )
@@ -77,7 +83,7 @@ def server_endpoint(request, server_id):
         #
         if raw_message.get("_id") == "fasd6f5a4sd6f8a4sdf":
             message_sent = server.multiple_connector_admin_message(
-                "Rocket.Chat Omnichannel Connection Test was Received. This is the response."
+                ":white_check_mark:  Rocket.Chat Omnichannel Connection Test was Received. This is the response."
             )
             if message_sent:
                 return JsonResponse({})
@@ -356,13 +362,19 @@ def new_server(request):
         if status["alive"] and not status["auth_error"]:
             server.save()
             server.owners.add(request.user)
-            messages.success(request, "Server Created")
+            messages.success(request, "Server Created!")
+            # add omnichannel
+            if request.GET.get("install_omnichannel_webhooks"):
+                server.install_omnichannel()
+            # add default wppconnect
+            if request.GET.get("install_default_wppconnect"):
+                server.install_default_wppconnect()
+
             return redirect(
                 reverse("instance:server_detail", args=[server.external_token])
             )
         else:
             messages.error(request, f"Error {status}")
-
     context = {"form": form}
     return render(request, "instance/new_server.html", context)
 

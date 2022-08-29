@@ -1,17 +1,39 @@
 {% extends "base.html" %}
 {% load crispy_forms_tags %}
-
 {% block content %}
-<nav class="breadcrumb">
-    <a class="breadcrumb-item" href="{% url 'home' %}">home</a>
-    <span class="breadcrumb-item active">New Server<span>
-</nav>
-<div id="form" class="container">
-    <form action="" method="post">
-        {% csrf_token %}
-        {{form|crispy}}
-        <button type="submit" class="btn btn-primary">Submit</button>
-    </form>
-</div>
-
-{% endblock content %}
+    <nav class="breadcrumb">
+        <a class="breadcrumb-item" href="{% url 'home' %}">home</a>
+        <span class="breadcrumb-item active">New Server<span>
+        </nav>
+        <div id="form" class="container">
+            <form action="" method="post">
+                {% csrf_token %}
+                {{ form|crispy }}
+                <hr />
+                <div class="form-check">
+                    <label class="form-check-label">
+                        <input type="checkbox"
+                               class="form-check-input"
+                               name="install_omnichannel_webhooks"
+                               id=""
+                               value="1"
+                               checked>
+                        Install Omnichannel Webhooks on this Server <small>(using default configs)</small>
+                    </label>
+                </div>
+                <div class="form-check">
+                    <label class="form-check-label">
+                        <input type="checkbox"
+                               class="form-check-input"
+                               name="add_default_wppconnect"
+                               id=""
+                               value="1"
+                               checked>
+                        Add default wppconnect connector with configs <small>(using default configs)</small>
+                    </label>
+                </div>
+                <hr />
+                <button type="submit" class="btn btn-primary">Add Server</button>
+            </form>
+        </div>
+    {% endblock content %}

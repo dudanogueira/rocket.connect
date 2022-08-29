@@ -28,9 +28,10 @@ class Connector:
         self.type = type
         self.config = self.connector.config
         # get timezone
-        self.timezone = (
-            self.config.get("timezone") or settings.TIME_ZONE or "America/Sao_Paulo"
-        )
+        if self.config:
+            self.timezone = (
+                self.config.get("timezone") or settings.TIME_ZONE or "America/Sao_Paulo"
+            )
         # self.message must be a dictionary
         if message:
             self.message = json.loads(message)

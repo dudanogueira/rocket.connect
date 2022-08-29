@@ -5,7 +5,11 @@ from .models import Connector, Server
 
 @admin.register(Server)
 class ServerAdmin(admin.ModelAdmin):
-    actions = ("install_server_tasks",)
+    actions = (
+        "install_server_tasks",
+        "install_omnichannel_webhooks",
+        "add_default_wppconnect",
+    )
 
     list_display = (
         "id",
@@ -29,7 +33,23 @@ class ServerAdmin(admin.ModelAdmin):
             msg = f"Tasks added for server {server}: {len(added_tasks)}"
             self.message_user(request, msg)
 
+    def install_omnichannel_webhooks(self, request, queryset):
+        for server in queryset.all():
+            server.install_omnichannel_webhook()
+            msg = f"Omnichannel configured for server {server}"
+            self.message_user(request, msg)
+
+    def add_default_wppconnect(self, request, queryset):
+        for server in queryset.all():
+            server.add_default_wppconnect()
+            msg = f"WPPCONNECT Connector added configured for server {server}"
+            self.message_user(request, msg)
+
     install_server_tasks.short_description = "Install Server Tasks"
+    install_omnichannel_webhooks.short_description = (
+        "Install Omnichannel Webhooks (with default settings)"
+    )
+    add_default_wppconnect.short_description = "Add Default WPPCONNECT Connector"
 
 
 @admin.register(Connector)

@@ -49,12 +49,14 @@ class Connector(ConnectorBase):
             self.connector.config["token"] = token
             self.connector.save()
             return token
+        # TODO: here may fail if wppconnect secret token
+        # is differnet. It  would be nice to alert this
         return False
 
     def status_session(self):
         # generate token
         status = {}
-        if self.config.get("endpoint"):
+        if self.config.get("endpoint", None):
             endpoint = "{}/api/{}/status-session".format(
                 self.config.get("endpoint"),
                 self.config.get("instance_name"),
