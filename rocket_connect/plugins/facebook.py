@@ -122,9 +122,10 @@ class Connector(ConnectorBase):
     def get_visitor_username(self):
         return f"facebook:{self.get_visitor_id()}"
 
-    def get_visitor_json(self):
+    def get_visitor_json(self, department=None):
         # cal api to get more infos
         url = "https://graph.facebook.com/{0}?fields=first_name,last_name,profile_pic&access_token={1}"
+        print("HERE ", url)
         url = url.format(self.get_visitor_id(), self.connector.config["access_token"])
         data = requests.get(url)
         if settings.DEBUG:
