@@ -43,6 +43,7 @@ def alert_last_message_open_chat(
     # parse datetime strings to python objects
 
     for room in open_rooms.get("rooms", []):
+        rendered_targets = []
         if room.get("lastMessage"):
             last_message = room["lastMessage"]
             ts = dateutil.parser.parse(last_message["ts"])
@@ -62,18 +63,35 @@ def alert_last_message_open_chat(
                 context = Context(context_dict)
                 template = Template(notification_template)
                 for target in notification_target.split(","):
+
+                    # render message
                     message = template.render(context)
-                    print("M: ", message)
-                    rocket.chat_post_message(
-                        text=message, channel=target.replace("#", "")
-                    )
+                    if target.startswith("#"):
+                        rendered_targets.append(target)
+                        sent = rocket.chat_post_message(
+                            text=message, channel=target.replace("#", "")
+                        )
+                    else:
+
+                        # target may contain variables
+                        target_template = Template(target)
+                        rendered_target = target_template.render(context)
+                        rendered_targets.append(rendered_target)
+                        dm = rocket.im_create(username=rendered_target)
+                        if dm.ok:
+                            room_id = dm.json()["room"]["rid"]
+                            sent = rocket.chat_post_message(
+                                text=message, room_id=room_id
+                            )
+                            print("SENT! ", sent)
 
     # return findings
     return {
         "alerted_rooms": alerted_rooms,
         "now": str(now),
         "seconds_last_message": seconds_last_message,
-        "notification_target": notification_target,
+        "notification_target_unrendered": notification_target,
+        "rendered_targets": rendered_targets,
     }
 
 

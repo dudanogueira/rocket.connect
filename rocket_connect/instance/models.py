@@ -190,12 +190,14 @@ class Server(models.Model):
                     {
                         "server_token": self.external_token,
                         "seconds_last_message": 30,
-                        "notification_target": "#general",
+                        "notification_target": "#general,{{room.servedBy.username}}",
                         "notification_template": ":warning: Open Omnichannel Room for "
                         + "{{room.fname}}: {{external_url}}/omnichannel/current/{{room.id}}\n*Last Message*:"
-                        + " {{room.lastMessage.msg}} - {{room.lastMessage.u.name}}/ {{room.lastMessage.u.username}}"
-                        + "\n*Serverd by*: @{{room.servedBy.username}}\n*Last Message*: {{room.lm_obj}}"
-                        + "\n*Chat Started At*: {{room.ts_obj}} (_{{room.ts_obj|timesince}}_)",
+                        + " {{room.lastMessage.msg}} - {{room.lastMessage.u.name}}/{{room.lastMessage.u.username}}"
+                        + "\n*Serverd by*: @{{room.servedBy.username}}"
+                        + "\n*Last Message*: {{room.lm_obj|date:'SHORT_DATETIME_FORMAT'}} (_{{room.lm_obj|timesince}}_)"
+                        + "\n*Chat Started At*: {{room.ts_obj|date:'SHORT_DATETIME_FORMAT'}}"
+                        + "(_{{room.ts_obj|timesince}}_)",
                     }
                 ),
             )

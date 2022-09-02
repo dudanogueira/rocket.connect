@@ -26,6 +26,7 @@ class Connector(ConnectorBase):
         this method will process the incoming messages
         and ajust what necessary, to output to rocketchat
         """
+        # log incoming connector
         self.get_rocket_client()
         # it can be a reintake, and no request is provided
         # so it will not be a verification step
@@ -125,7 +126,6 @@ class Connector(ConnectorBase):
     def get_visitor_json(self, department=None):
         # cal api to get more infos
         url = "https://graph.facebook.com/{0}?fields=first_name,last_name,profile_pic&access_token={1}"
-        print("HERE ", url)
         url = url.format(self.get_visitor_id(), self.connector.config["access_token"])
         data = requests.get(url)
         if settings.DEBUG:

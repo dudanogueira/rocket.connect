@@ -66,15 +66,15 @@ class Connector(ConnectorBase):
             text = "Connector: {}. Status: {}".format(
                 self.connector.name,
                 """:white_check_mark: :white_check_mark: :white_check_mark: :satellite:"""
-                + "Endpoint Sucessfuly verified by Meta Cloud!",
+                + "\nEndpoint Sucessfuly verified by Meta Cloud!",
             )
             self.outcome_admin_message(text)
             return HttpResponse(challenge)
         else:
-            self.logger_info("ERROR VERIFYING META CLOUD ENDPOINT")
+            self.logger_error("ERROR VERIFYING META CLOUD ENDPOINT")
             text = "Connector: {}. Status: {}".format(
                 self.connector.name,
-                """:warning: :warning: :warning: :satellite: *endpoint NOT VERIFIED* by Meta Cloud!""",
+                """:warning: :warning: :warning: :satellite: \n*Endpoint NOT VERIFIED* by Meta Cloud!""",
             )
             self.outcome_admin_message(text)
             return HttpResponseForbidden()
