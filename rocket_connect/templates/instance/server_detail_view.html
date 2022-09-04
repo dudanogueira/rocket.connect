@@ -89,6 +89,7 @@
             <div class="card-header">
                 <h2>
                     Connector: {{connector.name}} <span class="text-{{ connector.enabled|yesno:'success,danger' }}">{{ connector.enabled|yesno:"Active,Inactive" }}</span>
+                    <span class="badge badge-primary bg-info float-right badge-sm">{{connector.connector_type}}</span>
                 </h2>
             </div>
             <div class="card-body">

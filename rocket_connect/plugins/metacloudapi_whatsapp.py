@@ -82,17 +82,18 @@ class Connector(ConnectorBase):
     def handle_message(self):
         message, created = self.register_message()
         room = self.get_room()
-        if self.message.get("type") == "text":
-            # outcome text message
-            #
-            self.outcome_text(room.room_id, self.message["text"]["body"])
         allowed_media_types = self.config.get(
-            "allowed_media_types", "audio,image,video,documento,sticker"
+            "allowed_media_types", "audio,image,video,documento,sticker, text"
         ).split(",")
         if self.message.get("type") in allowed_media_types:
             # outcome text message
             #
-            self.handle_media()
+            if self.message.get("type") == "text":
+                # outcome text message
+                #
+                self.outcome_text(room.room_id, self.message["text"]["body"])
+            else:
+                self.handle_media()
         else:
             # outcome text message, alerting this is not allowed
             # TODO, improve this to outcome and outgo customizable messages
