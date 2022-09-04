@@ -259,7 +259,7 @@ class ConnectorConfigForm(BaseConnectorConfigForm):
     allowed_media_types = forms.CharField(
         help_text="Allowed Media Types",
         required=True,
-        initial="audio,image,video,document,sticker",
+        initial="audio,image,video,document,sticker,text,location,contacts",
     )
 
     field_order = ["endpoint", "verify_token", "bearer_token", "allowed_media_types"]

@@ -22,8 +22,9 @@ class NewConnectorForm(ModelForm):
         super().__init__(*args, **kwargs)
         connector_choices = [
             ("wppconnect", "WPPConnect"),
-            ("facebook", "Facebook"),
+            ("facebook", "Meta Cloud Facebook"),
             ("metacloudapi_whatsapp", "Meta Cloud WhatsApp"),
+            ("instagram_direct", "Meta Cloud Instagram"),
         ]
         # get departments
         rocket = server.get_rocket_client()
