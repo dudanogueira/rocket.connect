@@ -83,7 +83,7 @@ class Connector(ConnectorBase):
         message, created = self.register_message()
         room = self.get_room()
         allowed_media_types = self.config.get(
-            "allowed_media_types", "audio,image,video,documento,sticker, text"
+            "allowed_media_types", "audio,image,video,document,sticker, text"
         ).split(",")
         if self.message.get("type") in allowed_media_types:
             # outcome text message
@@ -244,7 +244,7 @@ class ConnectorConfigForm(BaseConnectorConfigForm):
     allowed_media_types = forms.CharField(
         help_text="Allowed Media Types",
         required=True,
-        initial="audio,image,video,documento,sticker",
+        initial="audio,image,video,document,sticker",
     )
 
     field_order = ["endpoint", "verify_token", "bearer_token", "allowed_media_types"]
