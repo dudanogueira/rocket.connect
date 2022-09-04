@@ -173,7 +173,7 @@ class Connector(ConnectorBase):
             "recipient_type": "individual",
             "to": number,
             "type": "text",
-            "text": {"body": self.message["messages"][0]["msg"]},
+            "text": {"body": content},
         }
         self.logger_info(f"OUTGOING TEXT MESSAGE. URL: {url}. PAYLOAD {payload}")
         # try with regular number
