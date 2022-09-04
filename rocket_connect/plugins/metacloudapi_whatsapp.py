@@ -40,7 +40,7 @@ class Connector(ConnectorBase):
                                 self.message = message
                                 # enrich message
                                 self.message["metadata"] = change["value"]["metadata"]
-                                self.message["contacts"] = change["value"]["contacts"]
+                                self.message["profile"] = change["value"]["contacts"]
                                 self.message["object"] = self.raw_message["object"]
                                 # handle text message
                                 self.handle_message()
@@ -83,7 +83,8 @@ class Connector(ConnectorBase):
         message, created = self.register_message()
         room = self.get_room()
         allowed_media_types = self.config.get(
-            "allowed_media_types", "audio,image,video,document,sticker, text"
+            "allowed_media_types",
+            "audio,image,video,document,sticker,text,location,contacts",
         ).split(",")
         if self.message.get("type") in allowed_media_types:
             # outcome text message
@@ -92,6 +93,19 @@ class Connector(ConnectorBase):
                 # outcome text message
                 #
                 self.outcome_text(room.room_id, self.message["text"]["body"])
+            elif self.message.get("type") == "location":
+                message = "Location: lat {} long {}".format(
+                    self.message["location"]["latitude"],
+                    self.message["location"]["longitude"],
+                )
+                self.outcome_text(room.room_id, message)
+            elif self.message.get("type") == "contacts":
+                print("AQUI ", self.message)
+                for contact in self.message["contacts"]:
+                    message = "Contact: {}  {}".format(
+                        contact["name"]["formatted_name"], contact["phones"]
+                    )
+                    self.outcome_text(room.room_id, message)
             else:
                 self.handle_media()
         else:
@@ -118,6 +132,7 @@ class Connector(ConnectorBase):
         media_type = self.message["type"]
         media_id = self.message[media_type]["id"]
         # get media url
+        # TODO config api version
         url = "https://graph.facebook.com/v13.0/" + media_id
         session = self.get_request_session()
         media_info = session.get(
@@ -140,7 +155,7 @@ class Connector(ConnectorBase):
         return self.message["from"]
 
     def get_visitor_name(self):
-        return self.message["contacts"][0]["profile"]["name"]
+        return self.message["profile"][0]["profile"]["name"]
 
     def get_visitor_token(self):
         return "whatsapp:" + self.message["from"] + "@c.us"
