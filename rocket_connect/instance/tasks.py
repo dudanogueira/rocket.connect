@@ -125,3 +125,24 @@ def alert_open_rooms_generic_webhook(server_token, endpoint):
     # process
     response = requests.post(endpoint, json=open_rooms)
     return response.ok
+
+
+@celery_app.task(
+    retry_kwargs={"max_retries": 7, "countdown": 5},
+    autoretry_for=(requests.ConnectionError,),
+)
+def change_user_status(server_token, users, status, message=""):
+    """send a payload to a configured endpoint"""
+
+    # get server
+    server = Server.objects.get(external_token=server_token)
+    rocket = server.get_rocket_client()
+    responses = []
+    if type(users) == str:
+        users = users.split(",")
+    for user in users:
+        r = rocket.users_set_status(username=user, status=status, message=message)
+        responses.append(
+            {"user": user, "status": status, "message": message, "return": r.json()}
+        )
+    return responses
