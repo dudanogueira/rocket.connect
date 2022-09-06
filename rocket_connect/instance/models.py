@@ -224,6 +224,30 @@ class Server(models.Model):
             )
             self.tasks.add(task)
             added_tasks.append(task)
+        # status change
+        task = PeriodicTask.objects.filter(
+            task="instance.tasks.change_user_status",
+            kwargs__contains=self.external_token,
+        )
+        if not task.exists():
+            crontab = CrontabSchedule.objects.first()
+            task = PeriodicTask.objects.create(
+                enabled=False,
+                name=f"Change status for {self.name} (ID {self.id})",
+                crontab=crontab,
+                task="instance.tasks.change_user_status",
+                kwargs=json.dumps(
+                    {
+                        "server_token": self.external_token,
+                        "users": "bot",
+                        "status": "online",
+                        "message": "Some status",
+                    }
+                ),
+            )
+            self.tasks.add(task)
+            added_tasks.append(task)
+        # return added tasks
         return added_tasks
 
     def install_omnichannel_webhook(

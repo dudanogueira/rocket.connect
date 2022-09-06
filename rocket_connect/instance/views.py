@@ -369,6 +369,8 @@ def new_server(request):
             # add default wppconnect
             if request.GET.get("install_default_wppconnect"):
                 server.install_default_wppconnect()
+            if request.GET.get("add_default_server_tasks"):
+                server.install_server_tasks()
 
             return redirect(
                 reverse("instance:server_detail", args=[server.external_token])

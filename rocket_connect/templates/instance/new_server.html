@@ -18,7 +18,7 @@
                                id=""
                                value="1"
                                checked>
-                        Install Omnichannel Webhooks on this Server <small>(using default configs)</small>
+                        Install Omnichannel Webhook on this Server <small>(using default configs)</small>
                     </label>
                 </div>
                 <div class="form-check">
@@ -29,11 +29,22 @@
                                id=""
                                value="1"
                                checked>
-                        Add default wppconnect connector with configs <small>(using default configs)</small>
+                        Add default wppconnect connector <small>(using default configs)</small>
+                    </label>
+                </div>
+                <div class="form-check">
+                    <label class="form-check-label">
+                        <input type="checkbox"
+                               class="form-check-input"
+                               name="add_default_server_tasks"
+                               id=""
+                               value="1"
+                               checked>
+                        Add default server tasks <small>(using default configs)</small>
                     </label>
                 </div>
                 <hr />
-                <button type="submit" class="btn btn-primary">Add Server</button>
+                <button type="submit" class="btn btn-primary mb-5">Add Server</button>
             </form>
         </div>
     {% endblock content %}
