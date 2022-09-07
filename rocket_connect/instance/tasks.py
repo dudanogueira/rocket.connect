@@ -146,3 +146,59 @@ def change_user_status(server_token, users, status, message=""):
             {"user": user, "status": status, "message": message, "return": r.json()}
         )
     return responses
+
+
+@celery_app.task(
+    retry_kwargs={"max_retries": 7, "countdown": 5},
+    autoretry_for=(requests.ConnectionError,),
+)
+def close_abandoned_chats(
+    server_token, last_message_users, last_message_seconds, closing_message
+):
+    """close all open rooms that the last message from last_message_users
+    with more then last_message_seconds. before, send a closing_message.
+    # TODO:
+    optionally, alert a channel
+    """
+
+    # get server
+    server = Server.objects.get(external_token=server_token)
+    # get rocket
+    rocket = server.get_rocket_client()
+    # list all open messages
+    open_rooms = server.get_open_rooms()
+    if type(last_message_users) == str:
+        last_message_users = last_message_users.split(",")
+    # process
+    now = timezone.now()
+    # parse datetime strings to python objects
+
+    closed_rooms = []
+    if open_rooms:
+        for room in open_rooms.get("rooms", []):
+            if room.get("lastMessage", False):
+                last_message = room["lastMessage"]
+                if last_message["u"]["username"] in last_message_users:
+                    ts = dateutil.parser.parse(last_message["ts"])
+                    delta = now - ts
+                    if delta.total_seconds() >= last_message_seconds:
+                        # TODO:
+                        # send closing_message here
+                        # close messages on this situation
+                        room_close_options = {
+                            "rid": room["_id"],
+                            "token": room["v"]["token"],
+                        }
+                        close = rocket.call_api_post(
+                            "livechat/room.close", **room_close_options
+                        )
+                        closed_rooms.append(close.json())
+
+    # return findings
+    return {
+        "closed_rooms": closed_rooms,
+        "now": str(now),
+        "last_message_users": last_message_users,
+        "last_message_seconds": last_message_seconds,
+        "closing_message": closing_message,
+    }
