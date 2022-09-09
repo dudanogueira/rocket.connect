@@ -29,7 +29,7 @@ class Connector(ConnectorBase):
             # it can be a forced delivery
             if not self.message.get("entry"):
                 # here it can be a status message
-                self.handle_message()
+                return self.handle_message()
             else:
                 for entry in self.message.get("entry"):
                     for change in entry["changes"]:
@@ -43,7 +43,7 @@ class Connector(ConnectorBase):
                                 self.message["profile"] = change["value"]["contacts"]
                                 self.message["object"] = self.raw_message["object"]
                                 # handle text message
-                                self.handle_message()
+                                return self.handle_message()
                         # it has a status receipt
                         if change["value"].get("statuses") and self.config.get(
                             "enable_ack_receipt", True
@@ -105,6 +105,11 @@ class Connector(ConnectorBase):
             return HttpResponseForbidden()
 
     def handle_message(self):
+
+        if self.message.get("type") == "unsupported":
+            # do nothing
+            return JsonResponse({"message": "unsupported type"})
+
         message, created = self.register_message()
         room = self.get_room()
         # no room was generated
@@ -135,6 +140,7 @@ class Connector(ConnectorBase):
                         contact["name"]["formatted_name"], contact["phones"]
                     )
                     self.outcome_text(room.room_id, message)
+
             else:
                 self.handle_media()
         else:
