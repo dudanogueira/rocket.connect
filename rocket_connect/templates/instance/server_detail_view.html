@@ -106,7 +106,7 @@
     </div>
     <!--- TASKS -->
     <div class="tab-pane fade" id="tasks" role="tabpanel" aria-labelledby="tasks-tab">
-        {% for task in server.tasks.all %}
+        {% for task in tasks.all %}
         <div class="card mb-3">
             <div class="card-header">
                 <h2>
@@ -115,8 +115,9 @@
                     <i class="fa fa-edit" aria-hidden="true"></i>
                 </a>
                 {% endif %}
-                    {{task.name}}
-                    {% if task.enabled %} <span class="badge badge-success float-right">enabled</span>{% else %} <span class="badge badge-danger">disabled</span>{% endif %}
+                {% if task.enabled %} <span class="badge badge-success">enabled</span>{% else %} <span class="badge badge-danger">disabled</span>{% endif %}
+                {{task.name}}
+
                 </h2>
                 <small>{{task.description}}</small>
             </div>
