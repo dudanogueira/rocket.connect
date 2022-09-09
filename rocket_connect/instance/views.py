@@ -386,9 +386,9 @@ def server_monitor_view(request, server_id):
     server = get_object_or_404(Server.objects, external_token=server_id)
     order = request.GET.get("order", "agent")
     if order == "agent":
-        open_rooms = server.get_open_rooms(sort='{"servedBy.username": 1}')
+        open_rooms = server.get_open_rooms(sort='{"servedBy.username": 1, "lm": 1}')
     else:
-        open_rooms = server.get_open_rooms(sort='{"department.name": 1}')
+        open_rooms = server.get_open_rooms(sort='{"department.name": 1, "lm": 1}')
     # enhance open_rooms dates
     open_rooms = open_rooms["rooms"]
     for idx, room in enumerate(open_rooms):

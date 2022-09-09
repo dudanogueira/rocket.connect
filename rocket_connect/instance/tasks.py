@@ -153,7 +153,7 @@ def change_user_status(server_token, users, status, message=""):
     autoretry_for=(requests.ConnectionError,),
 )
 def close_abandoned_chats(
-    server_token, last_message_users, last_message_seconds, closing_message
+    server_token, last_message_users, last_message_seconds, closing_message=None
 ):
     """close all open rooms that the last message from last_message_users
     with more then last_message_seconds. before, send a closing_message.
@@ -182,8 +182,10 @@ def close_abandoned_chats(
                     ts = dateutil.parser.parse(last_message["ts"])
                     delta = now - ts
                     if delta.total_seconds() >= last_message_seconds:
-                        # TODO:
-                        # send closing_message here
+                        if closing_message:
+                            rocket.chat_post_message(
+                                room_id=room["_id"], text=closing_message
+                            ).json()
                         # close messages on this situation
                         room_close_options = {
                             "rid": room["_id"],
