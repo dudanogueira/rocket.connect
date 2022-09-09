@@ -60,51 +60,46 @@ class Connector(ConnectorBase):
             message, created = self.register_message()
             # get room
             room = self.get_room()
-            if room:
-                for entry in self.message.get("entry", []):
-                    # register message
-                    message, created = self.register_message()
-                    # Gets the body of the webhook event
-                    webhook_event = entry["messaging"][0]
+            if not room:
+                return JsonResponse({"message": "no room generated"})
+            for entry in self.message.get("entry", []):
+                # register message
+                message, created = self.register_message()
+                # Gets the body of the webhook event
+                webhook_event = entry["messaging"][0]
+                #
+                # TODO: Check differente type of messages.
+                # has attachments
+                if webhook_event["message"].get("attachments"):
                     #
-                    # TODO: Check differente type of messages.
-                    # has attachments
-                    if webhook_event["message"].get("attachments"):
-                        #
-                        # TODO: grant attachments delivery, like text messages
-                        #
-                        for attachment in webhook_event["message"].get(
-                            "attachments", []
-                        ):
-                            if attachment.get("type") == "location":
-                                lat = attachment["payload"]["coordinates"]["lat"]
-                                lng = attachment["payload"]["coordinates"]["long"]
-                                link = "https://www.google.com/maps/search/?api=1&query={}+{}".format(
-                                    lat, lng
-                                )
-                                text = "Lat:{}, Long:{}: Link: {}".format(
-                                    lat, lng, link
-                                )
-                                deliver = self.outcome_text(room.room_id, text)
-                            else:
-                                url = attachment["payload"]["url"]
-                                r = requests.get(url)
-                                base = base64.b64encode(r.content)
-                                mime = r.headers["Content-Type"]
-                                self.outcome_file(base, room.room_id, mime)
-                        if webhook_event["message"].get("text"):
-                            deliver = self.outcome_text(
-                                room.room_id, webhook_event["message"].get("text")
+                    # TODO: grant attachments delivery, like text messages
+                    #
+                    for attachment in webhook_event["message"].get("attachments", []):
+                        if attachment.get("type") == "location":
+                            lat = attachment["payload"]["coordinates"]["lat"]
+                            lng = attachment["payload"]["coordinates"]["long"]
+                            link = "https://www.google.com/maps/search/?api=1&query={}+{}".format(
+                                lat, lng
                             )
-                        # RETURN 200
-                        return HttpResponse("EVENT_RECEIVED")
-
-                    if self.get_message_body():
+                            text = f"Lat:{lat}, Long:{lng}: Link: {link}"
+                            deliver = self.outcome_text(room.room_id, text)
+                        else:
+                            url = attachment["payload"]["url"]
+                            r = requests.get(url)
+                            base = base64.b64encode(r.content)
+                            mime = r.headers["Content-Type"]
+                            self.outcome_file(base, room.room_id, mime)
+                    if webhook_event["message"].get("text"):
                         deliver = self.outcome_text(
-                            room.room_id, self.get_message_body()
+                            room.room_id, webhook_event["message"].get("text")
                         )
-                        if deliver.ok:
-                            return HttpResponse("EVENT_RECEIVED")
+                    # RETURN 200
+                    return HttpResponse("EVENT_RECEIVED")
+
+                if self.get_message_body():
+                    deliver = self.outcome_text(room.room_id, self.get_message_body())
+                    if deliver.ok:
+                        return HttpResponse("EVENT_RECEIVED")
 
         return JsonResponse({"ae": 1})
 

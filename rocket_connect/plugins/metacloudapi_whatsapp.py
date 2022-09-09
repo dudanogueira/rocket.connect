@@ -82,6 +82,10 @@ class Connector(ConnectorBase):
     def handle_message(self):
         message, created = self.register_message()
         room = self.get_room()
+        # no room was generated
+        if not room:
+            return JsonResponse({"message": "no room generated"})
+
         allowed_media_types = self.config.get(
             "allowed_media_types",
             "audio,image,video,document,sticker,text,location,contacts",
@@ -118,11 +122,6 @@ class Connector(ConnectorBase):
             self.outgo_message_from_rocketchat(payload)
             message.delivered = True
             message.save()
-
-        # no room was generated
-        #
-        if not room:
-            return JsonResponse({"message": "no room generated"})
 
     def handle_media(self):
         # register message

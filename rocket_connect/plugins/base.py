@@ -392,6 +392,13 @@ class Connector:
         room = None
         room_created = False
         connector_token = self.get_visitor_token()
+
+        # ignore some tokens
+        if self.config.get("ignore_visitors_token"):
+            if connector_token in self.config.get("ignore_visitors_token").split(","):
+                self.logger_info(f"Ignoring visitor token {connector_token}")
+                return room
+
         try:
             room = LiveChatRoom.objects.get(
                 connector=self.connector, token=connector_token, open=True
@@ -922,6 +929,9 @@ class BaseConnectorConfigForm(forms.Form):
 
     open_room = forms.BooleanField(
         required=False, initial=True, help_text="Uncheck to avoid creating a room"
+    )
+    ignore_visitors_token = forms.CharField(
+        help_text="Do not create/get rooms for this tokens", required=False
     )
     timezone = forms.CharField(help_text="Timezone for this connector", required=False)
     force_close_message = forms.CharField(
