@@ -153,6 +153,7 @@ class Connector(ConnectorBase):
             self.outgo_message_from_rocketchat(payload)
             message.delivered = True
             message.save()
+        return JsonResponse({"sucess": True})
 
     def handle_media(self):
         # register message
