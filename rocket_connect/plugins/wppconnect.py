@@ -1199,10 +1199,6 @@ class Connector(ConnectorBase):
             for message in self.connector.messages.filter(
                 response__id__contains=message_id
             ):
-                # TODO: if ack == 2, it must have both ack and seen
-                # what is happening, due to race condition,
-                # it can leave only with the green one.
-                # Solution: replace the ballot_box_with_check if present,
                 # or add only the white check
                 original_message = self.rocket.chat_get_message(
                     msg_id=message.envelope_id

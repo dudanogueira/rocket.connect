@@ -63,7 +63,6 @@ def server_endpoint(request, server_id):
         server.secret_token
         and request.headers.get("X-Rocketchat-Livechat-Token") != server.secret_token
     ):
-        # TODO:
         # alert manager channel
         server.multiple_connector_admin_message(
             ":warning:  Rocket.Chat Omnichannel Connection Test was Received."
