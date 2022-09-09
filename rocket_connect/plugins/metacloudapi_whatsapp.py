@@ -45,9 +45,34 @@ class Connector(ConnectorBase):
                                 # handle text message
                                 self.handle_message()
                         # it has a status receipt
-                        if change["value"].get("statuses"):
-                            # TODO: handle read receipt
-                            pass
+                        if change["value"].get("statuses") and self.config.get(
+                            "enable_ack_receipt", True
+                        ):
+                            # handle read receipt
+                            # get the message id and body
+                            for status in change["value"]["statuses"]:
+                                msg_id = status["id"]
+                                status = status["status"]
+                                for message in self.connector.messages.filter(
+                                    response__id__contains=msg_id
+                                ):
+                                    original_message = self.rocket.chat_get_message(
+                                        msg_id=message.envelope_id
+                                    )
+                                    body = original_message.json()["message"]["msg"]
+                                    body = body.replace(":ballot_box_with_check:", "")
+                                    body = body.replace(":white_check_mark:", "")
+                                    if status == "sent":
+                                        mark = ":ballot_box_with_check:"
+                                    else:
+                                        mark = ":white_check_mark:"
+                                    payload = {
+                                        "room_id": message.room.room_id,
+                                        "msg_id": message.envelope_id,
+                                        "text": f"{mark} {body}",
+                                    }
+                                    update_response = self.rocket.chat_update(**payload)
+                                    print("AQUI ", payload, update_response)
 
         return JsonResponse({})
 
@@ -131,8 +156,8 @@ class Connector(ConnectorBase):
         media_type = self.message["type"]
         media_id = self.message[media_type]["id"]
         # get media url
-        # TODO config api version
-        url = "https://graph.facebook.com/v13.0/" + media_id
+        graph_url = self.config.get("graph_url", "https://graph.facebook.com/v14.0/")
+        url = graph_url + media_id
         session = self.get_request_session()
         media_info = session.get(
             url,
@@ -167,6 +192,11 @@ class Connector(ConnectorBase):
             s.headers.update({"Authorization": f"Bearer {token}"})
         return s
 
+    def get_graphql_messages_endpoint(self):
+        return "{}/{}/messages".format(
+            self.config.get("graph_url"), self.config.get("telephone_number_id")
+        )
+
     def outgo_text_message(self, message, agent_name=None):
         sent = False
         if type(message) == str:
@@ -178,7 +208,7 @@ class Connector(ConnectorBase):
         if agent_name:
             content = "*[" + agent_name + "]*\n" + content
         session = self.get_request_session()
-        url = self.connector.config["endpoint"] + "messages"
+        url = self.get_graphql_messages_endpoint()
         # get number
         number = self.message["visitor"]["token"].split("@")[0].split(":")[1]
         payload = {
@@ -240,8 +270,13 @@ class Connector(ConnectorBase):
 
 class ConnectorConfigForm(BaseConnectorConfigForm):
 
-    endpoint = forms.CharField(
-        help_text="Where to connect to your meta cloud accont",
+    graph_url = forms.CharField(
+        help_text="Facebook GraphQl endpoint with version, eg https://graph.facebook.com/v14.0/",
+        required=True,
+        initial="https://graph.facebook.com/v14.0/",
+    )
+    telephone_number_id = forms.CharField(
+        help_text="Telephone Number ID",
         required=True,
         initial="",
     )
@@ -261,4 +296,12 @@ class ConnectorConfigForm(BaseConnectorConfigForm):
         initial="audio,image,video,document,sticker,text,location,contacts",
     )
 
-    field_order = ["endpoint", "verify_token", "bearer_token", "allowed_media_types"]
+    enable_ack_receipt = forms.BooleanField(required=False, initial=True)
+
+    field_order = [
+        "graph_url",
+        "telephone_number_id",
+        "verify_token",
+        "bearer_token",
+        "allowed_media_types",
+    ]
