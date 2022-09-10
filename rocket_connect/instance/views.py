@@ -192,12 +192,14 @@ def server_detail_view(request, server_id):
     )
     uri = request.build_absolute_uri()
     base_uri = uri.replace(request.get_full_path(), "")
+    tasks = server.tasks.order_by("-enabled")
     context = {
         "base_uri": base_uri,
         "server": server,
         "connectors": connectors,
         "status": status,
         "room_sync": room_sync,
+        "tasks": tasks,
     }
     return render(request, "instance/server_detail_view.html", context)
 

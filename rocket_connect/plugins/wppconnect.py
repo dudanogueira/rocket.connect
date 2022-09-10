@@ -1057,7 +1057,7 @@ class Connector(ConnectorBase):
         if sent.ok:
             timestamp = int(time.time())
             if settings.DEBUG:
-                print("RESPONSE OUTGOING FILE: ", sent.json())
+                self.logger.info(f"RESPONSE OUTGOING FILE: {sent.json()}")
             self.message_object.payload[timestamp] = payload
             self.message_object.delivered = True
             self.message_object.response[timestamp] = sent.json()

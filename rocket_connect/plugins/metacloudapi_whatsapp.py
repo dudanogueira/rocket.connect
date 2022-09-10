@@ -1,8 +1,11 @@
 import base64
+import json
 import time
+import urllib.parse as urlparse
 
 import requests
 from django import forms
+from django.db import models
 from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
 
 from .base import BaseConnectorConfigForm
@@ -13,6 +16,10 @@ class Connector(ConnectorBase):
 
     # main incoming hub
     def incoming(self):
+        """
+        Message Types Reference:
+        https://developers.facebook.com/docs/whatsapp/cloud-api/webhooks/components
+        """
         self.logger_info(f"INCOMING MESSAGE: {self.message}")
         # no rocket client, abort
         # get rocket client
@@ -23,6 +30,7 @@ class Connector(ConnectorBase):
         # handle challenge
         if self.request and self.request.GET.get("hub.mode") == "subscribe":
             return self.handle_challenge()
+
         # handle regular messages
         self.raw_message = self.message
         if self.message.get("object") == "whatsapp_business_account":
@@ -51,11 +59,17 @@ class Connector(ConnectorBase):
                             # handle read receipt
                             # get the message id and body
                             for status in change["value"]["statuses"]:
+                                self.logger_info(f"ACK RECEIPT {status}")
                                 msg_id = status["id"]
                                 status = status["status"]
-                                for message in self.connector.messages.filter(
-                                    response__id__contains=msg_id
-                                ):
+                                messages_to_search = self.connector.messages.filter(
+                                    models.Q(response__id__contains=msg_id)
+                                    | models.Q(
+                                        response__messages__contains=[{"id": msg_id}]
+                                    )
+                                )
+                                print("FOUND: ", messages_to_search)
+                                for message in messages_to_search:
                                     original_message = self.rocket.chat_get_message(
                                         msg_id=message.envelope_id
                                     )
@@ -72,7 +86,9 @@ class Connector(ConnectorBase):
                                         "text": f"{mark} {body}",
                                     }
                                     update_response = self.rocket.chat_update(**payload)
-                                    print("AQUI ", payload, update_response)
+                                    self.logger_info(
+                                        f"ACK RECEIPT UPDATE RESPONSE {update_response}"
+                                    )
 
         return JsonResponse({})
 
@@ -199,9 +215,9 @@ class Connector(ConnectorBase):
             s.headers.update({"Authorization": f"Bearer {token}"})
         return s
 
-    def get_graphql_messages_endpoint(self):
-        return "{}/{}/messages".format(
-            self.config.get("graph_url"), self.config.get("telephone_number_id")
+    def get_graphql_endpoint(self, method=""):
+        return "{}/{}/{}".format(
+            self.config.get("graph_url"), self.config.get("telephone_number_id"), method
         )
 
     def outgo_text_message(self, message, agent_name=None):
@@ -215,7 +231,7 @@ class Connector(ConnectorBase):
         if agent_name:
             content = "*[" + agent_name + "]*\n" + content
         session = self.get_request_session()
-        url = self.get_graphql_messages_endpoint()
+        url = self.get_graphql_endpoint(method="messages")
         # get number
         number = self.message["visitor"]["token"].split("@")[0].split(":")[1]
         payload = {
@@ -263,11 +279,56 @@ class Connector(ConnectorBase):
 
         return sent
 
+    def outgo_file_message(self, message, agent_name=None):
+        file_url = (
+            self.connector.server.get_external_url()
+            + message["attachments"][0]["title_link"]
+            + "?"
+            + urlparse.urlparse(message["fileUpload"]["publicFilePath"]).query
+        )
+        mime = self.message["messages"][0]["fileUpload"]["type"]
+        # filename = self.message["messages"][0]["file"]["name"].split(".")[-1]
+        caption = self.message["messages"][0]["attachments"][0].get("description", None)
+        endpoint_messages = self.get_graphql_endpoint(method="messages")
+        session = self.get_request_session()
+        to = self.get_visitor_id().split("@")[0]
+        # BR exception
+        # meta will send the number as 55319XXXXXXX
+        # but will require 5531*9*9XXXXXXX here
+        if len(to) == 12 and to.startswith("55"):
+            to = to[0:4] + "9" + to[4:]
+
+        file = {
+            "link": file_url,
+            "caption": caption,
+            # "filename": filename
+        }
+        payload = {
+            "messaging_product": "whatsapp",
+            "recipient_type": "individual",
+            "to": to,
+        }
+        if "image" in mime:
+            payload["type"] = "image"
+            payload["image"] = file
+
+        send_file = session.post(endpoint_messages, json=payload)
+        self.logger_info(
+            f"OUTGO file {send_file.json()} with payload {json.dumps(payload)}"
+        )
+        if send_file.ok:
+            timestamp = int(time.time())
+            self.message_object.payload[timestamp] = payload
+            self.message_object.delivered = True
+            self.message_object.response = send_file.json()
+            self.message_object.save()
+            # self.send_seen()
+
     def status_session(self):
         # generate token
         status = {}
         if self.config.get("endpoint"):
-            endpoint = self.config.get("endpoint")
+            endpoint = self.get_graphql_endpoint()
             session = self.get_request_session()
             status_req = session.get(endpoint)
             if status_req.ok:
