@@ -287,7 +287,7 @@ class Connector(ConnectorBase):
             + urlparse.urlparse(message["fileUpload"]["publicFilePath"]).query
         )
         mime = self.message["messages"][0]["fileUpload"]["type"]
-        # filename = self.message["messages"][0]["file"]["name"].split(".")[-1]
+        filename = self.message["messages"][0]["file"]["name"]
         caption = self.message["messages"][0]["attachments"][0].get("description", None)
         endpoint_messages = self.get_graphql_endpoint(method="messages")
         session = self.get_request_session()
@@ -310,15 +310,20 @@ class Connector(ConnectorBase):
         if "image" in mime:
             payload["type"] = "image"
             payload["image"] = file
-            payload["image"]["caption"] = (caption,)
+            payload["image"]["caption"] = caption
 
-        if "audio" in mime:
+        elif "audio" in mime:
             payload["type"] = "audio"
             payload["audio"] = file
 
+        else:
+            payload["type"] = "document"
+            payload["document"] = file
+            payload["document"]["filename"] = filename
+
         send_file = session.post(endpoint_messages, json=payload)
         self.logger_info(
-            f"OUTGO file {send_file.json()} with payload {json.dumps(payload)}"
+            f"OUTGO file {send_file.json()} with payload {json.dumps(payload)} and mimetype {mime}"
         )
         if send_file.ok:
             timestamp = int(time.time())
