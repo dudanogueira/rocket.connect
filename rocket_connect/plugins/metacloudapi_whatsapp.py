@@ -300,7 +300,6 @@ class Connector(ConnectorBase):
 
         file = {
             "link": file_url,
-            "caption": caption,
             # "filename": filename
         }
         payload = {
@@ -311,6 +310,11 @@ class Connector(ConnectorBase):
         if "image" in mime:
             payload["type"] = "image"
             payload["image"] = file
+            payload["image"]["caption"] = (caption,)
+
+        if "audio" in mime:
+            payload["type"] = "audio"
+            payload["audio"] = file
 
         send_file = session.post(endpoint_messages, json=payload)
         self.logger_info(
