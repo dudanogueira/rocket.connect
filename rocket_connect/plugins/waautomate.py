@@ -322,8 +322,8 @@ class Connector(ConnectorBase):
                     message.get("namespace"),
                     message.get("data")
                     if message.get("data") != "SUCCESS"
-                    else """:white_check_mark::white_check_mark::white_check_mark:
-                          SUCESS!!!      :white_check_mark::white_check_mark::white_check_mark:""",
+                    else """:white_check_mark: :white_check_mark: :white_check_mark:
+                          SUCESS!!!      :white_check_mark: :white_check_mark: :white_check_mark:""",
                 )
                 self.outcome_admin_message(text_message)
 
