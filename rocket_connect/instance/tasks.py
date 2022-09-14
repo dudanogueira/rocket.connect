@@ -1,5 +1,6 @@
 import dateutil.parser
 import requests
+from django.apps import apps
 from django.template import Context, Template
 from django.utils import timezone
 from instance.models import Server
@@ -160,7 +161,6 @@ def close_abandoned_chats(
     # TODO:
     optionally, alert a channel
     """
-
     # get server
     server = Server.objects.get(external_token=server_token)
     # get rocket
@@ -204,3 +204,45 @@ def close_abandoned_chats(
         "last_message_seconds": last_message_seconds,
         "closing_message": closing_message,
     }
+
+
+@celery_app.task(
+    retry_kwargs={"max_retries": 7, "countdown": 5},
+    autoretry_for=(requests.ConnectionError,),
+)
+def alert_undelivered_messages(
+    server_token, notification_target, notification_template
+):
+    """
+    - get all undelivered messages from server
+    - render notification template
+    - send to notification targets
+    """
+    server = Server.objects.get(external_token=server_token)
+    rocket = server.get_rocket_client()
+    Messages = apps.get_model(app_label="envelope", model_name="Message")
+    undelivered_messages = Messages.objects.filter(delivered=False, server=server)
+    context = {"undelivered_messages": undelivered_messages}
+    context = Context(context)
+    template = Template(notification_template)
+    targets = []
+    sent_messages = []
+    for target in notification_target.split(","):
+        # render message
+        message = template.render(context)
+        if target.startswith("#"):
+            targets.append(target)
+            sent = rocket.chat_post_message(
+                text=message, channel=target.replace("#", "")
+            )
+        else:
+            # target may contain variables
+            targets.append(target)
+            dm = rocket.im_create(username=target)
+            if dm.ok:
+                room_id = dm.json()["room"]["rid"]
+                sent = rocket.chat_post_message(text=message, room_id=room_id)
+        sent_messages.append(sent)
+
+    responses = {"targets": targets, "sent_messages": sent_messages}
+    return responses
