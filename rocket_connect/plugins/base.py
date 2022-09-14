@@ -737,11 +737,14 @@ class Connector:
             self.handle_livechat_session_queued()
         if self.message.get("type") == "Message":
             message, created = self.register_message()
+            ignore_close_message = self.message_object.room.token in self.config.get(
+                "ignore_token_force_close_message", ""
+            ).split(",")
             if not message.delivered:
                 # prepare message to be sent to client
                 for message in self.message.get("messages", []):
                     agent_name = self.get_agent_name(message)
-                    # closing message
+                    # closing message, if not requested do ignore
                     if message.get("closingMessage"):
                         if self.connector.config.get(
                             "force_close_message",
@@ -749,7 +752,7 @@ class Connector:
                             message["msg"] = self.connector.config[
                                 "force_close_message"
                             ]
-                        if message.get("msg"):
+                        if message.get("msg") and not ignore_close_message:
                             if self.connector.config.get(
                                 "add_agent_name_at_close_message"
                             ):
@@ -757,7 +760,8 @@ class Connector:
                             else:
                                 self.outgo_text_message(message)
                             self.close_room()
-                        # closing message without message
+                        # closing message without message, or mark
+                        # ignored as delivered
                         else:
                             self.message_object.delivered = True
                             self.message_object.save()
@@ -937,6 +941,11 @@ class BaseConnectorConfigForm(forms.Form):
     force_close_message = forms.CharField(
         widget=forms.Textarea(attrs={"rows": 4, "cols": 15}),
         help_text="Force this message on close",
+        required=False,
+    )
+    ignore_token_force_close_message = forms.CharField(
+        help_text="ignore those visitors when sending closing message."
+        + 'This can avoid "bot loop". Tokens separated with comma',
         required=False,
     )
     outcome_attachment_description_as_new_message = forms.BooleanField(
