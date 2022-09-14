@@ -7,7 +7,7 @@
     <meta name="description" content="">
     <meta name="author" content="Mark Otto, Jacob Thornton, and Bootstrap contributors">
     <meta name="generator" content="Hugo 0.83.1">
-    <title>Rocket.Chat Livechat Demo second_page</title>
+    <title>Rocket.Chat Livechat Demo first_page</title>
 
     <link rel="canonical" href="https://getbootstrap.com/docs/5.0/examples/jumbotron/">
 

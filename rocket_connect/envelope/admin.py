@@ -20,7 +20,21 @@ class LiveChatRoomAdmin(admin.ModelAdmin):
 @admin.register(Message)
 class MessageAdmin(admin.ModelAdmin):
     search_fields = ("envelope_id", "room__room_id", "room__token")
-    list_display = ("id", "envelope_id", "type", "delivered", "connector", "created")
+    list_display = (
+        "id",
+        "envelope_id",
+        "type",
+        "delivered",
+        "get_room_id",
+        "connector",
+        "created",
+    )
     list_filter = ("connector", "delivered", "type", "created", "updated")
     ordering = ("-created",)
     date_hierarchy = "created"
+
+    @admin.display(ordering="rom__rom_id", description="RC Room")
+    def get_room_id(self, obj):
+        if obj.room:
+            return obj.room.room_id
+        return None
