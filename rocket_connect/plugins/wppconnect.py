@@ -249,7 +249,7 @@ class Connector(ConnectorBase):
             name_order = self.config.get(
                 "name_extraction_order", "pushname,name,shortName"
             )
-            if number_info:
+            if number_info.get("response"):
                 for order in name_order.split(","):
                     if number_info.get("response", {}).get(order, False):
                         self.message["sender"][order] = number_info.get(
@@ -397,9 +397,9 @@ class Connector(ConnectorBase):
                         # direct chat to user
                         # override department, and get agent name
                         if "AGENT-DIRECT:" in departments[0]:
-                            self.logger_info("AGENT-DIRECT TRIGGERED")
-                            department = None
                             agent_id = departments[0].split(":")[1]
+                            self.logger_info(f"AGENT-DIRECT TRIGGERED: {agent_id}")
+                            department = None
                         else:
                             department = departments[0]["name"]
                             department_id = departments[0]["_id"]
