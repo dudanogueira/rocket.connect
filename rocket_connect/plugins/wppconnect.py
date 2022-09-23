@@ -609,8 +609,8 @@ class Connector(ConnectorBase):
             if self.message.get("status") in ["isLogged", "inChat", "qrReadSuccess"]:
                 text = (
                     text
-                    + ":white_check_mark: :white_check_mark: :white_check_mark:"
-                    + "SUCESS!!!      :white_check_mark: :white_check_mark: :white_check_mark:"
+                    + " :white_check_mark: :white_check_mark: :white_check_mark: "
+                    + "SUCESS!!!      :white_check_mark: :white_check_mark: :white_check_mark: "
                 )
                 # call intake unread task
                 if self.config.get("process_unread_messages_on_start", False):
