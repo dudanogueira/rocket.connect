@@ -158,7 +158,9 @@ class Server(models.Model):
         all the server tasks for a server, disabled by default
         """
         added_tasks = []
-        # server_maintenance
+        #
+        # T1 server_maintenance
+        #
         task = PeriodicTask.objects.filter(
             task="instance.tasks.server_maintenance",
             kwargs__contains=self.external_token,
@@ -174,7 +176,9 @@ class Server(models.Model):
             )
             self.tasks.add(task)
             added_tasks.append(task)
-        # alert open
+        #
+        # T2 alert_last_message_open_chat
+        #
         task = PeriodicTask.objects.filter(
             task="instance.tasks.alert_last_message_open_chat",
             kwargs__contains=self.external_token,
@@ -203,7 +207,9 @@ class Server(models.Model):
             )
             self.tasks.add(task)
             added_tasks.append(task)
-        # generic webhook
+        #
+        # T3 alert_open_rooms_generic_webhook
+        #
         task = PeriodicTask.objects.filter(
             task="instance.tasks.alert_open_rooms_generic_webhook",
             kwargs__contains=self.external_token,
@@ -224,7 +230,9 @@ class Server(models.Model):
             )
             self.tasks.add(task)
             added_tasks.append(task)
-        # status change
+        #
+        # T4 change_user_status
+        #
         task = PeriodicTask.objects.filter(
             task="instance.tasks.change_user_status",
             kwargs__contains=self.external_token,
@@ -247,12 +255,65 @@ class Server(models.Model):
             )
             self.tasks.add(task)
             added_tasks.append(task)
+        #
+        # T5 close_abandoned_chats
+        #
+        task = PeriodicTask.objects.filter(
+            task="instance.tasks.close_abandoned_chats",
+            kwargs__contains=self.external_token,
+        )
+        if not task.exists():
+            crontab = CrontabSchedule.objects.first()
+            task = PeriodicTask.objects.create(
+                enabled=False,
+                name=f"Close Abandoned Chats for {self.name} (ID {self.id})",
+                description="close all open rooms that the last message from last_message_users "
+                + "with more then last_message_seconds. before, send a closing_message.",
+                crontab=crontab,
+                task="instance.tasks.close_abandoned_chats",
+                kwargs=json.dumps(
+                    {
+                        "server_token": self.external_token,
+                        "last_message_users": "bot,otherbot",
+                        "last_message_seconds": "600",
+                        "closing_message": "Due to inactivity, your chat is being closed.",
+                    }
+                ),
+            )
+            self.tasks.add(task)
+            added_tasks.append(task)
+        #
+        # T6 alert_undelivered_messages
+        #
+        task = PeriodicTask.objects.filter(
+            task="instance.tasks.alert_undelivered_messages",
+            kwargs__contains=self.external_token,
+        )
+        if not task.exists():
+            crontab = CrontabSchedule.objects.first()
+            task = PeriodicTask.objects.create(
+                enabled=False,
+                name=f"Alert Undelivered Messages for {self.name} (ID {self.id})",
+                description="""Alert about Undelivered messages""",
+                crontab=crontab,
+                task="instance.tasks.alert_undelivered_messages",
+                kwargs=json.dumps(
+                    {
+                        "server_token": self.external_token,
+                        "notification_target": "general,otherchannel",
+                        "notification_template": "Found {{undelivered_messages.count}} undelivered messages",
+                    }
+                ),
+            )
+            self.tasks.add(task)
+            added_tasks.append(task)
         # return added tasks
         return added_tasks
 
     def install_omnichannel_webhook(
         self, rocketconnect_url="http://rocketconnect:5000"
     ):
+        output = []
         rocket = self.get_rocket_client()
         configs = [
             [
@@ -275,7 +336,9 @@ class Server(models.Model):
             ["Livechat_Routing_Method", "Manual_Selection"],
         ]
         for config in configs:
-            rocket.settings_update(config[0], config[1])
+            r = rocket.settings_update(config[0], config[1])
+            output.append(r)
+        return output
 
     def add_default_wppconnect(self, name="WPPCONNECT"):
         random = random_string(size=5)
@@ -293,7 +356,7 @@ class Server(models.Model):
             "enable_ack_receipt": True,
         }
         connector.config = config
-        connector.save()
+        return connector.save()
 
     uuid = models.UUIDField(default=uuid.uuid4, editable=False)
     owners = models.ManyToManyField(

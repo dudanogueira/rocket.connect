@@ -1,5 +1,6 @@
 import datetime
 import json
+import uuid
 
 import pytz
 from django.conf import settings
@@ -355,6 +356,7 @@ def new_server(request):
     form = NewServerForm(request.POST or None)
     form.fields["admin_user_id"].required = True
     form.fields["url"].initial = "http://rocketchat:3000"
+    form.fields["secret_token"].initial = str(uuid.uuid4()).upper()
     form.fields["admin_user_token"].required = True
     if form.is_valid():
         server = form.save(commit=False)
@@ -365,15 +367,27 @@ def new_server(request):
             server.save()
             server.owners.add(request.user)
             messages.success(request, "Server Created!")
+            aditional_tasks = {}
             # add omnichannel
-            if request.GET.get("install_omnichannel_webhooks"):
-                server.install_omnichannel()
+            if request.POST.get("install_omnichannel_webhooks"):
+                i = server.install_omnichannel_webhook()
+                aditional_tasks["install_omnichannel_webhooks"] = i
             # add default wppconnect
-            if request.GET.get("install_default_wppconnect"):
-                server.install_default_wppconnect()
-            if request.GET.get("add_default_server_tasks"):
-                server.install_server_tasks()
+            if request.POST.get("install_default_wppconnect"):
+                i = server.install_default_wppconnect()
+                aditional_tasks["install_default_wppconnect"] = i
+            # add default tasks
+            if request.POST.get("add_default_server_tasks"):
+                i = server.install_server_tasks()
+                aditional_tasks["add_default_server_tasks"] = i
 
+            if aditional_tasks:
+                messages.success(
+                    request,
+                    "Additional tasks after server creation: {}".format(
+                        aditional_tasks
+                    ),
+                )
             return redirect(
                 reverse("instance:server_detail", args=[server.external_token])
             )

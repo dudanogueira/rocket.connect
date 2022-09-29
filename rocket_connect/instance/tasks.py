@@ -23,6 +23,22 @@ def intake_unread_messages(connector_id):
     return unread
 
 
+# T1
+@celery_app.task(
+    retry_kwargs={"max_retries": 7, "countdown": 5},
+    autoretry_for=(requests.ConnectionError,),
+)
+def server_maintenance(server_token):
+    """do all sorts of server maintenance"""
+    server = Server.objects.get(external_token=server_token)
+    response = {}
+    # sync room
+    response["room_sync"] = server.room_sync(execute=True)
+    # return results
+    return response
+
+
+# T2
 @celery_app.task(
     retry_kwargs={"max_retries": 7, "countdown": 5},
     autoretry_for=(requests.ConnectionError,),
@@ -96,20 +112,7 @@ def alert_last_message_open_chat(
     }
 
 
-@celery_app.task(
-    retry_kwargs={"max_retries": 7, "countdown": 5},
-    autoretry_for=(requests.ConnectionError,),
-)
-def server_maintenance(server_token):
-    """do all sorts of server maintenance"""
-    server = Server.objects.get(external_token=server_token)
-    response = {}
-    # sync room
-    response["room_sync"] = server.room_sync(execute=True)
-    # return results
-    return response
-
-
+# T3
 @celery_app.task(
     retry_kwargs={"max_retries": 7, "countdown": 5},
     autoretry_for=(requests.ConnectionError,),
@@ -128,6 +131,7 @@ def alert_open_rooms_generic_webhook(server_token, endpoint):
     return response.ok
 
 
+# T4
 @celery_app.task(
     retry_kwargs={"max_retries": 7, "countdown": 5},
     autoretry_for=(requests.ConnectionError,),
@@ -149,6 +153,7 @@ def change_user_status(server_token, users, status, message=""):
     return responses
 
 
+# T5
 @celery_app.task(
     retry_kwargs={"max_retries": 7, "countdown": 5},
     autoretry_for=(requests.ConnectionError,),
@@ -206,6 +211,7 @@ def close_abandoned_chats(
     }
 
 
+# T6
 @celery_app.task(
     retry_kwargs={"max_retries": 7, "countdown": 5},
     autoretry_for=(requests.ConnectionError,),
@@ -214,9 +220,7 @@ def alert_undelivered_messages(
     server_token, notification_target, notification_template
 ):
     """
-    - get all undelivered messages from server
-    - render notification template
-    - send to notification targets
+    Alert about Undelivered messages
     """
     server = Server.objects.get(external_token=server_token)
     rocket = server.get_rocket_client()
