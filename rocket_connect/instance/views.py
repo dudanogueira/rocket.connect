@@ -354,6 +354,7 @@ def new_connector(request, server_id):
 def new_server(request):
     form = NewServerForm(request.POST or None)
     form.fields["admin_user_id"].required = True
+    form.fields["url"].initial = "http://rocketchat:3000"
     form.fields["admin_user_token"].required = True
     if form.is_valid():
         server = form.save(commit=False)
