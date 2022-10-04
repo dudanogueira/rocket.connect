@@ -230,7 +230,6 @@ class Command(BaseCommand):
                     "agents": [
                         {
                             "agentId": aa[user].json()["user"]["_id"],
-                            "username": aa[user].json()["user"]["username"],
                             "count": 0,
                             "order": 0,
                         }
@@ -253,7 +252,6 @@ class Command(BaseCommand):
                     "agents": [
                         {
                             "agentId": aa[user].json()["user"]["_id"],
-                            "username": aa[user].json()["user"]["username"],
                             "count": 0,
                             "order": 0,
                         }
@@ -276,7 +274,6 @@ class Command(BaseCommand):
                     "agents": [
                         {
                             "agentId": aa[user].json()["user"]["_id"],
-                            "username": aa[user].json()["user"]["username"],
                             "count": 0,
                             "order": 0,
                         }
@@ -299,7 +296,6 @@ class Command(BaseCommand):
                     "agents": [
                         {
                             "agentId": aa[user].json()["user"]["_id"],
-                            "username": aa[user].json()["user"]["username"],
                             "count": 0,
                             "order": 0,
                         }
