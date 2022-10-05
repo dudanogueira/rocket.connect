@@ -110,7 +110,9 @@ class Server(models.Model):
         """
         Close all open rooms not open in Rocket.Chat
         """
-        open_rooms = self.get_open_rooms().get("rooms", [])
+        open_rooms = self.get_open_rooms()
+        if open_rooms:
+            open_rooms = open_rooms.get("rooms", [])
         open_rooms_id = [r["_id"] for r in open_rooms]
         # get all open rooms in connector, except the actually open ones
         LiveChatRoom = apps.get_model(app_label="envelope", model_name="LiveChatRoom")
