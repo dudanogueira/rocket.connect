@@ -340,7 +340,7 @@ class Server(models.Model):
             output.append(r)
         return output
 
-    def add_default_wppconnect(self, name="WPPCONNECT"):
+    def install_default_wppconnect(self, name="WPPCONNECT"):
         random = random_string(size=5)
         name = f"{name} {random}"
         connector = self.connectors.create(
