@@ -108,8 +108,8 @@
         name: 'visitor Name',
         email: 'sample@rocket.chat',
         customFields: [ // The customFields field is not required. If it is passed it needs to be an Array, where each item needs to be an object with key and value fields
-            {key:  'my_custom_field_a', value: 'my_custom_field_a_value'},
-            {key:  'my_custom_field_b', value: 'my_custom_field_b_value'}
+            {key:  'my_custom_field_a', value: 'my_custom_field_a_value', overwrite: true},
+            {key:  'my_custom_field_b', value: 'my_custom_field_b_value', overwrite: true}
         ]
     });
 });
