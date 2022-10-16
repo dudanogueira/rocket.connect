@@ -76,7 +76,7 @@ THIRD_PARTY_APPS = [
     "rest_framework",
     "rest_framework.authtoken",
     "corsheaders",
-    "fontawesomefree",
+    # "fontawesomefree",
 ]
 
 LOCAL_APPS = [

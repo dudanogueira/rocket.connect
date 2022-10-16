@@ -11,20 +11,20 @@
     </a>
 
     <a name="" id="" class="btn btn-primary btn-lg float-right m-1" href="{% url 'admin:django_celery_beat_periodictask_add' %}" role="button">
-        <i class="fa fa-plus" aria-hidden="true"></i> task
+        <i class="fa fa-plus" aria-hidden="true"></i> add task
     </a>
     <a name="" id="" class="btn btn-primary btn-lg float-right m-1" href="{% url 'instance:new_connector' server.external_token %}" role="button">
-        <i class="fa fa-plus" aria-hidden="true"></i> connector
+        <i class="fa fa-plus" aria-hidden="true"></i> add connector
     </a>
 </div>
 <div class="container p-5" id="server-header">
     <h1>
         {% if request.user.is_staff %}
         <a name="" id="" class="btn btn-primary" href="{% url 'admin:instance_server_change' server.id %}" role="button">
-            <i class="fa fa-edit" aria-hidden="true"></i>
+            <i class="fa fa-edit" aria-hidden="true"></i> edit
         </a>
         <a name="" id="" class="btn btn-primary" href="?check-room-sync=1" role="button" title="check rooms sync">
-            <i class="fa fa-recycle" aria-hidden="true"></i>
+            <i class="fa fa-recycle" aria-hidden="true"></i> sync
         </a>
         {% endif %}
         {{server}} <span class="text-{{ server.enabled|yesno:'success,danger' }}">{{ server.enabled|yesno:"Active,Inactive" }}</span>
@@ -93,13 +93,13 @@
                 </h2>
             </div>
             <div class="card-body">
-                <a class="btn btn-primary btn-bg" href="{% url 'instance:connector_analyze' connector.server.external_token connector.external_token %}">analyze</a><br />
-                <p class="card-text">
+                <a class="btn btn-primary btn-bg" href="{% url 'instance:connector_analyze' connector.server.external_token connector.external_token %}">analyze</a>
+
                     {% if connector.last_message %} Last Message: {{connector.last_message}} ({{connector.last_message|timesince}})<br />{% endif %}
                     <span class="{% if connector.undelivered_messages %}text-danger{% else %}text-success{%endif%}">
                         Undelivered Messages: {{connector.undelivered_messages}}
                     </span>
-                </p>
+
             </div>
         </div>
         {% endfor %}
