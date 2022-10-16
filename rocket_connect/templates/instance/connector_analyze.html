@@ -166,9 +166,14 @@ Endpoint: {{base_uri}}/connector/{{connector.external_token}}/
                 <div class="card-body">
                     <h4 class="card-title">
                         <h2>
-                            {{rooms.grouper}}
-                            <a
-                                href="{{rooms.list.0.connector.server.get_external_url}}//omnichannel/current/{{rooms.grouper.room_id}}/room-info/">link</a>
+                            {% if rooms.grouper %}
+                                {{rooms.grouper}}
+                                <a
+                                    href="{{rooms.list.0.connector.server.get_external_url}}//omnichannel/current/{{rooms.grouper.room_id}}/room-info/">link
+                                </a>
+                            {% else %}
+                                No Related Room
+                            {% endif %}
                         </h2>
                     </h4>
                     <p class="card-text">
