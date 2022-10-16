@@ -112,7 +112,7 @@
                 <h2>
                 {% if request.user.is_staff %}
                 <a name="" id="" class="btn btn-primary" href="{% url 'admin:django_celery_beat_periodictask_change' task.id %}" role="button">
-                    <i class="fa fa-edit" aria-hidden="true"></i>
+                    <i class="fa fa-edit" aria-hidden="true"></i> edit
                 </a>
                 {% endif %}
                 {% if task.enabled %} <span class="badge badge-success">enabled</span>{% else %} <span class="badge badge-danger">disabled</span>{% endif %}
