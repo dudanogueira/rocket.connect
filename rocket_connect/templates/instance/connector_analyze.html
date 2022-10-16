@@ -12,11 +12,11 @@
 <h1>
     {% if request.user.is_staff %}
     <a name="" id="" class="btn btn-primary" href="{% url 'admin:instance_connector_change' connector.id %}" role="button">
-        <i class="fa fa-edit" aria-hidden="true"></i>
+        <i class="fa fa-edit" aria-hidden="true"></i> Edit
     </a>
     {% endif %}
     <a name="" id="" class="btn btn-primary" href="?check-room-sync=1" role="button" title="Sync Rooms">
-        <i class="fas fa-recycle"></i>
+        <i class="fas fa-recycle"></i> Sync
     </a>
 
     {{connector}}
