@@ -58,6 +58,9 @@ def must_be_yours(func):
 @csrf_exempt
 def server_endpoint(request, server_id):
     server = get_object_or_404(Server, external_token=server_id, enabled=True)
+    # default_messages check
+    if request.GET.get("default_messages"):
+        return JsonResponse(server.default_messages, safe=False)
     # unauthorized access
     # if no server.secret_token, allow unprotected access
     if (

@@ -397,6 +397,12 @@ class Server(models.Model):
         help_text="separate users or channels with comma, eg: user1,user2,user3,#channel1,#channel2",
     )
     tasks = models.ManyToManyField("django_celery_beat.PeriodicTask", blank=True)
+    default_messages = models.JSONField(
+        blank=True,
+        null=True,
+        help_text="Default Messages to load at the Rocket.Connect App",
+        default=dict,
+    )
     # meta
     created = models.DateTimeField(
         blank=True, auto_now_add=True, verbose_name="Created"
