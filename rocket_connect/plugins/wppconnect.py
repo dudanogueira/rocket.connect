@@ -569,7 +569,8 @@ class Connector(ConnectorBase):
         this method will process the incoming messages
         and ajust what necessary, to output to rocketchat
         """
-        self.logger_info(f"INCOMING MESSAGE: {self.message}")
+        message = json.dumps(self.message)
+        self.logger_info(f"INCOMING MESSAGE: {message}")
         # qr code
 
         if self.message.get("action"):
