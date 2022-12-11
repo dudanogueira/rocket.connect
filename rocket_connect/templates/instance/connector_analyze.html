@@ -58,11 +58,15 @@ Endpoint: {{base_uri}}/connector/{{connector.external_token}}/
         <p>
             <a name="" id="" class="btn btn-primary" href="?connector=wppconnect&connector_action=status_session" role="button">get
                 status</a>
-            <a name="" id="" class="btn btn-primary" href="?connector=wppconnect&connector_action=initialize"
-                role="button">initialize</a>
+            {% if connector_action_response.status_session.status != "CONNECTED" %}
+            <a name="" id="" class="btn btn-primary" href="?connector=wppconnect&connector_action=initialize" role="button">
+                initialize
+            </a>
+            {% endif %}
             {% if connector_action_response.status_session.status == "CONNECTED" %}
-            <a name="" id="" class="btn btn-danger" href="?connector=wppconnect&connector_action=close_session"
-            role="button">close session</a>
+            <a name="" id="" class="btn btn-danger" href="?connector=wppconnect&connector_action=close_session" role="button">
+                close session
+            </a>
             {% endif %}
 
         </p>
@@ -74,10 +78,10 @@ Endpoint: {{base_uri}}/connector/{{connector.external_token}}/
         <div class="card-body">
             <h4 class="card-title">Connector Response</h4>
             <p class="card-text">
-                {% if connector_action_response.initialize.qrcode %}
+                {% if connector_action_response.initialize.qrcode and connector_action_response.status_session.status != "CONNECTED" %}
                 <img src="{{connector_action_response.initialize.qrcode}}" alt="QRCODE" />
                 {% endif %}
-                {% if connector_action_response.status_session.qrcode %}
+                {% if connector_action_response.status_session.qrcode and connector_action_response.status_session.status != "CONNECTED" %}
                 <img src="{{connector_action_response.status_session.qrcode}}" alt="QRCODE" />
                 {% endif %}
             <pre>{{connector_action_response|pprint}}</pre>
