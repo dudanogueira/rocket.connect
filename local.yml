@@ -120,7 +120,7 @@ services:
 
 
   rocketchat:
-    image: registry.rocket.chat/rocketchat/rocket.chat:${RELEASE:-5.3.0}
+    image: registry.rocket.chat/rocketchat/rocket.chat:${RELEASE:-latest}
     restart: on-failure
     environment:
       MONGO_URL: "${MONGO_URL:-\
