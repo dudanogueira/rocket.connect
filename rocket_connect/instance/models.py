@@ -160,6 +160,12 @@ class Server(models.Model):
         all the server tasks for a server, disabled by default
         """
         added_tasks = []
+        # make sure with have a crontab
+        crontab = CrontabSchedule.objects.first()
+        if not crontab:
+            crontab = CrontabSchedule.objects.create()
+            crontab.hour = 4
+            crontab.save()
         #
         # T1 server_maintenance
         #

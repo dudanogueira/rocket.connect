@@ -12,11 +12,13 @@ class Command(BaseCommand):
         # create admin user
         User = get_user_model()
         admin, admin_created = User.objects.get_or_create(username="admin")
-        admin.set_password("admin")
-        admin.is_superuser = True
-        admin.is_staff = True
-        admin.email = "admin@admin.com"
-        admin.save()
+        # avoid touching created admin
+        if admin_created:
+            admin.set_password("admin")
+            admin.is_superuser = True
+            admin.is_staff = True
+            admin.email = "admin@admin.com"
+            admin.save()
         # create email to avoid asking at first login
         email, created = admin.emailaddress_set.get_or_create(email="admin@admin.com")
         email.verified = True
@@ -36,7 +38,7 @@ class Command(BaseCommand):
         #
         server.url = "http://rocketchat:3000"
         server.external_url = "http://localhost:3000"
-        server.admin_user = "admin"
+        server.admin_user = "adminrc"
         server.admin_password = "admin"
         server.bot_user = "bot"
         server.bot_password = "bot"
@@ -44,46 +46,6 @@ class Command(BaseCommand):
         server.external_token = "SERVER_EXTERNAL_TOKEN"
         server.owners.add(admin)
         server.save()
-        # crete default WA-automate connector
-        connectors2create = [
-            {
-                "external_token": "CONNECTOR_EXTERNAL_TOKEN1",
-                "endpoint": "http://waautomate:8002",
-                "name": "WA instance1",
-                "manager": "manager1,agent1",
-                "connector_type": "waautomate",
-            },
-        ]
-        for c2c in connectors2create:
-
-            connector, connector_created = server.connectors.get_or_create(
-                external_token=c2c["external_token"]
-            )
-            connector.name = c2c["name"]
-            connector.connector_type = c2c["connector_type"]
-            connector.department = "WA-DEPARTMENT"
-            connector.managers = c2c["manager"]
-            connector.config = {
-                "api_key": "super_secret_key",
-                "endpoint": c2c["endpoint"],
-                "auto_answer_incoming_call": "Sorry, this number is for text messages only! "
-                + "Please, call to (XX) XXXX-XXXX for voice support",
-                "convert_incoming_call_to_text": "User tried to call",
-                "auto_answer_on_audio_message": "Sorry, this number do not support Audio Messages! "
-                + "Please, call to (XX) XXXX-XXXX for voice support",
-                "convert_incoming_audio_to_text": "User sent audio",
-                "chat_after_close_action": "archive",
-                "outcome_message_with_quoted_message": False,
-                "outcome_attachment_description_as_new_message": False,
-                "supress_visitor_name": False,
-                "include_connector_status": True,
-                "force_close_message": "This is a default closing message per connector.",
-            }
-            connector.save()
-            if connector_created:
-                print("CONNECTOR CREATED: ", c2c)
-            else:
-                print("CONNECTOR UPDATED: ", c2c)
 
         #
         # create default asterisk
@@ -164,6 +126,10 @@ class Command(BaseCommand):
         connector.config = {
             "verify_token": "verify_token",
             "access_token": "generate this",
+            "advanced_force_close_message": {
+                "wa_automate_department": "Closing message for wa_automate_department department",
+                "wppconnect_department": "Closing message for wppconnect department",
+            },
         }
         connector.name = "FACEBOOK CONNECTOR"
         connector.connector_type = "facebook"
@@ -197,6 +163,16 @@ class Command(BaseCommand):
     def handle_rocketchat(self):
         server = Server.objects.first()
         rocket = server.get_rocket_client()
+        # lets make sure admin is user, agent and manager
+        admin = rocket.users_info(username="adminrc").json()["user"]
+        updates = {"roles": ["admin", "user", "livechat-manager", "livechat-agent"]}
+        rocket.users_update(user_id=admin["_id"], **updates)
+        # set admin as available
+        data = {"status": "available", "agentId": admin["_id"]}
+        rocket.call_api_post(
+            "livechat/agent.status",
+        )
+
         # general settings are defined at docker env
         # create agents
 
@@ -232,7 +208,12 @@ class Command(BaseCommand):
                             "agentId": aa[user].json()["user"]["_id"],
                             "count": 0,
                             "order": 0,
-                        }
+                        },
+                        {
+                            "agentId": admin["_id"],
+                            "count": 0,
+                            "order": 0,
+                        },
                     ],
                 }
                 rocket.call_api_post("livechat/department", **new_department)
@@ -254,7 +235,12 @@ class Command(BaseCommand):
                             "agentId": aa[user].json()["user"]["_id"],
                             "count": 0,
                             "order": 0,
-                        }
+                        },
+                        {
+                            "agentId": admin["_id"],
+                            "count": 0,
+                            "order": 0,
+                        },
                     ],
                 }
                 rocket.call_api_post("livechat/department", **new_department)
@@ -276,7 +262,12 @@ class Command(BaseCommand):
                             "agentId": aa[user].json()["user"]["_id"],
                             "count": 0,
                             "order": 0,
-                        }
+                        },
+                        {
+                            "agentId": admin["_id"],
+                            "count": 0,
+                            "order": 0,
+                        },
                     ],
                 }
                 rocket.call_api_post("livechat/department", **new_department)
@@ -298,7 +289,12 @@ class Command(BaseCommand):
                             "agentId": aa[user].json()["user"]["_id"],
                             "count": 0,
                             "order": 0,
-                        }
+                        },
+                        {
+                            "agentId": admin["_id"],
+                            "count": 0,
+                            "order": 0,
+                        },
                     ],
                 }
                 rocket.call_api_post("livechat/department", **new_department)

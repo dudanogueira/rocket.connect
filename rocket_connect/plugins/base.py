@@ -261,6 +261,7 @@ class Connector:
                 output.append(direct_message.ok)
             # send to managers channel
             for manager_channel in managers_channel:
+                self.logger_info("OUTCOME ADMIN MESSAGE FOR " + manager_channel)
                 manager_channel_message = self.rocket.chat_post_message(
                     text=text_message, channel=manager_channel.replace("#", "")
                 )
@@ -710,7 +711,7 @@ class Connector:
         if self.message.get("type") == "LivechatSessionStart":
             if settings.DEBUG:
                 print("LivechatSessionStart")
-            # some welcome message may fit here
+                # some welcome message may fit here
         if self.message.get("type") == "LivechatSession":
             #
             # This message is sent at the end of the chat,
@@ -723,7 +724,6 @@ class Connector:
             # This message is sent when the message if taken
             # message, created = self.register_message()
             self.handle_livechat_session_taken()
-
         if self.message.get("type") == "LivechatSessionForwarded":
             #
             # This message is sent when the message if Forwarded
@@ -746,12 +746,8 @@ class Connector:
                     agent_name = self.get_agent_name(message)
                     # closing message, if not requested do ignore
                     if message.get("closingMessage"):
-                        if self.connector.config.get(
-                            "force_close_message",
-                        ):
-                            message["msg"] = self.connector.config[
-                                "force_close_message"
-                            ]
+                        message["msg"] = self.get_close_message()
+
                         if message.get("msg") and not ignore_close_message:
                             if self.connector.config.get(
                                 "add_agent_name_at_close_message"
@@ -759,12 +755,13 @@ class Connector:
                                 self.outgo_text_message(message, agent_name=agent_name)
                             else:
                                 self.outgo_text_message(message)
-                            self.close_room()
                         # closing message without message, or mark
                         # ignored as delivered
                         else:
                             self.message_object.delivered = True
                             self.message_object.save()
+                        # close room, after all
+                        self.close_room()
                     else:
                         # regular message, maybe with attach
                         if message.get("attachments", {}):
@@ -785,6 +782,28 @@ class Connector:
                 agent_name = None
 
         return self.change_agent_name(agent_name)
+
+    def get_close_message(self, department=None):
+        """
+        get the close message configured for the connector
+        """
+        force_close_message = self.config.get("force_close_message", None)
+        advanced_force_close_message = self.config.get(
+            "advanced_force_close_message", None
+        )
+        if force_close_message:
+            return force_close_message
+        if advanced_force_close_message:
+            # only check for advanced if department ID is informed
+            if not department:
+                return force_close_message
+            else:
+                try:
+                    return self.config.get("advanced_force_close_message", None).get(
+                        department, None
+                    )
+                except KeyError:
+                    return None
 
     def change_agent_name(self, agent_name):
         return agent_name
@@ -942,6 +961,10 @@ class BaseConnectorConfigForm(forms.Form):
         widget=forms.Textarea(attrs={"rows": 4, "cols": 15}),
         help_text="Force this message on close",
         required=False,
+    )
+    advanced_force_close_message = forms.JSONField(
+        required=False,
+        help_text="configurable close message or supression per department.",
     )
     ignore_token_force_close_message = forms.CharField(
         help_text="ignore those visitors when sending closing message."

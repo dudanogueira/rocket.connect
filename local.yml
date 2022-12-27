@@ -120,7 +120,7 @@ services:
 
 
   rocketchat:
-    image: registry.rocket.chat/rocketchat/rocket.chat:${RELEASE:-latest}
+    image: registry.rocket.chat/rocketchat/rocket.chat:${RELEASE:-develop}
     restart: on-failure
     environment:
       MONGO_URL: "${MONGO_URL:-\
@@ -131,7 +131,7 @@ services:
           local?replicaSet=${MONGODB_REPLICA_SET_NAME:-rs0}}"
       ROOT_URL: ${ROOT_URL:-http://localhost:${HOST_PORT:-3000}}
       PORT: ${PORT:-3000}
-      ADMIN_USERNAME: admin
+      ADMIN_USERNAME: adminrc
       ADMIN_PASS: admin
       ADMIN_EMAIL: admin@example.com
       OVERWRITE_SETTING_Accounts_TwoFactorAuthentication_Enforce_Password_Fallback: "false"
@@ -230,8 +230,6 @@ services:
     command: wppserver
     volumes:
       - local_wppconnect_data:/usr/src/server-cli/userDataDir
-      #- local_wppconnect_tokens:/usr/src/server-cli/tokens
-      - ./compose/local/wppconnect/config.json:/usr/src/server-cli/node_modules/@wppconnect/server/dist/config.json
     ports:
       - "21465:21465"
 

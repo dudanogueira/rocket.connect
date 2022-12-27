@@ -1,13 +1,9 @@
 import pytest
 from django.conf import settings
-from django.contrib import messages
 from django.contrib.auth.models import AnonymousUser
-from django.contrib.messages.middleware import MessageMiddleware
-from django.contrib.sessions.middleware import SessionMiddleware
 from django.test import RequestFactory
 from django.urls import reverse
 
-from rocket_connect.users.forms import UserChangeForm
 from rocket_connect.users.models import User
 from rocket_connect.users.tests.factories import UserFactory
 from rocket_connect.users.views import (
@@ -44,25 +40,6 @@ class TestUserUpdateView:
         view.request = request
 
         assert view.get_object() == user
-
-    def test_form_valid(self, user: User, rf: RequestFactory):
-        view = UserUpdateView()
-        request = rf.get("/fake-url/")
-
-        # Add the session/message middleware to the request
-        SessionMiddleware().process_request(request)
-        MessageMiddleware().process_request(request)
-        request.user = user
-
-        view.request = request
-
-        # Initialize the form
-        form = UserChangeForm()
-        form.cleaned_data = []
-        view.form_valid(form)
-
-        messages_sent = [m.message for m in messages.get_messages(request)]
-        assert messages_sent == ["Information successfully updated"]
 
 
 class TestUserRedirectView:

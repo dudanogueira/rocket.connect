@@ -27,7 +27,7 @@ You can `check what this command does <https://github.com/dudanogueira/rocket.co
 If everything went fine, you should have the following running services and exposed ports:
 
 * http://localhost:8000 - Rocket Connect Admin User/Password: admin/admin
-* http://localhost:3000 - Rocket Chat Server. User/Password: admin/admin or agent1/agent1 or manager1/manager1
+* http://localhost:3000 - Rocket Chat Server. User/Password: adminrc/admin or agent1/agent1 or manager1/manager1
 * http://localhost:80 - Livechat Widget Demo. A simple website with livechat installed.
 * http://localhost:5555 - Flower, where you see how the tasks are running. User/Password: admin/admin
 * http://localhost:8025 - Mailhog - A nice mailserver. The stack is configured to deliver emails there
@@ -91,6 +91,15 @@ get a message connector class initialized
         connector = m.get_connector()
 
 
+Resetting the dev environment
+----------------------------------------------------------------------
+Run:
+docker compose -f local.yml stop
+docker compose -f local.yml rm
+docker volume rm $(docker volume ls | grep rocketconnect | awk '{print $2}')
+
+
+
 Configuring Facebook Messenger
 ----------------------------------------------------------------------
 
@@ -127,11 +136,6 @@ WPPCONNECT
 
 `WPPCONNECT <https://wppconnect.io/>`_ is our currently community supported connector.
 
-
-WAAUTOMATE
-----------------------------------------------------------------------
-
-We will be deprecating WAAUTOMATE in favor of WPPCONNECT.
 
 
 META CLOUD API (SPONSORS NEEDED)
