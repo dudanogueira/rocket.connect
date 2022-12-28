@@ -6,6 +6,7 @@ import urllib.parse as urlparse
 
 import pytz
 import requests
+import vobject
 from django import forms
 from django.conf import settings
 from django.core import validators
@@ -810,6 +811,21 @@ class Connector(ConnectorBase):
                         )
                         self.outcome_text(
                             room.room_id, text, message_id=self.get_message_id()
+                        )
+
+                    elif self.message.get("type") == "vcard":
+                        content = self.message.get("content")
+                        vcard = vobject.readOne(content)
+                        import sys
+                        from io import StringIO
+
+                        buffer = StringIO()
+                        sys.stdout = buffer
+                        vcard.prettyPrint()
+                        print_output = buffer.getvalue()
+                        sys.stdout = sys.__stdout__
+                        self.outcome_text(
+                            room.room_id, print_output, message_id=self.get_message_id()
                         )
 
                     # upload type

@@ -588,7 +588,7 @@ class Connector:
         return response
 
     def register_message(self, type=None):
-        self.logger_info(f"REGISTERING MESSAGE: {self.message}")
+        self.logger_info(f"REGISTERING MESSAGE: {json.dumps(self.message)}")
         try:
             if not type:
                 type = self.type
@@ -706,7 +706,7 @@ class Connector:
         this method will process the outcoming messages
         comming from Rocketchat, and deliver to the connector
         """
-        self.logger_info(f"RECEIVED: {self.message}")
+        self.logger_info(f"RECEIVED: {json.dumps(self.message)}")
         # Session start
         if self.message.get("type") == "LivechatSessionStart":
             if settings.DEBUG:
@@ -717,6 +717,8 @@ class Connector:
             # This message is sent at the end of the chat,
             # with all the chats from the session.
             # if the Chat Close Hook is On
+            # TODO: move the close_message hook here as the actual department is not
+            # being sent
             if settings.DEBUG:
                 print("LivechatSession")
         if self.message.get("type") == "LivechatSessionTaken":
@@ -746,9 +748,12 @@ class Connector:
                     agent_name = self.get_agent_name(message)
                     # closing message, if not requested do ignore
                     if message.get("closingMessage"):
-                        message["msg"] = self.get_close_message()
-
+                        message["msg"] = self.get_close_message(
+                            department=self.message.get("visitor", {}).get("department")
+                        )
+                        print("SHOULD GET: ", message.get("msg"))
                         if message.get("msg") and not ignore_close_message:
+                            print("GOT IN!!!!")
                             if self.connector.config.get(
                                 "add_agent_name_at_close_message"
                             ):
@@ -787,23 +792,26 @@ class Connector:
         """
         get the close message configured for the connector
         """
+        close_message = None
         force_close_message = self.config.get("force_close_message", None)
         advanced_force_close_message = self.config.get(
             "advanced_force_close_message", None
         )
         if force_close_message:
-            return force_close_message
+            close_message = force_close_message
         if advanced_force_close_message:
             # only check for advanced if department ID is informed
             if not department:
-                return force_close_message
+                close_message = force_close_message
             else:
                 try:
-                    return self.config.get("advanced_force_close_message", None).get(
-                        department, None
-                    )
+                    close_message = self.config.get(
+                        "advanced_force_close_message", None
+                    ).get(department, None)
                 except KeyError:
-                    return None
+                    close_message = None
+        self.logger_info(f"GOT CLOSE MESSAGE: {close_message}")
+        return close_message
 
     def change_agent_name(self, agent_name):
         return agent_name
