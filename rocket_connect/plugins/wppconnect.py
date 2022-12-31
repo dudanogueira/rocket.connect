@@ -1131,8 +1131,7 @@ class Connector(ConnectorBase):
                         self.rocket.chat_post_message(
                             text=request.GET.get("text"), room_id=room.room_id
                         )
-                    base_url = self.connector.server.external_url
-                    external_url = f"{base_url}/omnichannel/current/{room.room_id}"
+                    external_url = room.get_room_url()
                     return {"success": True, "redirect": external_url}
             else:
                 return {

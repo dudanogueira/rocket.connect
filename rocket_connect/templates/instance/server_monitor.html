@@ -39,7 +39,7 @@
                 <i class="fas fa-envelope-open" title="Total Messages"></i> {{chat.msgs}}
                 <i class="fas fa-users" title="Users in Chat"></i> {{chat.usersCount}}
                 <i class="fas fa-torii-gate" title="Source"></i> {{chat.source.type}}<br />
-                <i class="fas fa-comment-dots" title="Last Message"></i> <a href="{{server.external_url}}/omnichannel/current/{{chat.lastMessage.rid}}/room-info">Last Message: {{chat.lastMessage.msg}}</a>
+                <i class="fas fa-comment-dots" title="Last Message"></i> <a href="{{server.external_url}}/omnichannel/current/{{chat.lastMessage.rid}}/contact-profile">Last Message: {{chat.lastMessage.msg}}</a>
                 by {{chat.lastMessage.u.name}} at {{chat.lm_datetime|date:"SHORT_DATETIME_FORMAT"}} <small>{{chat.lm_datetime|timesince}}</small><br />
                 <i class="fas fa-door-open"></i> Visitor: {{chat.fname}} <small>{{chat.v.token}}</small><br />
                 <i class="fas fa-box"></i> {{chat.department.name}}

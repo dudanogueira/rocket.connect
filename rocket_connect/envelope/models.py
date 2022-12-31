@@ -1,4 +1,5 @@
 import json
+import urllib.parse as urlparse
 import uuid
 
 from django.db import models
@@ -11,6 +12,13 @@ class LiveChatRoom(models.Model):
 
     def __str__(self):
         return f"{self.token} at {self.room_id}"
+
+    def get_room_url(self):
+        base_url = self.connector.server.get_external_url()
+        external_url = urlparse.urljoin(base_url, "omnichannel/current/")
+        external_url = urlparse.urljoin(external_url, self.room_id + "/")
+        external_url = urlparse.urljoin(external_url, "contact-profile")
+        return external_url
 
     uuid = models.UUIDField(default=uuid.uuid4, editable=False)
     connector = models.ForeignKey(
