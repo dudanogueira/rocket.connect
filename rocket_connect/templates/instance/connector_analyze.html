@@ -216,8 +216,13 @@ Endpoint: {{base_uri}}/connector/{{connector.external_token}}/
             <h1>Configurations</h1>
             <form action="" method="post">
                 {% csrf_token %}
+                <p class="text-right">
+                    <button type="submit" class="btn btn-primary btn-lg btn-full">Save Configuration</button>
+                </p>
                 {{config_form|crispy}}
-                <button type="submit" class="btn btn-primary btn-lg btn-full">Save Configuration</button>
+                <p class="text-right">
+                    <button type="submit" class="btn btn-primary btn-lg btn-full">Save Configuration</button>
+                </p>
             </form>
         </div>
         {% endif %}
