@@ -470,7 +470,7 @@ class Connector(models.Model):
                 status["connector"] = self.connector_status()
             return status
         except requests.ConnectionError:
-            return {"success": False}
+            return {"success": False, "message": "ConnectionError"}
 
     def initialize(self, request=None):
         """

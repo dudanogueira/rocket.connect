@@ -44,7 +44,7 @@ class Connector(ConnectorBase):
             self.config.get("instance_name"),
             self.config.get("secret_key"),
         )
-        token = requests.post(endpoint)
+        token = requests.post(endpoint, timeout=1)
         if token.ok:
             token = token.json()
             self.connector.config["token"] = token
@@ -63,7 +63,7 @@ class Connector(ConnectorBase):
                 self.config.get("instance_name"),
             )
             session = self.get_request_session()
-            status_req = session.get(endpoint)
+            status_req = session.get(endpoint, timeout=1)
             if status_req.ok:
                 status = status_req.json()
                 # if connected, get battery and host device
@@ -73,7 +73,7 @@ class Connector(ConnectorBase):
                         self.config.get("endpoint"),
                         self.config.get("instance_name"),
                     )
-                    host_device = session.get(endpoint).json()
+                    host_device = session.get(endpoint, timeout=1).json()
                     status["host_device"] = host_device["response"]
             else:
                 status = {"success": False, **status_req.json()}
@@ -542,6 +542,11 @@ class Connector(ConnectorBase):
         if not token:
             self.generate_token()
             token = self.config.get("token", {}).get("token")
+            # could not generate token, return error
+            return {
+                "success": False,
+                "message": "Could not generate token. Check secret key",
+            }
 
         headers = {"Authorization": "Bearer " + token}
         data = {"webhook": self.config.get("webhook")}
