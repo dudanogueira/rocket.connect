@@ -1208,8 +1208,17 @@ class Connector(ConnectorBase):
                     check_if_open=True,
                     force_transfer=force_transfer,
                 )
+                # if reply trigger, emulate the message as the visitor message
+                if self.config.get("fromme_reply_trigger_message"):
+                    message = (
+                        ":mailbox: *SENT TO THE USER WITH TRIGGER*\n"
+                        + self.message.get("body")
+                    )
+                    self.outcome_text(room_id=room_response.room_id, text=message)
                 self.logger_info(
-                    f"HANDLING ACK FROMME MESSAGE TRIGGER. PAYLOAD {self.message}, room response: {room_response}"
+                    "HANDLING ACK FROMME MESSAGE TRIGGER."
+                    + f"PAYLOAD {json.dumps(self.message)}"
+                    + f"room response: {room_response}"
                 )
         # ack receipt
         if self.config.get("enable_ack_receipt"):
@@ -1305,6 +1314,11 @@ class ConnectorConfigForm(BaseConnectorConfigForm):
     default_fromme_ack_department_trigger = forms.CharField(
         required=False,
         help_text="This is trigger word a message must have in order to trigger the ack from me feature",
+    )
+
+    fromme_reply_trigger_message = forms.BooleanField(
+        required=False,
+        help_text="When activated, it will reply the trigger message, emulating the visitor text",
     )
 
     enable_ack_receipt = forms.BooleanField(
