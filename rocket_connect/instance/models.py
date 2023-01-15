@@ -106,6 +106,14 @@ class Server(models.Model):
         else:
             return []
 
+    def get_custom_messages(self, term=None):
+        messages = self.custom_messages.filter(enabled=True).values("slug", "text")
+        if term:
+            messages = messages.filter(
+                models.Q(slug__icontains=term) | models.Q(text__icontains=term)
+            )
+        return messages
+
     def room_sync(self, execute=False):
         """
         Close all open rooms not open in Rocket.Chat

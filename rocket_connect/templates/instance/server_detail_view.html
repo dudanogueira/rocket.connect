@@ -154,6 +154,17 @@
         <div class="alert alert-primary" role="alert">
             This feature needs Rocket Connect Companion App installed on your Rocket.Chat Server
         </div>
+        {% for message in server.custom_messages.all %}
+        <div class="card">
+            <div class="card-body">
+                <h4 class="card-title">
+                    {% if message.enabled %}<span class="badge badge-success">enabled</span>{% else %}<span class="badge badge-danger">disabled</span>{% endif %}
+                    {{message.slug}}
+                </h4>
+                <p class="card-text">{{message.text}}</p>
+            </div>
+        </div>
+        {% endfor %}
     <div>
 
 </div>

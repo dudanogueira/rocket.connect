@@ -132,10 +132,7 @@ def server_endpoint(request, server_id):
 @csrf_exempt
 def server_messages_endpoint(request, server_id):
     server = get_object_or_404(Server, external_token=server_id, enabled=True)
-    messages = server.custom_messages.filter(enabled=True).values("slug", "text")
-    term = request.GET.get("term")
-    if term:
-        messages = messages.filter(Q(slug__icontains=term) | Q(text__icontains=term))
+    messages = server.get_custom_messages(term=request.GET.get("term"))
     return JsonResponse(list(messages), safe=False)
 
 

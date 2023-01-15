@@ -60,6 +60,6 @@ class ConnectorAdmin(admin.ModelAdmin):
 
 @admin.register(CustomDefaultMessages)
 class CustomDefaultMessagesAdmin(admin.ModelAdmin):
-    list_display = ("id", "server", "slug", "text", "created", "updated")
+    list_display = ("id", "enabled", "server", "slug", "text", "created", "updated")
     list_filter = ("server", "created", "updated")
     search_fields = ("slug",)
