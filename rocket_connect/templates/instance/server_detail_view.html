@@ -80,6 +80,11 @@
         Server Tasks ({{server.tasks.count}})
       </a>
     </li>
+    <li class="nav-item">
+      <a class="nav-link" id="custom-messages-tab" data-toggle="tab" href="#custom-messages" role="tab" aria-controls="tasks" aria-selected="false">
+        Custom Messages ({{server.custom_messages.count}})
+      </a>
+    </li>
 </ul>
 <div class="tab-content" id="myTabContent">
     <!-- CONNECTORS -->
@@ -144,6 +149,13 @@
         </p>
         {% endfor %}
     </div>
+    <!-- CUSTOM MESSAGES-->
+    <div class="tab-pane fade" id="custom-messages" role="tabpanel" aria-labelledby="custom-messages-tab">
+        <div class="alert alert-primary" role="alert">
+            This feature needs Rocket Connect Companion App installed on your Rocket.Chat Server
+        </div>
+    <div>
+
 </div>
 
 

@@ -129,6 +129,16 @@ def server_endpoint(request, server_id):
     return JsonResponse({})
 
 
+@csrf_exempt
+def server_messages_endpoint(request, server_id):
+    server = get_object_or_404(Server, external_token=server_id, enabled=True)
+    messages = server.custom_messages.filter(enabled=True).values("slug", "text")
+    term = request.GET.get("term")
+    if term:
+        messages = messages.filter(Q(slug__icontains=term) | Q(text__icontains=term))
+    return JsonResponse(list(messages), safe=False)
+
+
 @login_required(login_url="/accounts/login/")
 @must_be_yours
 def server_detail_view(request, server_id):

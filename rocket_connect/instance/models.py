@@ -635,3 +635,24 @@ class Connector(models.Model):
         blank=True, auto_now_add=True, verbose_name="Created"
     )
     updated = models.DateTimeField(blank=True, auto_now=True, verbose_name="Updated")
+
+
+class CustomDefaultMessages(models.Model):
+    class Meta:
+        verbose_name = "CustomMessages"
+        verbose_name_plural = "Custom Messagess"
+
+    def __str__(self):
+        return self.slug
+
+    server = models.ForeignKey(
+        Server, on_delete=models.CASCADE, related_name="custom_messages"
+    )
+    enabled = models.BooleanField(default=True)
+    slug = models.SlugField(blank=False, null=False)
+    text = models.TextField(blank=False, null=False)
+    # meta
+    created = models.DateTimeField(
+        blank=True, auto_now_add=True, verbose_name="Created"
+    )
+    updated = models.DateTimeField(blank=True, auto_now=True, verbose_name="Updated")

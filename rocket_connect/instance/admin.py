@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Connector, Server
+from .models import Connector, CustomDefaultMessages, Server
 
 
 @admin.register(Server)
@@ -56,3 +56,10 @@ class ServerAdmin(admin.ModelAdmin):
 class ConnectorAdmin(admin.ModelAdmin):
     list_display = ("id", "name", "external_token", "server", "connector_type")
     list_filter = ("server", "connector_type", "created", "updated")
+
+
+@admin.register(CustomDefaultMessages)
+class CustomDefaultMessagesAdmin(admin.ModelAdmin):
+    list_display = ("id", "server", "slug", "text", "created", "updated")
+    list_filter = ("server", "created", "updated")
+    search_fields = ("slug",)
