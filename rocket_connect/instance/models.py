@@ -114,6 +114,16 @@ class Server(models.Model):
             )
         return messages
 
+    def import_custom_messages(self, messages_csv_tabbed):
+        # disable all messages
+        self.custom_messages.all().update(enabled=False)
+        for m in messages_csv_tabbed.splitlines():
+            mm = m.split("\t")
+            message, created = self.custom_messages.get_or_create(slug=mm[0])
+            message.text = mm[1]
+            message.enabled = True
+            message.save()
+
     def room_sync(self, execute=False):
         """
         Close all open rooms not open in Rocket.Chat

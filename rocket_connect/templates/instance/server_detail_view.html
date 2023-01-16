@@ -154,6 +154,15 @@
         <div class="alert alert-primary" role="alert">
             This feature needs Rocket Connect Companion App installed on your Rocket.Chat Server
         </div>
+        <form method="POST">
+            {% csrf_token %}
+            <div class="form-group">
+            <label for=""></label>
+            <textarea class="form-control" name="custom-messages-import" id="custom-messages-import" rows="3"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">Update Messages</button>
+        </form>
+        <hr />
         {% for message in server.custom_messages.all %}
         <div class="card">
             <div class="card-body">
