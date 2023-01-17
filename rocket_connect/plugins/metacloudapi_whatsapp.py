@@ -339,9 +339,15 @@ class Connector(ConnectorBase):
         if self.config.get("endpoint"):
             endpoint = self.get_graphql_endpoint()
             session = self.get_request_session()
-            status_req = session.get(endpoint)
-            if status_req.ok:
-                status = status_req.json()
+            try:
+                status_req = session.get(endpoint)
+                if status_req.ok:
+                    status = status_req.json()
+            except requests.exceptions.MissingSchema:
+                return {
+                    "success": False,
+                    "message": f"Could not get endpoint: {endpoint}",
+                }
         return status
 
 
