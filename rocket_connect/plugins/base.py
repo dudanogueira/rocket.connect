@@ -748,10 +748,17 @@ class Connector:
                     agent_name = self.get_agent_name(message)
                     # closing message, if not requested do ignore
                     if message.get("closingMessage"):
-                        message["msg"] = self.get_close_message(
-                            department=self.message.get("visitor", {}).get("department")
-                        )
+                        # cant trust the receiving department. let's query it.
+                        # seems fixed in Six
+                        self.get_rocket_client()
+                        room_info = self.rocket.rooms_info(
+                            room_id=self.message_object.room.room_id
+                        ).json()
+                        department = room_info.get("room", {}).get("departmentId")
+                        message["msg"] = self.get_close_message(department=department)
                         print("SHOULD GET: ", message.get("msg"))
+                        print("DEPARTMENT CLOSING: ", department)
+                        print("ROOM INFo:", room_info)
                         if message.get("msg") and not ignore_close_message:
                             print("GOT IN!!!!")
                             if self.connector.config.get(
