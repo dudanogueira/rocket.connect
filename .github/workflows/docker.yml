@@ -21,7 +21,7 @@ jobs:
       -
         name: Docker meta
         id: meta
-        uses: crazy-max/ghaction-docker-meta@v4.2.0
+        uses: crazy-max/ghaction-docker-meta@v4.3.0
         with:
           images: dudanogueira/rocket.connect
       -
@@ -33,7 +33,7 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
       -
         name: Build and push
-        uses: docker/build-push-action@v3.2.0
+        uses: docker/build-push-action@v3.3.0
         with:
           context: .
           file: ./compose/production/django/Dockerfile
