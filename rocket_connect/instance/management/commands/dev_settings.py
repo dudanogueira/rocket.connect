@@ -335,12 +335,12 @@ class Command(BaseCommand):
         if channel.ok:
             print("channel created: ", channel)
             # invite admin to channel
-            user_id = rocket.users_info(username="admin").json()["user"]["_id"]
+            user_id = rocket.users_info(username="adminrc").json()["user"]["_id"]
             channel_id = channel.json()["channel"]["_id"]
             rocket.channels_invite(room_id=channel_id, user_id=user_id)
-            # add admin as manager
-            rocket.livechat_create_user(user_type="manager", username="admin")
-            rocket.livechat_create_user(user_type="agent", username="admin")
+        # add admin as manager
+        rocket.livechat_create_user(user_type="manager", username="adminrc")
+        rocket.livechat_create_user(user_type="agent", username="adminrc")
 
         # create teams
         public_team = rocket.teams_create("team-public", 0)
