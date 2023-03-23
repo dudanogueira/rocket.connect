@@ -1,4 +1,4 @@
-version: "3.7"
+version: "3.8"
 
 volumes:
   local_postgres_data: {}
@@ -244,7 +244,7 @@ services:
   apache:
     image: 'php:apache'
     ports:
-      - "80:80"
+      - "82:82"
     volumes:
       - ./compose/local/apache/site:/var/www/html
       - ./compose/local/apache/confs/additional.conf:/etc/apache2/conf-enabled/additional.conf
@@ -252,7 +252,7 @@ services:
   grafana:
     image: grafana/grafana:8.2.5
     ports:
-      - 3001:3000
+      - 3002:3000
     volumes:
       - ./compose/local/rocket_metrics/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
       - ./compose/local/rocket_metrics/grafana/provisioning/dashboards/provider:/etc/grafana/provisioning/dashboards:ro
