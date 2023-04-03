@@ -210,3 +210,6 @@ rocket_connect/media/
 **.data.json
 **.node-persist**
 # end managed by open-wa
+
+version*
+mongodb_version*
