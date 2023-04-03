@@ -1001,7 +1001,8 @@ class Connector(ConnectorBase):
             content = self.joypixel_to_unicode(content)
             # message may not have an agent
             if agent_name:
-                content = "*[" + agent_name + "]*\n" + content
+                content = self.render_message_agent_template(content, agent_name)
+                # content = "*[" + agent_name + "]*\n" + content
 
             payload = {
                 "phone": self.get_visitor_id(),

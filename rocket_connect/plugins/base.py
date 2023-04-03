@@ -795,6 +795,15 @@ class Connector:
 
         return self.change_agent_name(agent_name)
 
+    def render_message_agent_template(self, message, agent_name):
+        context = {"message": message, "agent_name": agent_name}
+        context = Context(context)
+        default_message_template = "*[{{agent_name}}]*\n{{message}}"
+        message_template = self.config.get("message_template", default_message_template)
+        template = Template(message_template)
+        message = template.render(context)
+        return message
+
     def get_close_message(self, department=None):
         """
         get the close message configured for the connector
@@ -972,6 +981,12 @@ class BaseConnectorConfigForm(forms.Form):
         help_text="Do not create/get rooms for this tokens", required=False
     )
     timezone = forms.CharField(help_text="Timezone for this connector", required=False)
+    message_template = forms.CharField(
+        widget=forms.Textarea(attrs={"rows": 4, "cols": 15}),
+        help_text="Template to render message, (default): *[{{agent_name}}]*\n{{message}}",
+        required=False,
+        initial="*[{{agent_name}}]*\n{{message}}",
+    )
     force_close_message = forms.CharField(
         widget=forms.Textarea(attrs={"rows": 4, "cols": 15}),
         help_text="Force this message on close",
