@@ -301,7 +301,7 @@ class Server(models.Model):
                     {
                         "server_token": self.external_token,
                         "last_message_users": "bot,otherbot",
-                        "last_message_seconds": "600",
+                        "last_message_seconds": 600,
                         "closing_message": "Due to inactivity, your chat is being closed.",
                     }
                 ),
