@@ -4,7 +4,6 @@ from django.db import models
 
 
 class Call(models.Model):
-
     unique_id = models.CharField(max_length=50, unique=True)
     previous_call = models.ForeignKey(
         "self", on_delete=models.CASCADE, null=True, blank=True

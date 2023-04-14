@@ -500,7 +500,6 @@ class Connector:
         # optionally allow welcome message
         if allow_welcome_message:
             if self.config.get("welcome_message"):
-
                 # only send welcome message when
                 # 1 - open_room is False and there is a welcome_message
                 # 2 - open_room is True, room_created is True and there is a welcome_message
@@ -690,8 +689,10 @@ class Connector:
 
     def close_room(self):
         if self.room:
-            # close all room from connector with same room_id
-            self.connector.rooms.filter(room_id=self.room.room_id).update(open=False)
+            # close all room from this server with same room_id
+            LiveChatRoom.objects.filter(
+                connector__server=self.connector.server, room_id=self.room.room_id
+            ).update(open=False)
             self.post_close_room()
 
     def post_close_room(self):
