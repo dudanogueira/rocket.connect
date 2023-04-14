@@ -690,8 +690,10 @@ class Connector:
 
     def close_room(self):
         if self.room:
-            # close all room from connector with same room_id
-            self.connector.rooms.filter(room_id=self.room.room_id).update(open=False)
+            # close all room from this server with same room_id
+            LiveChatRoom.objects.filter(
+                connector__server=self.connector.server, room_id=self.room.room_id
+            ).update(open=False)
             self.post_close_room()
 
     def post_close_room(self):
