@@ -1257,7 +1257,6 @@ class Connector(ConnectorBase):
 
 
 class ConnectorConfigForm(BaseConnectorConfigForm):
-
     webhook = forms.CharField(
         help_text="Where WPPConnect will send the events",
         required=True,

@@ -256,7 +256,6 @@ class Connector(ConnectorBase):
 
 
 class ConnectorConfigForm(BaseConnectorConfigForm):
-
     access_token = forms.CharField(
         help_text="Facebook Access Token to get contact info",
         required=False,

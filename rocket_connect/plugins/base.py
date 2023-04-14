@@ -500,7 +500,6 @@ class Connector:
         # optionally allow welcome message
         if allow_welcome_message:
             if self.config.get("welcome_message"):
-
                 # only send welcome message when
                 # 1 - open_room is False and there is a welcome_message
                 # 2 - open_room is True, room_created is True and there is a welcome_message

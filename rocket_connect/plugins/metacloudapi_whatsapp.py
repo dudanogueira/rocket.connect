@@ -13,7 +13,6 @@ from .base import Connector as ConnectorBase
 
 
 class Connector(ConnectorBase):
-
     # main incoming hub
     def incoming(self):
         """
@@ -121,7 +120,6 @@ class Connector(ConnectorBase):
             return HttpResponseForbidden()
 
     def handle_message(self):
-
         if self.message.get("type") == "unsupported":
             # do nothing
             return JsonResponse({"message": "unsupported type"})
@@ -352,7 +350,6 @@ class Connector(ConnectorBase):
 
 
 class ConnectorConfigForm(BaseConnectorConfigForm):
-
     graph_url = forms.CharField(
         help_text="Facebook GraphQl endpoint with version, eg https://graph.facebook.com/v14.0/",
         required=True,

@@ -40,7 +40,6 @@ class ServerTestCase(TestCase):
         self.assertEqual(close_message, self.incoming.get_close_message())
 
     def test_get_advanced_close_message(self):
-
         # test advanced forced message
         forced_dpto1 = "Forced Message for Dpto 1"
         forced_dpto2 = "Forced Message for Dpto 2"

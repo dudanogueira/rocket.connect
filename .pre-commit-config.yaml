@@ -1,4 +1,4 @@
-exclude: "^docs/|/migrations/"
+exclude: "^docs/|/migrations/|^emojipy"
 default_stages: [commit]
 
 repos:

@@ -80,7 +80,6 @@ def alert_last_message_open_chat(
                 context = Context(context_dict)
                 template = Template(notification_template)
                 for target in notification_target.split(","):
-
                     # render message
                     message = template.render(context)
                     if target.startswith("#"):
@@ -89,7 +88,6 @@ def alert_last_message_open_chat(
                             text=message, channel=target.replace("#", "")
                         )
                     else:
-
                         # target may contain variables
                         target_template = Template(target)
                         rendered_target = target_template.render(context)
