@@ -6,6 +6,7 @@ import urllib.parse as urlparse
 
 import pytz
 import requests
+import urllib3
 import vobject
 from django import forms
 from django.conf import settings
@@ -63,20 +64,23 @@ class Connector(ConnectorBase):
                 self.config.get("instance_name"),
             )
             session = self.get_request_session()
-            status_req = session.get(endpoint, timeout=1)
-            if status_req.ok:
-                status = status_req.json()
-                # if connected, get battery and host device
-                if status.get("status") == "CONNECTED":
-                    # host device
-                    endpoint = "{}/api/{}/host-device".format(
-                        self.config.get("endpoint"),
-                        self.config.get("instance_name"),
-                    )
-                    host_device = session.get(endpoint, timeout=1).json()
-                    status["host_device"] = host_device["response"]
-            else:
-                status = {"success": False, **status_req.json()}
+            try:
+                status_req = session.get(endpoint, timeout=1)
+                if status_req.ok:
+                    status = status_req.json()
+                    # if connected, get battery and host device
+                    if status.get("status") == "CONNECTED":
+                        # host device
+                        endpoint = "{}/api/{}/host-device".format(
+                            self.config.get("endpoint"),
+                            self.config.get("instance_name"),
+                        )
+                        host_device = session.get(endpoint, timeout=1).json()
+                        status["host_device"] = host_device["response"]
+                else:
+                    status = {"success": False, **status_req.json()}
+            except urllib3.exceptions.ReadTimeoutError as e:
+                status = {"success": False, "message": str(e)}
 
         return status
 
