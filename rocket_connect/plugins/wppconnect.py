@@ -870,6 +870,23 @@ class Connector(ConnectorBase):
             ) and not self.message.get("id", {}).get("fromMe", False):
                 self.logger_info(f"PROCESSED UNREAD MESSAGE. PAYLOAD {self.message}")
 
+        # message removed
+        if self.message.get("event") == "onrevokedmessage":
+            # get ref id
+            ref_id = self.message.get("refId")
+            if ref_id:
+                self.get_rocket_client()
+                msg = self.rocket.chat_get_message(msg_id=ref_id)
+                if msg:
+                    new_message = ":warning:  DELETED: ~{}~".format(
+                        msg.json()["message"]["msg"]
+                    )
+                    room = self.get_room()
+                    a = self.rocket.chat_update(
+                        room_id=room.room_id, msg_id=ref_id, text=new_message
+                    )
+                    print(a.json())
+
         # webhook active chat integration
         if self.config.get("active_chat_webhook_integration_token"):
             if self.message.get("token") == self.config.get(
@@ -929,7 +946,7 @@ class Connector(ConnectorBase):
             if self.message.get("id", {}).get("fromMe"):
                 return self.message.get("id").get("remote")
         else:
-            if self.message.get("event") == "unreadmessages":
+            if self.message.get("event") in ["unreadmessages", "onrevokedmessage"]:
                 return self.message.get("from")
             else:
                 return self.message.get("chatId")
