@@ -28,13 +28,19 @@ def intake_unread_messages(connector_id):
     retry_kwargs={"max_retries": 7, "countdown": 5},
     autoretry_for=(requests.ConnectionError,),
 )
-def server_maintenance(server_token):
+def server_maintenance(server_token, delete_delivered_messages_age=None):
     """do all sorts of server maintenance"""
     server = Server.objects.get(external_token=server_token)
     response = {}
     # sync room
     response["room_sync"] = server.room_sync(execute=True)
+    # delete delivered messages
+    if delete_delivered_messages_age:
+        response["delete_delivered_messages"] = server.delete_delivered_messages(
+            age=delete_delivered_messages_age, execute=True
+        )
     # return results
+
     return response
 
 

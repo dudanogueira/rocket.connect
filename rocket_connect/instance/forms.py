@@ -1,4 +1,11 @@
-from django.forms import CharField, ChoiceField, ModelForm
+from django.forms import (
+    CharField,
+    ChoiceField,
+    Form,
+    ModelChoiceField,
+    ModelForm,
+    Textarea,
+)
 from instance.models import Connector, Server
 
 
@@ -14,6 +21,17 @@ class NewServerForm(ModelForm):
             "admin_user_token",
             "managers",
         ]
+
+
+class NewInboundForm(Form):
+    number = CharField(label="Number", max_length=100, help_text="eg. 553199851212")
+    destination = ChoiceField(choices=[])
+    text = CharField(
+        label="Text",
+        max_length=100,
+        widget=Textarea(attrs={"rows": 4, "cols": 15}),
+    )
+    connector = ModelChoiceField(queryset=Connector.objects.all())
 
 
 class NewConnectorForm(ModelForm):

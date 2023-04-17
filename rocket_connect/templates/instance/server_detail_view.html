@@ -26,6 +26,9 @@
         <a name="" id="" class="btn btn-primary" href="?check-room-sync=1" role="button" title="check rooms sync">
             <i class="fa fa-recycle" aria-hidden="true"></i> sync
         </a>
+        <a name="" id="" class="btn btn-primary" href="?delete-delivered-messages=1" role="button" title="check rooms sync">
+            <i class="fa fa-recycle" aria-hidden="true"></i> remove delivered messages
+        </a>
         {% endif %}
         {{server}} <span class="text-{{ server.enabled|yesno:'success,danger' }}">{{ server.enabled|yesno:"Active,Inactive" }}</span>
     </h1>
@@ -66,6 +69,30 @@
     </script>
 
     {% endif %}
+
+
+    {% if delivered_messages_to_delete %}
+    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+        </button>
+        <strong> Delivered Messages to Delete:</strong> {{delivered_messages_to_delete.count}}
+        <small>(older then 10 days)</small>
+        {% if delivered_messages_to_delete.count %}
+        <p class="mt-3">
+            <a name="" id="" class="btn btn-danger" href="?delete-delivered-messages=1&do-delete-delivered-messages=1" role="button">
+                Remove!
+            </a>
+        </p>
+        {% endif %}
+    </div>
+
+    <script>
+      $(".alert").alert();
+    </script>
+
+    {% endif %}
+
 </div>
 
 
