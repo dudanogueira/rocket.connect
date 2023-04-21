@@ -254,3 +254,86 @@ def alert_undelivered_messages(
 
     responses = {"targets": targets, "sent_messages": sent_messages}
     return responses
+
+
+# T7
+@celery_app.task(retry_kwargs={"max_retries": 7, "countdown": 5})
+def manage_abandoned_chats(
+    server_token,
+    excluded_departments,
+    message_template,
+    last_message_seconds,
+    last_message_users,
+    action="close",
+    target_department_id=None,
+    target_agent_user_id=None,
+):
+    # get server
+    server = Server.objects.get(external_token=server_token)
+    # get rocket
+    rocket = server.get_rocket_client()
+    # list all open messages
+    open_rooms = server.get_open_rooms()
+    # create returns
+    output = {"action": action, "rooms": []}
+
+    if open_rooms:
+        for room in open_rooms.get("rooms"):
+            # do not close for configured rooms
+            if room.get("departmentId") not in excluded_departments:
+                if room.get("lastMessage", False):
+                    # get last message
+                    last_message = room["lastMessage"]
+                    # define last message users or all
+                    if (
+                        last_message["u"]["username"] in last_message_users
+                        or last_message_users == "*"
+                    ):
+                        ts = dateutil.parser.parse(last_message["ts"])
+                        now = timezone.now()
+                        delta = now - ts
+                        if delta.total_seconds() >= last_message_seconds:
+                            if message_template:
+                                rocket.chat_post_message(
+                                    room_id=room["_id"], text=message_template
+                                ).json()
+                            if action == "close":
+                                # close messages on this situation
+                                room_close_options = {
+                                    "rid": room["_id"],
+                                    "token": room["v"]["token"],
+                                }
+                                close = rocket.call_api_post(
+                                    "livechat/room.close", **room_close_options
+                                )
+                                output["rooms"].append(close.json())
+                            elif action == "transfer":
+                                if target_department_id and not target_agent_user_id:
+                                    # transfer messages on this situation to department
+                                    room_transfer_options = {
+                                        "rid": room["_id"],
+                                        "token": room["v"]["token"],
+                                        "department": target_department_id,
+                                    }
+                                    transfer = rocket.call_api_post(
+                                        "livechat/room.transfer",
+                                        **room_transfer_options
+                                    )
+                                    output["rooms"].append(transfer.json())
+                                if target_agent_user_id and not target_department_id:
+                                    # forward messages on this situation to agent
+                                    room_transfer_options = {
+                                        "roomId": room["_id"],
+                                        "userId": target_agent_user_id,
+                                    }
+                                    transfer = rocket.call_api_post(
+                                        "livechat/room.forward", **room_transfer_options
+                                    )
+                                    output["rooms"].append(
+                                        {
+                                            "room_id": room["_id"],
+                                            "response": transfer.json(),
+                                        }
+                                    )
+
+    return output

@@ -354,6 +354,37 @@ class Server(models.Model):
             )
             self.tasks.add(task)
             added_tasks.append(task)
+        #
+        # T7 manage_abandoned_chats
+        #
+        task = PeriodicTask.objects.filter(
+            task="instance.tasks.manage_abandoned_chats",
+            kwargs__contains=self.external_token,
+        )
+        if not task.exists():
+            crontab = CrontabSchedule.objects.first()
+            task = PeriodicTask.objects.create(
+                enabled=False,
+                name=f"Manage Abandoned Calls for {self.name} (ID {self.id})",
+                description="""This task can transfer to department or agent"""
+                + """, close or just alert the user on abandoned chats""",
+                crontab=crontab,
+                task="instance.tasks.manage_abandoned_chats",
+                kwargs=json.dumps(
+                    {
+                        "server_token": self.external_token,
+                        "excluded_departments": [],
+                        "message_template": "This chat is abandoned",
+                        "last_message_seconds": 10,
+                        "last_message_users": "*",
+                        "action": "transfer|close|alert",
+                        "target_department_id": None,
+                        "target_agent_user_id": None,
+                    }
+                ),
+            )
+            self.tasks.add(task)
+            added_tasks.append(task)
         # return added tasks
         return added_tasks
 

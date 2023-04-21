@@ -70,7 +70,6 @@
 
     {% endif %}
 
-
     {% if delivered_messages_to_delete %}
     <div class="alert alert-warning alert-dismissible fade show" role="alert">
         <button type="button" class="close" data-dismiss="alert" aria-label="Close">
@@ -138,6 +137,11 @@
     </div>
     <!--- TASKS -->
     <div class="tab-pane fade" id="tasks" role="tabpanel" aria-labelledby="tasks-tab">
+
+        <div class="text-right my-4 ">
+            <a name="" id="" class="btn btn-primary " href="?install-default-tasks=1" role="button">install tasks</a>
+        </div>
+
         {% for task in tasks.all %}
         <div class="card mb-3">
             <div class="card-header">
