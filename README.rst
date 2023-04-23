@@ -36,7 +36,7 @@ Run the `full development stack <https://rocketconnect.readthedocs.io/en/latest/
 
 Support
 ------
-Come hangup with us at our telegram channel: https://t.me/RocketConnector
+Come hang out with us at our telegram channel: https://t.me/RocketConnector
 
 
 
