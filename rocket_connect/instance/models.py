@@ -1,3 +1,4 @@
+import datetime
 import json
 import uuid
 
@@ -5,7 +6,9 @@ import requests
 from django.apps import apps
 from django.conf import settings
 from django.db import models
+from django.utils import timezone
 from django_celery_beat.models import CrontabSchedule, PeriodicTask
+from envelope.models import Message
 from rocketchat_API.APIExceptions.RocketExceptions import RocketAuthenticationException
 from rocketchat_API.rocketchat import RocketChat
 
@@ -145,6 +148,18 @@ class Server(models.Model):
             response["executed"] = close_room_response
         return response
 
+    def delete_delivered_messages(self, age=None, execute=False):
+        if age and type(age) == int:
+            now = timezone.now()
+            target_date = now - datetime.timedelta(days=age)
+            messages = Message.objects.filter(
+                room__connector__server=self, delivered=True, created__lte=target_date
+            )
+            if execute:
+                return messages.delete()
+            else:
+                return messages
+
     def force_delivery(self):
         """
         this method will force the intake of every undelivered message
@@ -195,10 +210,16 @@ class Server(models.Model):
             crontab = CrontabSchedule.objects.first()
             task = PeriodicTask.objects.create(
                 enabled=False,
-                name=f"General Maintenance for {self.name} (ID {self.id})",
+                name=f"General Maintenance for {self.name} (ID {self.id})."
+                + "Sync rooms and Remove delivered messages (Age in days).",
                 crontab=crontab,
                 task="instance.tasks.server_maintenance",
-                kwargs=json.dumps({"server_token": self.external_token}),
+                kwargs=json.dumps(
+                    {
+                        "server_token": self.external_token,
+                        "delete_delivered_messages_age": 15,
+                    }
+                ),
             )
             self.tasks.add(task)
             added_tasks.append(task)
@@ -328,6 +349,37 @@ class Server(models.Model):
                         "server_token": self.external_token,
                         "notification_target": "general,otherchannel",
                         "notification_template": "Found {{undelivered_messages.count}} undelivered messages",
+                    }
+                ),
+            )
+            self.tasks.add(task)
+            added_tasks.append(task)
+        #
+        # T7 manage_abandoned_chats
+        #
+        task = PeriodicTask.objects.filter(
+            task="instance.tasks.manage_abandoned_chats",
+            kwargs__contains=self.external_token,
+        )
+        if not task.exists():
+            crontab = CrontabSchedule.objects.first()
+            task = PeriodicTask.objects.create(
+                enabled=False,
+                name=f"Manage Abandoned Calls for {self.name} (ID {self.id})",
+                description="""This task can transfer to department or agent"""
+                + """, close or just alert the user on abandoned chats""",
+                crontab=crontab,
+                task="instance.tasks.manage_abandoned_chats",
+                kwargs=json.dumps(
+                    {
+                        "server_token": self.external_token,
+                        "excluded_departments": [],
+                        "message_template": "This chat is abandoned",
+                        "last_message_seconds": 10,
+                        "last_message_users": "*",
+                        "action": "transfer|close|alert",
+                        "target_department_id": None,
+                        "target_agent_user_id": None,
                     }
                 ),
             )

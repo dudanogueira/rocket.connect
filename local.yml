@@ -120,7 +120,7 @@ services:
 
 
   rocketchat:
-    image: registry.rocket.chat/rocketchat/rocket.chat:${RELEASE:-6.1.0}
+    image: registry.rocket.chat/rocketchat/rocket.chat:${RELEASE:-develop}
     restart: on-failure
     environment:
       MONGO_URL: "${MONGO_URL:-\
@@ -197,24 +197,23 @@ services:
     ports:
       - "21465:21465"
 
-  quepasa:
-    image: sufficit/quepasa
-    mem_limit: 4096M
-    ports:
-      - 31000:31000
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    restart: always
-    stdin_open: true
-    tty: true
-    environment:
-      - WEBSOCKETSSL=false
-      - WEBAPIPORT=31000
-      - APP_ENV=production
-      - MIGRATIONS=/opt/quepasa/migrations
-      - DEBUGJSONMESSAGES=false
-      - HTTPLOGS=false
-
+  # quepasa:
+  #   image: sufficit/quepasa
+  #   mem_limit: 4096M
+  #   ports:
+  #     - 31000:31000
+  #   extra_hosts:
+  #     - "host.docker.internal:host-gateway"
+  #   restart: always
+  #   stdin_open: true
+  #   tty: true
+  #   environment:
+  #     - WEBSOCKETSSL=false
+  #     - WEBAPIPORT=31000
+  #     - APP_ENV=production
+  #     - MIGRATIONS=/opt/quepasa/migrations
+  #     - DEBUGJSONMESSAGES=false
+  #     - HTTPLOGS=false
 
   apache:
     image: 'php:apache'

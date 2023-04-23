@@ -15,6 +15,8 @@ from envelope.models import LiveChatRoom
 from instance.forms import NewConnectorForm, NewServerForm
 from instance.models import Connector, Server
 
+from .forms import NewInboundForm
+
 
 @csrf_exempt
 def connector_endpoint(request, connector_id):
@@ -138,9 +140,42 @@ def server_messages_endpoint(request, server_id):
 
 @login_required(login_url="/accounts/login/")
 @must_be_yours
+def active_chat(request, server_id):
+    server = get_object_or_404(Server.objects, external_token=server_id)
+    form = NewInboundForm(request.POST or None)
+    # get online agents and departments
+    rocket = server.get_rocket_client()
+    departments_raw = rocket.call_api_get("livechat/department").json()
+    departments_choice = [
+        ("@" + d["name"], "Department: " + d["name"])
+        for d in departments_raw["departments"]
+    ]
+    destinations = departments_choice
+    # now get online agents
+    agents = rocket.livechat_get_users(user_type="agent").json()
+    available_agents = [
+        agent["username"]
+        for agent in agents["users"]
+        if agent["status"] == "online" and agent["statusLivechat"] == "available"
+    ]
+    print(available_agents)
+    for agent in available_agents:
+        destinations.append(("@" + agent, "Agent: " + agent))
+    connectors = server.connectors.filter(enabled=True)
+    form.fields["connector"].queryset = connectors
+    form.fields["destination"].choices = destinations
+    if form.is_valid():
+        pass
+    context = {"server": server, "form": form}
+    return render(request, "instance/active_chat.html", context)
+
+
+@login_required(login_url="/accounts/login/")
+@must_be_yours
 def server_detail_view(request, server_id):
     server = get_object_or_404(Server.objects, external_token=server_id)
     room_sync = None
+    delivered_messages_to_delete = None
     # get server status
     status = server.status()
     if request.GET.get("force_connector_delivery"):
@@ -175,6 +210,17 @@ def server_detail_view(request, server_id):
             room_sync = server.room_sync(execute=True)
             messages.success(request, "Sync Executed!")
             room_sync = server.room_sync()
+
+    if request.GET.get("delete-delivered-messages"):
+        if request.GET.get("do-delete-delivered-messages"):
+            delivered_messages_to_delete = server.delete_delivered_messages(
+                age=10, execute=True
+            )
+            messages.success(
+                request, f"Delivered messages deleted: {delivered_messages_to_delete}"
+            )
+        else:
+            delivered_messages_to_delete = server.delete_delivered_messages(age=10)
 
     if request.GET.get("install-default-tasks"):
         added_tasks = server.install_server_tasks()
@@ -221,6 +267,7 @@ def server_detail_view(request, server_id):
         "connectors": connectors,
         "status": status,
         "room_sync": room_sync,
+        "delivered_messages_to_delete": delivered_messages_to_delete,
         "tasks": tasks,
     }
     return render(request, "instance/server_detail_view.html", context)

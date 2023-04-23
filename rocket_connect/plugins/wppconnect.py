@@ -870,6 +870,44 @@ class Connector(ConnectorBase):
             ) and not self.message.get("id", {}).get("fromMe", False):
                 self.logger_info(f"PROCESSED UNREAD MESSAGE. PAYLOAD {self.message}")
 
+        # message removed
+        if self.message.get("event") == "onrevokedmessage":
+            # get ref id
+            ref_id = self.message.get("refId")
+            if ref_id:
+                self.get_rocket_client()
+                msg = self.rocket.chat_get_message(msg_id=ref_id)
+                if msg:
+                    new_message = ":warning:  DELETED: ~{}~".format(
+                        msg.json()["message"]["msg"]
+                    )
+                    room = self.get_room()
+                    self.rocket.chat_update(
+                        room_id=room.room_id, msg_id=ref_id, text=new_message
+                    )
+
+        # reaction to a message
+        if self.message.get("event") == "onreactionmessage":
+            self.get_rocket_client()
+            room = self.get_room()
+            ref_id = self.message.get("msgId").get("_serialized")
+            msg = self.rocket.chat_get_message(msg_id=ref_id)
+            reaction = self.message.get("reactionText")
+            if msg.ok:
+                new_message = "{} {}".format(reaction, msg.json()["message"]["msg"])
+            else:
+                # message may be from previous chats.
+                # lets get from wppconnect
+                message = self.get_message(message_id=ref_id)
+                new_message = "{} {}".format(
+                    reaction, message.get("response").get("data").get("body")
+                )
+                print(new_message)
+            room = self.get_room()
+            self.outcome_text(
+                room_id=room.room_id, text=new_message, message_id=self.get_message_id()
+            ).json()
+
         # webhook active chat integration
         if self.config.get("active_chat_webhook_integration_token"):
             if self.message.get("token") == self.config.get(
@@ -914,7 +952,7 @@ class Connector(ConnectorBase):
 
     def get_incoming_message_id(self):
         # unread messages has a different structure
-        if self.message.get("event") == "unreadmessages":
+        if self.message.get("event") in ["unreadmessages", "onreactionmessage"]:
             return self.message.get("id", {}).get("_serialized")
         if self.message.get("type") == "active_chat":
             return self.message.get("message_id")
@@ -925,11 +963,13 @@ class Connector(ConnectorBase):
     def get_incoming_visitor_id(self):
         if self.message.get("event") == "incomingcall":
             return self.message.get("peerJid")
+        if self.message.get("event") == "onreactionmessage":
+            return self.message.get("id").get("remote")
         if self.message.get("event") == "onack":
             if self.message.get("id", {}).get("fromMe"):
                 return self.message.get("id").get("remote")
         else:
-            if self.message.get("event") == "unreadmessages":
+            if self.message.get("event") in ["unreadmessages", "onrevokedmessage"]:
                 return self.message.get("from")
             else:
                 return self.message.get("chatId")
@@ -1254,6 +1294,14 @@ class Connector(ConnectorBase):
                 )
                 message.ack = True
                 message.save()
+
+    def get_message(self, message_id):
+        session = self.get_request_session()
+        endpoint = "{}/api/{}/message-by-id/{}".format(
+            self.config.get("endpoint"), self.config.get("instance_name"), message_id
+        )
+        message = session.get(endpoint).json()
+        return message
 
 
 class ConnectorConfigForm(BaseConnectorConfigForm):

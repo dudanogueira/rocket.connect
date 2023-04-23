@@ -1,6 +1,7 @@
 from django.urls import re_path
 
 from rocket_connect.instance.views import (
+    active_chat,
     connector_analyze,
     new_connector,
     new_server,
@@ -17,6 +18,11 @@ urlpatterns = [
     ),
     re_path(
         r"^server/(?P<server_id>\w+)/?$", view=server_detail_view, name="server_detail"
+    ),
+    re_path(
+        r"^server/(?P<server_id>\w+)/active-chat/?$",
+        view=active_chat,
+        name="active_chat",
     ),
     re_path(
         r"^server/(?P<server_id>\w+)/analyze/(?P<connector_id>\w+)/?$",
