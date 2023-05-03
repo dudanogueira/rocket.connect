@@ -43,6 +43,9 @@ class Connector:
         self.room = None
         self.logger = logging.getLogger("teste")
 
+    # if true, lists the connector on active chat forms and apis
+    support_active_chat = False
+
     def status_session(self):
         return True
 

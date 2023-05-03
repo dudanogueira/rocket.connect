@@ -118,9 +118,8 @@ services:
       retries: 3
     command: /start-flower
 
-
   rocketchat:
-    image: registry.rocket.chat/rocketchat/rocket.chat:${RELEASE:-develop}
+    image: registry.rocket.chat/rocketchat/rocket.chat:${RELEASE:-5.4.8-alpine}
     restart: on-failure
     environment:
       MONGO_URL: "${MONGO_URL:-\
@@ -145,6 +144,7 @@ services:
       OVERWRITE_SETTING_Apps_Framework_Development_Mode: "true"
       OVERWRITE_SETTING_Prometheus_Enabled: "true"
       OVERWRITE_SETTING_Accounts_ShowFormLogin: "true"
+      OVERWRITE_SETTING_Show_Setup_Wizard: "completed"
     depends_on:
       - mongodb
     expose:
@@ -194,6 +194,7 @@ services:
     command: wppserver --startAllSession
     volumes:
       - local_wppconnect_data:/usr/src/server-cli/userDataDir
+      - local_wppconnect_tokens:/usr/src/server-cli/tokens
     ports:
       - "21465:21465"
 

@@ -29,6 +29,9 @@ class Connector(ConnectorBase):
                                     --event-mode
     """
 
+    # this will list this connector on active chat forms and apis
+    support_active_chat = True
+
     def populate_config(self):
         self.connector.config = {
             "webhook": "http://127.0.0.1:8000/connector/WPP_EXTERNAL_TOKEN/",

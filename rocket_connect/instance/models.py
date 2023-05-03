@@ -123,8 +123,14 @@ class Server(models.Model):
         for m in messages_csv_tabbed.splitlines():
             mm = m.split("\t")
             message, created = self.custom_messages.get_or_create(slug=mm[0])
-            message.text = mm[1]
+            try:
+                order = int(mm[1])
+                text = mm[2]
+            except ValueError:
+                text = mm[1]
+            message.text = text
             message.enabled = True
+            message.order = order
             message.save()
 
     def room_sync(self, execute=False):
@@ -436,6 +442,15 @@ class Server(models.Model):
         connector.config = config
         return connector.save()
 
+    def active_chat_connectors(self):
+        enabled_connectors = self.connectors.filter(enabled=True)
+        supported_connectors_ids = []
+        for connector in enabled_connectors:
+            cls = connector.get_connector_class()
+            if cls.support_active_chat:
+                supported_connectors_ids.append(connector.id)
+        return enabled_connectors.filter(id__in=supported_connectors_ids)
+
     uuid = models.UUIDField(default=uuid.uuid4, editable=False)
     owners = models.ManyToManyField(
         settings.AUTH_USER_MODEL, related_name="servers", blank=True
@@ -711,6 +726,7 @@ class CustomDefaultMessages(models.Model):
     class Meta:
         verbose_name = "CustomMessages"
         verbose_name_plural = "Custom Messagess"
+        ordering = ["order"]
 
     def __str__(self):
         return self.slug
@@ -722,6 +738,7 @@ class CustomDefaultMessages(models.Model):
     slug = models.SlugField(blank=False, null=False)
     text = models.TextField(blank=False, null=False)
     # meta
+    order = models.IntegerField(default=0)
     created = models.DateTimeField(
         blank=True, auto_now_add=True, verbose_name="Created"
     )
