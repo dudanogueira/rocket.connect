@@ -233,8 +233,8 @@ def server_detail_view(request, server_id):
     if request.POST.get("custom-messages-import"):
         import_messages = request.POST.get("custom-messages-import")
         if import_messages:
+            server.import_custom_messages(import_messages)
             try:
-                server.import_custom_messages(import_messages)
                 messages.success(request, "messages imported")
             except IndexError:
                 messages.error(request, "Error importing custom messages")

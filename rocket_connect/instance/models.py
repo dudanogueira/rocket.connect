@@ -120,18 +120,23 @@ class Server(models.Model):
     def import_custom_messages(self, messages_csv_tabbed):
         # disable all messages
         self.custom_messages.all().update(enabled=False)
+        increment = 0
         for m in messages_csv_tabbed.splitlines():
+            increment += 1
             mm = m.split("\t")
-            message, created = self.custom_messages.get_or_create(slug=mm[0])
-            try:
-                order = int(mm[1])
-                text = mm[2]
-            except ValueError:
-                text = mm[1]
-            message.text = text
-            message.enabled = True
-            message.order = order
-            message.save()
+            if len(mm) and m != "" and m != '"' and m:
+                message, created = self.custom_messages.get_or_create(slug=mm[0])
+                try:
+                    order = int(mm[1])
+                    text = mm[2]
+                except ValueError:
+                    text = mm[1]
+                    order = increment
+                message.text = text
+                message.enabled = True
+                message.order = order
+                message.save()
+        return increment
 
     def room_sync(self, execute=False):
         """
