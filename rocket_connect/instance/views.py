@@ -142,7 +142,7 @@ def server_messages_endpoint(request, server_id):
 @must_be_yours
 def active_chat(request, server_id):
     server = get_object_or_404(Server.objects, external_token=server_id)
-    form = NewInboundForm(request.POST or None)
+    form = NewInboundForm(request.POST or None, server=server)
     # get online agents and departments
     rocket = server.get_rocket_client()
     departments_raw = rocket.call_api_get("livechat/department").json()
@@ -161,8 +161,7 @@ def active_chat(request, server_id):
     print(available_agents)
     for agent in available_agents:
         destinations.append(("@" + agent, "Agent: " + agent))
-    connectors = server.connectors.filter(enabled=True)
-    form.fields["connector"].queryset = connectors
+
     form.fields["destination"].choices = destinations
     if form.is_valid():
         pass

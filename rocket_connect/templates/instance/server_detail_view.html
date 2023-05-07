@@ -199,6 +199,7 @@
             <div class="card-body">
                 <h4 class="card-title">
                     {% if message.enabled %}<span class="badge badge-success">enabled</span>{% else %}<span class="badge badge-danger">disabled</span>{% endif %}
+                    <span class="badge badge-info">order: {{message.order}}</span>
                     {{message.slug}}
                 </h4>
                 <p class="card-text">{{message.text}}</p>

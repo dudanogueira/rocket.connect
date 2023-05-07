@@ -24,6 +24,12 @@ class NewServerForm(ModelForm):
 
 
 class NewInboundForm(Form):
+    def __init__(self, *args, **kwargs):
+        server = kwargs.pop("server")
+        super().__init__(*args, **kwargs)
+        self.fields["connector"].queryset = server.active_chat_connectors()
+        self.fields["connector"].initial = server.active_chat_connectors().first()
+
     number = CharField(label="Number", max_length=100, help_text="eg. 553199851212")
     destination = ChoiceField(choices=[])
     text = CharField(
@@ -31,7 +37,7 @@ class NewInboundForm(Form):
         max_length=100,
         widget=Textarea(attrs={"rows": 4, "cols": 15}),
     )
-    connector = ModelChoiceField(queryset=Connector.objects.all())
+    connector = ModelChoiceField(queryset=None)
 
 
 class NewConnectorForm(ModelForm):
