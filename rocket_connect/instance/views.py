@@ -138,29 +138,31 @@ def server_messages_endpoint(request, server_id):
     return JsonResponse(list(messages), safe=False)
 
 
+@csrf_exempt
+def server_active_chat_endpoint(request, server_id):
+    server = get_object_or_404(Server, external_token=server_id, enabled=True)
+    if request.GET.get("term"):
+        visitors = server.search_visitors(request.GET.get("term"))
+        return JsonResponse(visitors)
+    else:
+        enabled_connectors = server.active_chat_connectors()
+        enabled_connectors = enabled_connectors.values(
+            "name", "external_token", "config__active_chat_webhook_integration_token"
+        )
+        output = {
+            "connectors": list(enabled_connectors),
+            "destinations": server.active_chat_destinations(),
+        }
+        return JsonResponse(output, safe=False)
+
+
 @login_required(login_url="/accounts/login/")
 @must_be_yours
 def active_chat(request, server_id):
     server = get_object_or_404(Server.objects, external_token=server_id)
     form = NewInboundForm(request.POST or None, server=server)
     # get online agents and departments
-    rocket = server.get_rocket_client()
-    departments_raw = rocket.call_api_get("livechat/department").json()
-    departments_choice = [
-        ("@" + d["name"], "Department: " + d["name"])
-        for d in departments_raw["departments"]
-    ]
-    destinations = departments_choice
-    # now get online agents
-    agents = rocket.livechat_get_users(user_type="agent").json()
-    available_agents = [
-        agent["username"]
-        for agent in agents["users"]
-        if agent["status"] == "online" and agent["statusLivechat"] == "available"
-    ]
-    print(available_agents)
-    for agent in available_agents:
-        destinations.append(("@" + agent, "Agent: " + agent))
+    destinations = server.active_chat_destinations()
 
     form.fields["destination"].choices = destinations
     if form.is_valid():

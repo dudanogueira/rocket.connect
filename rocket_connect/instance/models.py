@@ -448,13 +448,34 @@ class Server(models.Model):
         return connector.save()
 
     def active_chat_connectors(self):
-        enabled_connectors = self.connectors.filter(enabled=True)
-        supported_connectors_ids = []
-        for connector in enabled_connectors:
-            cls = connector.get_connector_class()
-            if cls.support_active_chat:
-                supported_connectors_ids.append(connector.id)
-        return enabled_connectors.filter(id__in=supported_connectors_ids)
+        return self.connectors.filter(
+            config__has_key="active_chat_webhook_integration_token"
+        )
+
+    def active_chat_destinations(self):
+        rocket = self.get_rocket_client()
+        departments_raw = rocket.call_api_get("livechat/department").json()
+        departments_choice = [
+            {"value": "@" + d["name"], "text": "Department: " + d["name"]}
+            for d in departments_raw["departments"]
+        ]
+        destinations = departments_choice
+        # now get online agents
+        agents = rocket.livechat_get_users(user_type="agent").json()
+        available_agents = [
+            agent["username"]
+            for agent in agents["users"]
+            if agent["status"] == "online" and agent["statusLivechat"] == "available"
+        ]
+        print(available_agents)
+        for agent in available_agents:
+            destinations.append({"value": "@" + agent, "text": "Agent: " + agent})
+        return destinations
+
+    def search_visitors(self, term):
+        rocket = self.get_rocket_client()
+        visitors = rocket.call_api_get("livechat/visitors.search", term=term).json()
+        return visitors
 
     uuid = models.UUIDField(default=uuid.uuid4, editable=False)
     owners = models.ManyToManyField(

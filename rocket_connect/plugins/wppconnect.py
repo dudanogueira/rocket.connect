@@ -1,6 +1,8 @@
 import base64
 import datetime
 import json
+import random
+import string
 import time
 import urllib.parse as urlparse
 
@@ -958,7 +960,13 @@ class Connector(ConnectorBase):
         if self.message.get("event") in ["unreadmessages", "onreactionmessage"]:
             return self.message.get("id", {}).get("_serialized")
         if self.message.get("type") == "active_chat":
-            return self.message.get("message_id")
+            message_id = self.message.get("message_id")
+            if not message_id:
+                message_id = "".join(
+                    random.choice(string.ascii_uppercase + string.digits)
+                    for _ in range(10)
+                )
+            return message_id
         if self.message.get("event") == "onack":
             return self.message.get("id", {}).get("id")
         return self.message.get("id")

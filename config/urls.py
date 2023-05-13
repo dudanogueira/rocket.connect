@@ -31,6 +31,9 @@ urlpatterns = [
     re_path(r"^connector/(?P<connector_id>\w+)/?$", views.connector_endpoint),
     re_path(r"^server/(?P<server_id>\w+)/?$", views.server_endpoint),
     re_path(r"^server/(?P<server_id>\w+)/messages/?$", views.server_messages_endpoint),
+    re_path(
+        r"^server/(?P<server_id>\w+)/active-chat/?$", views.server_active_chat_endpoint
+    ),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 if settings.DEBUG:
     # Static file serving when using Gunicorn + Uvicorn for local web socket development

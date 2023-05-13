@@ -4,9 +4,9 @@ Rocket Connect
 Rocket Connect - An agnostic connector for Rocket Chat
 
 
-.. image:: https://img.shields.io/github/v/release/dudanogueira/rocket_connect?style=plastic   
+.. image:: https://img.shields.io/github/v/release/dudanogueira/rocket_connect?style=plastic
      :alt: GitHub release (latest by date)
-.. image:: https://img.shields.io/github/license/dudanogueira/rocket_connect?style=plastic   
+.. image:: https://img.shields.io/github/license/dudanogueira/rocket_connect?style=plastic
      :alt: GitHub
 .. image:: https://github.com/dudanogueira/rocket_connect/actions/workflows/ci.yml/badge.svg?branch=master
      :target: https://github.com/dudanogueira/rocket_connect/actions/workflows/ci.yml
@@ -37,6 +37,3 @@ Run the `full development stack <https://rocketconnect.readthedocs.io/en/latest/
 Support
 ------
 Come hang out with us at our telegram channel: https://t.me/RocketConnector
-
-
-
