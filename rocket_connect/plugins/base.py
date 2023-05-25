@@ -331,6 +331,7 @@ class Connector:
                 },
             ],
         }
+
         if department:
             visitor["department"] = department
 
@@ -630,6 +631,7 @@ class Connector:
         return self.get_incoming_message_id()
 
     def get_incoming_message_id(self):
+        print("AQUI", self.message)
         # this works for wa-automate EASYAPI
         try:
             message_id = self.message.get("data", {}).get("id")
@@ -812,6 +814,7 @@ class Connector:
         """
         get the close message configured for the connector
         """
+        print("GETTING CLOSE MESSAGE for ", department)
         close_message = None
         force_close_message = self.config.get("force_close_message", None)
         advanced_force_close_message = self.config.get(

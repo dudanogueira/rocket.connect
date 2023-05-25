@@ -1,129 +1,200 @@
 {% extends "base.html" %}
 {% load crispy_forms_tags %}
-
 {% block content %}
-<nav class="breadcrumb">
-    <a class="breadcrumb-item" href="{% url 'home' %}">home</a>
-    <a class="breadcrumb-item"
-        href="{% url 'instance:server_detail' connector.server.external_token %}">{{connector.server}}</a>
-    <span class="breadcrumb-item active">{{connector}} </span>
-</nav>
-<h3><span class="badge bg-info float-right badge-lg">{{connector.connector_type}}</span> </h3>
-<h1>
-    {% if request.user.is_staff %}
-    <a name="" id="" class="btn btn-primary" href="{% url 'admin:instance_connector_change' connector.id %}" role="button">
-        <i class="fa fa-edit" aria-hidden="true"></i> Edit
-    </a>
+    <nav class="breadcrumb">
+        <a class="breadcrumb-item" href="{% url 'home' %}">home</a>
+        <a class="breadcrumb-item"
+           href="{% url 'instance:server_detail' connector.server.external_token %}">{{ connector.server }}</a>
+        <span class="breadcrumb-item active">{{ connector }}</span>
+    </nav>
+    <h3>
+        <span class="badge bg-info float-right badge-lg">{{ connector.connector_type }}</span>
+    </h3>
+    <h1>
+        {% if request.user.is_staff %}
+            <a name=""
+               id=""
+               class="btn btn-primary"
+               href="{% url 'admin:instance_connector_change' connector.id %}"
+               role="button">
+                <i class="fa fa-edit" aria-hidden="true"></i> Edit
+        </a>
     {% endif %}
-    <a name="" id="" class="btn btn-primary" href="?check-room-sync=1" role="button" title="Sync Rooms">
+    <a name=""
+       id=""
+       class="btn btn-primary"
+       href="?check-room-sync=1"
+       role="button"
+       title="Sync Rooms">
         <i class="fas fa-recycle"></i> Sync
-    </a>
-
-    {{connector}}
-    <span class="text-{{ connector.enabled|yesno:'success,danger' }}">
-        {{connector.enabled|yesno:"Active,Inactive" }}
-    </span>
-
+</a>
+{{ connector }}
+<span class="text-{{ connector.enabled|yesno:'success,danger' }}">{{ connector.enabled|yesno:"Active,Inactive" }}</span>
 </h1>
-
-
-Endpoint: {{base_uri}}/connector/{{connector.external_token}}/
-
+Endpoint: {{ base_uri }}/connector/{{ connector.external_token }}/
 {% if room_sync %}
     <div class="alert alert-warning alert-dismissible fade show" role="alert">
-      <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-        <span aria-hidden="true">&times;</span>
-      </button>
-      <strong>
-        Unsync Rooms:
-        </strong>
-            {{room_sync.total}}
-            <small>(open here and closed in Rocket.Chat)</small>
-            {% if room_sync.total %}
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+        </button>
+        <strong>Unsync Rooms:</strong>
+        {{ room_sync.total }}
+        <small>(open here and closed in Rocket.Chat)</small>
+        {% if room_sync.total %}
             <p class="mt-3">
-                <a name="" id="" class="btn btn-success" href="?check-room-sync=1&do-check-room-sync=1" role="button">sync!</a>
+                <a name=""
+                   id=""
+                   class="btn btn-success"
+                   href="?check-room-sync=1&do-check-room-sync=1"
+                   role="button">sync!</a>
             </p>
-            {% endif %}
+        {% endif %}
     </div>
-
-    <script>
-      $(".alert").alert();
-    </script>
-
-    {% endif %}
-
+    <script>$(".alert").alert();</script>
+{% endif %}
+{% comment %} WPPCONNECT {% endcomment %}
 {% if connector.connector_type == "wppconnect" %}
-<div id="wppconnect">
-    <div class="container">
-        <p>
-            <a name="" id="" class="btn btn-primary" href="?connector=wppconnect&connector_action=status_session" role="button">get
+    <div id="wppconnect">
+        <div class="container">
+            <p>
+                <a name=""
+                   id=""
+                   class="btn btn-primary"
+                   href="?connector=wppconnect&connector_action=status_session"
+                   role="button">get
                 status</a>
-            {% if connector_action_response.status_session.status != "CONNECTED" %}
-            <a name="" id="" class="btn btn-primary" href="?connector=wppconnect&connector_action=initialize" role="button">
-                initialize
-            </a>
-            {% endif %}
-            {% if connector_action_response.status_session.status == "CONNECTED" %}
-            <a name="" id="" class="btn btn-danger" href="?connector=wppconnect&connector_action=close_session" role="button">
-                close session
-            </a>
-            {% endif %}
-
-        </p>
-    </div>
-
-    {% if connector_action_response %}
-
-    <div class="card">
-        <div class="card-body">
-            <h4 class="card-title">Connector Response</h4>
-            <p class="card-text">
-                {% if connector_action_response.initialize.qrcode and connector_action_response.status_session.status != "CONNECTED" %}
-                <img src="{{connector_action_response.initialize.qrcode}}" alt="QRCODE" />
+                {% if connector_action_response.status_session.status != "CONNECTED" %}
+                    <a name=""
+                       id=""
+                       class="btn btn-primary"
+                       href="?connector=wppconnect&connector_action=initialize"
+                       role="button">
+                        initialize
+                    </a>
                 {% endif %}
-                {% if connector_action_response.status_session.qrcode and connector_action_response.status_session.status != "CONNECTED" %}
-                <img src="{{connector_action_response.status_session.qrcode}}" alt="QRCODE" />
+                {% if connector_action_response.status_session.status == "CONNECTED" %}
+                    <a name=""
+                       id=""
+                       class="btn btn-danger"
+                       href="?connector=wppconnect&connector_action=close_session"
+                       role="button">
+                        close session
+                    </a>
                 {% endif %}
-            <pre>{{connector_action_response|pprint}}</pre>
             </p>
         </div>
+        {% if connector_action_response %}
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="card-title">Connector Response</h4>
+                    <p class="card-text">
+                        {% if connector_action_response.initialize.qrcode and connector_action_response.status_session.status != "CONNECTED" %}
+                            <img src="{{ connector_action_response.initialize.qrcode }}" alt="QRCODE" />
+                        {% endif %}
+                        {% if connector_action_response.status_session.qrcode and connector_action_response.status_session.status != "CONNECTED" %}
+                            <img src="{{ connector_action_response.status_session.qrcode }}"
+                                 alt="QRCODE"/>
+                        {% endif %}
+                        <pre>{{connector_action_response|pprint}}</pre>
+                    </p>
+                </div>
+            </div>
+        {% endif %}
     </div>
-    {% endif %}
-</div>
 {% endif %}
-
-{% if connector.connector_type == "metacloudapi_whatsapp"%}
-<div id="metacloudapi_whatsapp">
-    <div class="card">
-        <div class="card-body">
-            <h4 class="card-title">Connector Response</h4>
-            <p class="card-text">
-            <pre>{{connector_action_response|pprint}}</pre>
+{% comment %} CODECHAT {% endcomment %}
+{% if connector.connector_type == "codechat" %}
+    <div id="codechat">
+        <div class="container">
+            <p>
+                <a name=""
+                   id=""
+                   class="btn btn-primary"
+                   href="?connector=codechat&connector_action=status_session"
+                   role="button">get
+                status</a>
+                {% if connector_action_response.status_session.status != "CONNECTED" %}
+                    <a name=""
+                       id=""
+                       class="btn btn-primary"
+                       href="?connector=codechat&connector_action=initialize"
+                       role="button">
+                        initialize
+                    </a>
+                {% endif %}
+                {% if connector_action_response.status_session.state == "open" %}
+                    <a name=""
+                       id=""
+                       class="btn btn-danger"
+                       href="?connector=codechat&connector_action=close_session"
+                       role="button">
+                        close session
+                    </a>
+                {% endif %}
             </p>
         </div>
+        {% if connector_action_response %}
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="card-title">Connector Response</h4>
+                    <p class="card-text">
+                        {% if connector_action_response.status_session.base64 %}
+                            <img src="{{ connector_action_response.status_session.base64 }}" alt="QRCODE" />
+                        {% endif %}
+                        {% if connector_action_response.initialize.instance_connect.base64 %}
+                            <img src="{{ connector_action_response.initialize.instance_connect.base64 }}"
+                                 alt="QRCODE"/>
+                        {% endif %}
+                        <pre>{{connector_action_response|pprint}}</pre>
+                    </p>
+                </div>
+            </div>
+        {% endif %}
     </div>
-</div>
 {% endif %}
-
+{% comment %} META CLOUD {% endcomment %}
+{% if connector.connector_type == "metacloudapi_whatsapp" %}
+    <div id="metacloudapi_whatsapp">
+        <div class="card">
+            <div class="card-body">
+                <h4 class="card-title">Connector Response</h4>
+                <p class="card-text">
+                    <pre>{{connector_action_response|pprint}}</pre>
+                </p>
+            </div>
+        </div>
+    </div>
+{% endif %}
 <hr />
-
 <ul class="nav nav-tabs" id="myTab" role="tablist">
     <li class="nav-item">
-        <a class="nav-link active" id="undelivered-messages-tab" data-toggle="tab" href="#undelivered-messages"
-            role="tab" aria-controls="undelivered-messages" aria-selected="true">Undelivered Messages</a>
+        <a class="nav-link active"
+           id="undelivered-messages-tab"
+           data-toggle="tab"
+           href="#undelivered-messages"
+           role="tab"
+           aria-controls="undelivered-messages"
+           aria-selected="true">Undelivered Messages</a>
     </li>
     {% if config_form %}
-    <li class="nav-item">
-        <a class="nav-link" id="configuration-tab" data-toggle="tab" href="#configuration" role="tab"
-            aria-controls="configuration" aria-selected="false">
-            Configuration
-        </a>
-    </li>
+        <li class="nav-item">
+            <a class="nav-link"
+               id="configuration-tab"
+               data-toggle="tab"
+               href="#configuration"
+               role="tab"
+               aria-controls="configuration"
+               aria-selected="false">
+                Configuration
+            </a>
+        </li>
     {% endif %}
 </ul>
 <div class="tab-content" id="myTabContent">
-    <div class="tab-pane fade show active" id="undelivered-messages" role="tabpanel"
-        aria-labelledby="undelivered-messages-tab">
+    <div class="tab-pane fade show active"
+         id="undelivered-messages"
+         role="tabpanel"
+         aria-labelledby="undelivered-messages-tab">
         <div id="undelivered_messages_by_day" class="container">
             <table class="table">
                 <thead>
@@ -136,97 +207,124 @@ Endpoint: {{base_uri}}/connector/{{connector.external_token}}/
                 </thead>
                 <tbody>
                     {% for message in messages_undelivered_by_date %}
-                    <tr>
-                        <td scope="row">{{message.date|date:"SHORT_DATE_FORMAT"}}</td>
-                        <td>{{message.created_count}}</td>
-                        <td>{{message.room_count}}</td>
-                        <td>
-                            <a name="" id="" class="btn btn-danger"
-                                href="?date={{message.date|date:'Y-m-d'}}&action=force_delivery" role="button">force
+                        <tr>
+                            <td scope="row">{{ message.date|date:"SHORT_DATE_FORMAT" }}</td>
+                            <td>{{ message.created_count }}</td>
+                            <td>{{ message.room_count }}</td>
+                            <td>
+                                <a name=""
+                                   id=""
+                                   class="btn btn-danger"
+                                   href="?date={{ message.date|date:'Y-m-d' }}&action=force_delivery"
+                                   role="button">force
                                 delivery</a>
-                            <a name="" id="" class="btn btn-success"
-                                href="?date={{message.date|date:'Y-m-d'}}&action=mark_as_delivered" role="button">mark
-                                as
+                                <a name=""
+                                   id=""
+                                   class="btn btn-success"
+                                   href="?date={{ message.date|date:'Y-m-d' }}&action=mark_as_delivered"
+                                   role="button">mark
+                                    as
                                 delivered</a>
-                            <a name="" id="" class="btn btn-info" href="?date={{message.date|date:'Y-m-d'}}&action=show"
-                                role="button">show</a>
-                        </td>
-                    </tr>
+                                <a name=""
+                                   id=""
+                                   class="btn btn-info"
+                                   href="?date={{ message.date|date:'Y-m-d' }}&action=show"
+                                   role="button">show</a>
+                            </td>
+                        </tr>
                     {% empty %}
-                    <tr>
-                        <td><i>No Undelivered Messages to show</i></td>
-                    </tr>
+                        <tr>
+                            <td>
+                                <i>No Undelivered Messages to show</i>
+                            </td>
+                        </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
         <div id="undelivered_messages" class="container">
             {% if undelivered_messages %}
-            <h1>Showing undelivered Messages for date {{date|date:"SHORT_DATE_FORMAT"}}</h1>
-            <hr />
-            {% regroup undelivered_messages by room as undelivered_messages_by_room %}
-            {% for rooms in undelivered_messages_by_room %}
-            <div class="card">
-                <div class="card-body">
-                    <h4 class="card-title">
-                        <h2>
-                            {% if rooms.grouper %}
-                                {{rooms.grouper}}
-                                <a
-                                    href="{{rooms.list.0.connector.server.get_external_url}}//omnichannel/current/{{rooms.grouper.room_id}}/room-info/">link
-                                </a>
-                            {% else %}
-                                No Related Room
-                            {% endif %}
-                        </h2>
-                    </h4>
-                    <p class="card-text">
-                        {% for message in rooms.list %}
-                    <p>
-                        <button class="btn btn-primary" type="button" data-toggle="collapse"
-                            data-target="#collapse-{{message.id}}" aria-expanded="false"
-                            aria-controls="collapse-{{message.id}}">
-                            {{message.id}} {{message.type}}
-                        </button>
-                    </p>
-                    <div class="collapse" id="collapse-{{message.id}}">
-                        <p class="text-center">
-                            <a name="" id="" class="btn btn-danger" href="?id={{message.id}}&action=force_delivery"
-                                role="button">force delivery</a>
-                            <a name="" id="" class="btn btn-success" href="?id={{message.id}}&action=mark_as_delivered"
-                                role="button">mark as delivered</a>
-                        </p>
-                        <div class="card card-body m-3">
-                            <pre>{{message.raw_message|pprint}}</pre>
+                <h1>
+                    Showing undelivered Messages for date {{ date|date:"SHORT_DATE_FORMAT" }}
+                </h1>
+                <hr />
+                {% regroup undelivered_messages by room as undelivered_messages_by_room %}
+                {% for rooms in undelivered_messages_by_room %}
+                    <div class="card">
+                        <div class="card-body">
+                            <h4 class="card-title">
+                                <h2>
+                                    {% if rooms.grouper %}
+                                        {{ rooms.grouper }}
+                                        <a href="{{ rooms.list.0.connector.server.get_external_url }}//omnichannel/current/{{ rooms.grouper.room_id }}/room-info/">link
+                                        </a>
+                                    {% else %}
+                                        No Related Room
+                                    {% endif %}
+                                </h2>
+                            </h4>
+                            <p class="card-text">
+                                {% for message in rooms.list %}
+                                    <p>
+                                        <button class="btn btn-primary"
+                                                type="button"
+                                                data-toggle="collapse"
+                                                data-target="#collapse-{{ message.id }}"
+                                                aria-expanded="false"
+                                                aria-controls="collapse-{{ message.id }}">
+                                            {{ message.id }} {{ message.type }}
+                                        </button>
+                                    </p>
+                                    <div class="collapse" id="collapse-{{ message.id }}">
+                                        <p class="text-center">
+                                            <a name=""
+                                               id=""
+                                               class="btn btn-danger"
+                                               href="?id={{ message.id }}&action=force_delivery"
+                                               role="button">force delivery</a>
+                                            <a name=""
+                                               id=""
+                                               class="btn btn-success"
+                                               href="?id={{ message.id }}&action=mark_as_delivered"
+                                               role="button">mark as delivered</a>
+                                        </p>
+                                        <div class="card card-body m-3">
+                                            <pre>{{message.raw_message|pprint}}</pre>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </p>
                         </div>
                     </div>
-                    {% endfor %}
-                    </p>
-                </div>
-            </div>
-            {% endfor %}
+                {% endfor %}
             {% endif %}
         </div>
-
     </div>
-
-    <div class="tab-pane fade" id="configuration" role="tabpanel" aria-labelledby="configuration-tab">
+    <div class="tab-pane fade"
+         id="configuration"
+         role="tabpanel"
+         aria-labelledby="configuration-tab">
         {% if config_form %}
-        <div id="config" class="container mb-3">
-            <h1>Configurations</h1>
-            <form action="" method="post">
-                {% csrf_token %}
-                <p class="text-right">
-                    <button type="submit" class="btn btn-primary btn-lg btn-full">Save Configuration</button>
-                </p>
-                {{config_form|crispy}}
-                <p class="text-right">
-                    <button type="submit" class="btn btn-primary btn-lg btn-full">Save Configuration</button>
-                </p>
-            </form>
-        </div>
+            <div id="config" class="container mb-3">
+                <h1>
+                    Configurations
+                </h1>
+                <form action="" method="post">
+                    {% csrf_token %}
+                    <p class="text-right">
+                        <button type="submit" class="btn btn-primary btn-lg btn-full">
+                            Save Configuration
+                        </button>
+                    </p>
+                    {{ config_form|crispy }}
+                    <p class="text-right">
+                        <button type="submit" class="btn btn-primary btn-lg btn-full">
+                            Save Configuration
+                        </button>
+                    </p>
+                </form>
+            </div>
         {% endif %}
     </div>
 </div>
-
 {% endblock content %}

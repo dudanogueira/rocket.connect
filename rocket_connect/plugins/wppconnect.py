@@ -20,17 +20,7 @@ from .base import Connector as ConnectorBase
 
 
 class Connector(ConnectorBase):
-    """
-        how to run wa-automate:
-        npx @open-wa/wa-automate    -w 'http://127.0.0.1:8000/connector/4333bd76-519f-4fe8-b51a-a228b29a4e19' \
-                                    -e 'http://127.0.0.1:8000/connector/4333bd76-519f-4fe8-b51a-a228b29a4e19' \
-                                    --session-id 'test-session' \
-                                    --kill-client-on-logout \
-                                    --event-mode
-    """
-
-    # this will list this connector on active chat forms and apis
-    support_active_chat = True
+    """ """
 
     def populate_config(self):
         self.connector.config = {

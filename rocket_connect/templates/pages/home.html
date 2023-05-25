@@ -7,8 +7,9 @@
 </nav>
 
 {% if request.user.is_authenticated %}
-<div class="text-right mb-5">
-    <a type="button" class="btn btn-primary btn-lg" href="{% url 'instance:new_server' %}">Add Server</a>
+<div class="mb-5">
+    <a href="https://m.dudanogueira.com.br/rocket-connect-home">SUPPORT THIS PROJECT!</a>
+    <a type="button" class="btn btn-primary btn-lg float-right" href="{% url 'instance:new_server' %}">Add Server</a>
 </div>
 {% endif %}
 
@@ -39,5 +40,5 @@
     {% endif %}
 
 </div>
-
+<script src="//m.dudanogueira.com.br/focus/2.js" type="text/javascript" charset="utf-8" async="async"></script>
 {% endblock content %}
