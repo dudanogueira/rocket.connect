@@ -15,7 +15,7 @@ from envelope.models import LiveChatRoom
 from instance.forms import NewConnectorForm, NewServerForm
 from instance.models import Connector, Server
 
-from .forms import NewInboundForm
+from .forms import NewChatwootConnectorForm, NewChatwootServerForm, NewInboundForm
 
 
 @csrf_exempt
@@ -60,74 +60,80 @@ def must_be_yours(func):
 @csrf_exempt
 def server_endpoint(request, server_id):
     server = get_object_or_404(Server, external_token=server_id, enabled=True)
-    # default_messages check
-    if request.GET.get("default_messages"):
-        return JsonResponse(server.default_messages, safe=False)
-    # unauthorized access
-    # if no server.secret_token, allow unprotected access
-    if (
-        server.secret_token
-        and request.headers.get("X-Rocketchat-Livechat-Token") != server.secret_token
-    ):
-        # alert manager channel
-        server.multiple_connector_admin_message(
-            ":warning:  Rocket.Chat Omnichannel Connection Test was Received."
-            + "It was *not successfull*, as the secret token is different"
-        )
-        return HttpResponse(
-            "Unauthorized. No X-Rocketchat-Livechat-Token provided.", status=401
-        )
-    # income message, we have a body
-    if request.body:
-        raw_message = json.loads(request.body)
-        if settings.DEBUG:
-            print("DEBUG: NEW SERVER PAYLOAD: ", raw_message)
-
-        #
-        # roketchat test message
-        #
-        if raw_message.get("_id") == "fasd6f5a4sd6f8a4sdf":
-            message_sent = server.multiple_connector_admin_message(
-                ":white_check_mark:  Rocket.Chat Omnichannel Connection Test was Received. This is the response."
+    if server.type == "rocketchat":
+        # default_messages check
+        if request.GET.get("default_messages"):
+            return JsonResponse(server.default_messages, safe=False)
+        # unauthorized access
+        # if no server.secret_token, allow unprotected access
+        if (
+            server.secret_token
+            and request.headers.get("X-Rocketchat-Livechat-Token")
+            != server.secret_token
+        ):
+            # alert manager channel
+            server.multiple_connector_admin_message(
+                ":warning:  Rocket.Chat Omnichannel Connection Test was Received."
+                + "It was *not successfull*, as the secret token is different"
             )
-            if message_sent:
-                return JsonResponse({})
-            else:
-                return HttpResponse(
-                    "Unauthorized. No X-Rocketchat-Livechat-Token provided.", status=401
-                )
-        else:
-            # process ingoing message
-            try:
-                room = LiveChatRoom.objects.get(room_id=raw_message["_id"])
-            except LiveChatRoom.DoesNotExist:
-                # todo: Alert Admin that there was an attempt to message a non existing room
-                # todo: register this message somehow. RCHAT will try to deliver it a few times
-                # do not answer 404 as rocketchat will keep trying do deliver
-                return HttpResponse("Room Not Found", status=200)
-            except LiveChatRoom.MultipleObjectsReturned:
-                # this situation hangs RocketChat forever
-                room = LiveChatRoom.objects.filter(room_id=raw_message["_id"]).first()
+            return HttpResponse(
+                "Unauthorized. No X-Rocketchat-Livechat-Token provided.", status=401
+            )
+        # income message, we have a body
+        if request.body:
+            raw_message = json.loads(request.body)
+            if settings.DEBUG:
+                print("DEBUG: NEW SERVER PAYLOAD: ", raw_message)
 
-            # now, with a room, or at least one of them, let's keep it going
-            Connector = room.connector.get_connector_class()
-            connector = Connector(room.connector, request.body, "ingoing", request)
-            connector.room = room
-            # call primary connector
-            connector.ingoing()
-            # call secondary connectors for ingoing
-            for secondary_connector in room.connector.secondary_connectors.all():
-                SConnector = secondary_connector.get_connector_class()
-                sconnector = SConnector(
-                    secondary_connector, request.body, "ingoing", request
+            #
+            # roketchat test message
+            #
+            if raw_message.get("_id") == "fasd6f5a4sd6f8a4sdf":
+                message_sent = server.multiple_connector_admin_message(
+                    ":white_check_mark:  Rocket.Chat Omnichannel Connection Test was Received. This is the response."
                 )
-                connector.logger_info(
-                    "RUNING SECONDARY CONNECTOR *{}* WITH BODY {}:".format(
-                        sconnector.connector, request.body
+                if message_sent:
+                    return JsonResponse({})
+                else:
+                    return HttpResponse(
+                        "Unauthorized. No X-Rocketchat-Livechat-Token provided.",
+                        status=401,
                     )
-                )
-                sconnector.ingoing()
+            else:
+                # process ingoing message
+                try:
+                    room = LiveChatRoom.objects.get(room_id=raw_message["_id"])
+                except LiveChatRoom.DoesNotExist:
+                    # todo: Alert Admin that there was an attempt to message a non existing room
+                    # todo: register this message somehow. RCHAT will try to deliver it a few times
+                    # do not answer 404 as rocketchat will keep trying do deliver
+                    return HttpResponse("Room Not Found", status=200)
+                except LiveChatRoom.MultipleObjectsReturned:
+                    # this situation hangs RocketChat forever
+                    room = LiveChatRoom.objects.filter(
+                        room_id=raw_message["_id"]
+                    ).first()
 
+                # now, with a room, or at least one of them, let's keep it going
+                Connector = room.connector.get_connector_class()
+                connector = Connector(room.connector, request.body, "ingoing", request)
+                connector.room = room
+                # call primary connector
+                connector.ingoing()
+                # call secondary connectors for ingoing
+                for secondary_connector in room.connector.secondary_connectors.all():
+                    SConnector = secondary_connector.get_connector_class()
+                    sconnector = SConnector(
+                        secondary_connector, request.body, "ingoing", request
+                    )
+                    connector.logger_info(
+                        "RUNING SECONDARY CONNECTOR *{}* WITH BODY {}:".format(
+                            sconnector.connector, request.body
+                        )
+                    )
+                    sconnector.ingoing()
+    if server.type == "chatwoot":
+        print("INCOMING ON CHATWOOT", request.body)
     return JsonResponse({})
 
 
@@ -387,7 +393,7 @@ def connector_analyze(request, server_id, connector_id):
 
 @login_required(login_url="/accounts/login/")
 @must_be_yours
-def new_connector(request, server_id):
+def new_rocketchat_connector(request, server_id):
     server = get_object_or_404(Server, external_token=server_id)
     form = NewConnectorForm(request.POST or None, server=server)
     if request.POST:
@@ -415,11 +421,50 @@ def new_connector(request, server_id):
                 )
             )
     context = {"server": server, "form": form}
-    return render(request, "instance/new_connector.html", context)
+    return render(request, "instance/new_rocketchat_connector.html", context)
+
+
+@login_required(login_url="/accounts/login/")
+@must_be_yours
+def new_chatwoot_connector(request, server_id):
+    server = get_object_or_404(Server, external_token=server_id)
+    form = NewChatwootConnectorForm(request.POST or None, server=server)
+    if request.POST:
+        if form.is_valid():
+            new_connector = form.save(commit=False)
+            new_connector.server = server
+            new_connector.config = {}
+            if form.cleaned_data.get("custom_connector_type"):
+                new_connector.connector_type = form.cleaned_data[
+                    "custom_connector_type"
+                ]
+            new_connector.save()
+            # make sure we have the default form values
+            form = NewChatwootConnectorForm(instance=new_connector, server=server)
+            if form.is_valid():
+                new_connector = form.save()
+            messages.success(request, f"New connector {new_connector.name} created.")
+            return redirect(
+                reverse(
+                    "instance:connector_analyze",
+                    args=[
+                        new_connector.server.external_token,
+                        new_connector.external_token,
+                    ],
+                )
+            )
+    context = {"server": server, "form": form}
+    return render(request, "instance/new_chatwoot_connector.html", context)
 
 
 @login_required(login_url="/accounts/login/")
 def new_server(request):
+    context = {}
+    return render(request, "instance/new_server.html", context)
+
+
+@login_required(login_url="/accounts/login/")
+def new_server_rocket_chat(request):
     form = NewServerForm(request.POST or None)
     form.fields["admin_user_id"].required = True
     form.fields["url"].initial = "http://rocketchat:3000"
@@ -461,7 +506,22 @@ def new_server(request):
         else:
             messages.error(request, f"Error {status}")
     context = {"form": form}
-    return render(request, "instance/new_server.html", context)
+    return render(request, "instance/new_server_rocketchat.html", context)
+
+
+@login_required(login_url="/accounts/login/")
+def new_server_chatwoot(request):
+    form = NewChatwootServerForm(request.POST or None)
+    form.fields["secret_token"].label = "ApiKey"
+    form.fields["secret_token"].help_text = "ApiKey for this server"
+    if form.is_valid():
+        server = form.save(commit=False)
+        server.type = "chatwoot"
+        server.save()
+        server.owners.add(request.user)
+        return redirect(reverse("instance:server_detail", args=[server.external_token]))
+    context = {"form": form}
+    return render(request, "instance/new_server_chatwoot.html", context)
 
 
 @login_required(login_url="/accounts/login/")

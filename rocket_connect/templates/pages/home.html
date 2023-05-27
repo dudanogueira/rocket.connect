@@ -21,7 +21,9 @@
             {% for server in request.user.servers.all %}
             <div class="card {% if server.enabled %}bg-success{% else %}bg-danger{% endif %} mb-3">
                 <div class="card-header">
-                    <h1>{{server}}</h1>
+                    <h1>{{server}}
+                        <img src="{{server.get_icon}}" width="50px" class="float-right">
+                    </h1>
                 </div>
                 <div class="card-body">
                     <p class="card-text">

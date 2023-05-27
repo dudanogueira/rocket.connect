@@ -78,59 +78,64 @@ class Connector:
         """
         this method will send the qrbase64 image to the connector managers at RocketChat
         """
-        # send message as bot
-        rocket = self.get_rocket_client(bot=True)
-        # create im for managers
-        managers = self.connector.get_managers()
-        if settings.DEBUG:
-            print("GOT MANAGERS: ", managers)
-        im_room = rocket.im_create(username="", usernames=managers)
-        im_room_created = im_room.json()
+        if self.server.type == "rocketchat":
+            # send message as bot
+            rocket = self.get_rocket_client(bot=True)
+            # create im for managers
+            managers = self.connector.get_managers()
+            if settings.DEBUG:
+                print("GOT MANAGERS: ", managers)
+            im_room = rocket.im_create(username="", usernames=managers)
+            im_room_created = im_room.json()
 
-        # send qrcode
-        try:
-            data = qrbase64.split(",")[1]
-        except IndexError:
-            data = qrbase64
-        imgdata = base64.b64decode(str.encode(data))
-        with tempfile.NamedTemporaryFile(suffix=".png") as tmp:
-            tmp.write(imgdata)
-            if im_room_created["success"]:
-                rocket.rooms_upload(
-                    rid=im_room_created["room"]["rid"],
-                    file=tmp.name,
-                    msg=":rocket: Connect > *Connector Name*: {}".format(
-                        self.connector.name
-                    ),
-                    description="Scan this QR Code at your Whatsapp Phone:",
-                )
-            # out come qr to room
-            managers_channel = self.connector.get_managers_channel(as_string=False)
-            for channel in managers_channel:
-                # get room id
-                room_infos = rocket.rooms_info(room_name=channel.replace("#", ""))
-                if room_infos.ok:
-                    rid = room_infos.json().get("room", {}).get("_id", None)
-                    if rid:
-                        send_qr_code = rocket.rooms_upload(
-                            rid=rid,
-                            file=tmp.name,
-                            msg=":rocket: Connect > *Connector Name*: {}".format(
-                                self.connector.name
-                            ),
-                            description="Scan this QR Code at your Whatsapp Phone:",
-                        )
-                        self.logger_info(
-                            "SENDING QRCODE TO ROOM... {}: {}".format(
-                                channel, send_qr_code.json()
+            # send qrcode
+            try:
+                data = qrbase64.split(",")[1]
+            except IndexError:
+                data = qrbase64
+            imgdata = base64.b64decode(str.encode(data))
+            with tempfile.NamedTemporaryFile(suffix=".png") as tmp:
+                tmp.write(imgdata)
+                if im_room_created["success"]:
+                    rocket.rooms_upload(
+                        rid=im_room_created["room"]["rid"],
+                        file=tmp.name,
+                        msg=":rocket: Connect > *Connector Name*: {}".format(
+                            self.connector.name
+                        ),
+                        description="Scan this QR Code at your Whatsapp Phone:",
+                    )
+                # out come qr to room
+                managers_channel = self.connector.get_managers_channel(as_string=False)
+                for channel in managers_channel:
+                    # get room id
+                    room_infos = rocket.rooms_info(room_name=channel.replace("#", ""))
+                    if room_infos.ok:
+                        rid = room_infos.json().get("room", {}).get("_id", None)
+                        if rid:
+                            send_qr_code = rocket.rooms_upload(
+                                rid=rid,
+                                file=tmp.name,
+                                msg=":rocket: Connect > *Connector Name*: {}".format(
+                                    self.connector.name
+                                ),
+                                description="Scan this QR Code at your Whatsapp Phone:",
+                            )
+                            self.logger_info(
+                                "SENDING QRCODE TO ROOM... {}: {}".format(
+                                    channel, send_qr_code.json()
+                                )
+                            )
+                    else:
+                        self.logger_error(
+                            "FAILED TO SEND QRCODE TO ROOM... {}: {}".format(
+                                channel, room_infos.json()
                             )
                         )
-                else:
-                    self.logger_error(
-                        "FAILED TO SEND QRCODE TO ROOM... {}: {}".format(
-                            channel, room_infos.json()
-                        )
-                    )
+
+            if self.server.type == "chatwoot":
+                # output qrcode
+                pass
 
     def outcome_file(self, base64_data, room_id, mime, filename=None, description=None):
         if settings.DEBUG:
@@ -239,52 +244,56 @@ class Connector:
         return img_str
 
     def outcome_admin_message(self, text, managers_channel=None):
-        output = []
-        managers = self.connector.get_managers()
-        if not managers_channel:
-            managers_channel = self.connector.get_managers_channel(as_string=False)
-        if settings.DEBUG:
-            print("GOT MANAGERS: ", managers)
-            print("GOT CHANNELS: ", managers_channel)
-        if self.get_rocket_client(bot=True):
-            # send to the managers
-            im_room = self.rocket.im_create(username="", usernames=managers)
-            response = im_room.json()
+        if self.connector.server.type == "rocketchat":
+            output = []
+            managers = self.connector.get_managers()
+            if not managers_channel:
+                managers_channel = self.connector.get_managers_channel(as_string=False)
             if settings.DEBUG:
-                print("CREATE ADMIN ROOM TO OUTCOME", im_room.json())
-            text_message = f":rocket: CONNECT {text}"
-            if response.get("success"):
+                print("GOT MANAGERS: ", managers)
+                print("GOT CHANNELS: ", managers_channel)
+            if self.get_rocket_client(bot=True):
+                # send to the managers
+                im_room = self.rocket.im_create(username="", usernames=managers)
+                response = im_room.json()
                 if settings.DEBUG:
-                    print("SENDING ADMIN MESSAGE")
-                direct_message = self.rocket.chat_post_message(
-                    alias=self.connector.name,
-                    text=text_message,
-                    room_id=response["room"]["rid"],
-                )
-                output.append(direct_message.ok)
-            # send to managers channel
-            for manager_channel in managers_channel:
-                self.logger_info("OUTCOME ADMIN MESSAGE FOR " + manager_channel)
-                manager_channel_message = self.rocket.chat_post_message(
-                    text=text_message, channel=manager_channel.replace("#", "")
-                )
-                output.append(manager_channel_message.ok)
-                if manager_channel_message.ok:
-                    self.logger_info(
-                        "OK! manager_channel_message payload received: {}".format(
-                            manager_channel_message.json()
-                        )
+                    print("CREATE ADMIN ROOM TO OUTCOME", im_room.json())
+                text_message = f":rocket: CONNECT {text}"
+                if response.get("success"):
+                    if settings.DEBUG:
+                        print("SENDING ADMIN MESSAGE")
+                    direct_message = self.rocket.chat_post_message(
+                        alias=self.connector.name,
+                        text=text_message,
+                        room_id=response["room"]["rid"],
                     )
-                else:
-                    self.logger_info(
-                        "ERROR! manager_channel_message: {}".format(
-                            manager_channel_message.json()
-                        )
+                    output.append(direct_message.ok)
+                # send to managers channel
+                for manager_channel in managers_channel:
+                    self.logger_info("OUTCOME ADMIN MESSAGE FOR " + manager_channel)
+                    manager_channel_message = self.rocket.chat_post_message(
+                        text=text_message, channel=manager_channel.replace("#", "")
                     )
-            if output and all(output):
-                return True
-        # return false
-        return False
+                    output.append(manager_channel_message.ok)
+                    if manager_channel_message.ok:
+                        self.logger_info(
+                            "OK! manager_channel_message payload received: {}".format(
+                                manager_channel_message.json()
+                            )
+                        )
+                    else:
+                        self.logger_info(
+                            "ERROR! manager_channel_message: {}".format(
+                                manager_channel_message.json()
+                            )
+                        )
+                if output and all(output):
+                    return True
+            # return false
+            return False
+        if self.connector.server.type == "chatwoot":
+            # if the connector already has conversation
+            pass
 
     def get_visitor_name(self):
         try:
@@ -958,6 +967,13 @@ class Connector:
         """
         self.logger_info("HANDLING INBOUND, returning default")
         return {"success": True, "redirect": "http://rocket.chat"}
+
+    #
+    # CHATWOOT METHODS
+    #
+
+    def get_connector_conversation(self):
+        pass
 
 
 class BaseConnectorConfigForm(forms.Form):

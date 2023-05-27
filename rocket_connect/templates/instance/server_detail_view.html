@@ -3,7 +3,10 @@
 {% block content %}
 <nav class="breadcrumb">
     <a class="breadcrumb-item" href="{% url 'home' %}">home</a>
-    <span class="breadcrumb-item active">{{server}}</span>
+    <span class="breadcrumb-item active">
+        <img src="{{server.get_icon}}" width="20px"/>
+        {{server}}
+    </span>
 </nav>
 <div class="container">
     <a name="" id="" class="btn btn-warning btn-lg float-right m-1" href="{% url 'instance:server_monitor' server.external_token %}" role="button">
@@ -13,41 +16,43 @@
     <a name="" id="" class="btn btn-primary btn-lg float-right m-1" href="{% url 'admin:django_celery_beat_periodictask_add' %}" role="button">
         <i class="fa fa-plus" aria-hidden="true"></i> add task
     </a>
-    <a name="" id="" class="btn btn-primary btn-lg float-right m-1" href="{% url 'instance:new_connector' server.external_token %}" role="button">
+    <a name="" id="" class="btn btn-primary btn-lg float-right m-1" href="{{server.new_connector_url}}" role="button">
         <i class="fa fa-plus" aria-hidden="true"></i> add connector
     </a>
 </div>
-<div class="container p-5" id="server-header">
-    <h1>
+<div class="container" id="server-header">
+
         {% if request.user.is_staff %}
         <a name="" id="" class="btn btn-primary" href="{% url 'admin:instance_server_change' server.id %}" role="button">
             <i class="fa fa-edit" aria-hidden="true"></i> edit
         </a>
+        {% endif %}
         <a name="" id="" class="btn btn-primary" href="?check-room-sync=1" role="button" title="check rooms sync">
             <i class="fa fa-recycle" aria-hidden="true"></i> sync
         </a>
         <a name="" id="" class="btn btn-primary" href="?delete-delivered-messages=1" role="button" title="check rooms sync">
             <i class="fa fa-recycle" aria-hidden="true"></i> remove delivered messages
         </a>
-        {% endif %}
+    <h1 class="mt-4">
+        <img src="{{server.get_icon}}" width="50px" class="mt-2">
         {{server}} <span class="text-{{ server.enabled|yesno:'success,danger' }}">{{ server.enabled|yesno:"Active,Inactive" }}</span>
     </h1>
     <hr />
     <a href="{{server.get_external_url}}">{{server.get_external_url}}</a>
     {% if status.alive %}
         <span class="badge badge-success">UP</span>
-        <span class="badge badge-info">Version: {{status.info.info.version}}</span>
+        <span class="badge badge-info">{{status.info}}</span>
     {% else %}
         <span class="badge badge-danger">Down!</span>
     {% endif %}
     {% if status.auth_error %}
         <span class="badge badge-danger" title="Check Credentials!">AUTH ERROR!</span>
     {% else %}
-    <span class="badge badge-success">AUTH</span>
+        <span class="badge badge-success">AUTH</span>
     {% endif %}
     <hr />
     <i>
-        Add to Rocket.Chat's Omnichannel WebHook Endpoint:<br />
+        Server Endpoint:<br />
         http://rocketconnect:5000/server/{{server.external_token}}/
     </i>
     {% if room_sync %}

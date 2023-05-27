@@ -24,7 +24,7 @@ class ServerAdmin(admin.ModelAdmin):
         "created",
         "updated",
     )
-    list_filter = ("enabled", "created", "updated")
+    list_filter = ("enabled", "type", "created", "updated")
     search_fields = ("name",)
 
     def install_server_tasks(self, request, queryset):

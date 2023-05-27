@@ -6,6 +6,8 @@ import requests
 from django.apps import apps
 from django.conf import settings
 from django.db import models
+from django.templatetags.static import static
+from django.urls import reverse
 from django.utils import timezone
 from django_celery_beat.models import CrontabSchedule, PeriodicTask
 from envelope.models import Message
@@ -22,28 +24,111 @@ class Server(models.Model):
         verbose_name = "Server"
         verbose_name_plural = "Servers"
 
+    SERVER_TYPE = (
+        ("rocketchat", "Rocket.Chat"),
+        ("chatwoot", "Chatwoot"),
+    )
+
+    def get_icon(self):
+        if self.type == "rocketchat":
+            return static("images/rocket-chat-icon.svg")
+        else:
+            return static("images/chatwoot-icon.svg")
+
+    def new_connector_url(self):
+        if self.type == "rocketchat":
+            return reverse(
+                "instance:new_rocketchat_connector", args=[self.external_token]
+            )
+        else:
+            return reverse(
+                "instance:new_chatwoot_connector", args=[self.external_token]
+            )
+
     def __str__(self):
         return self.name
 
     def status(self):
-        auth_error = False
-        alive = False
-        info = None
-        try:
-            client = self.get_rocket_client()
-            alive = True
-            info = client.info().json()
-            check_auth = client.users_list()
-            if check_auth.status_code == 401:
-                auth_error = True
-        except (
-            requests.ConnectionError,
-            json.JSONDecodeError,
-            requests.models.MissingSchema,
-        ):
+        if self.type == "rocketchat":
+            auth_error = False
             alive = False
-        except RocketAuthenticationException:
-            auth_error = True
+            info = None
+            try:
+                client = self.get_rocket_client()
+                alive = True
+                info = "Version: " + client.info().json()["info"]["version"]
+                check_auth = client.users_list()
+                if check_auth.status_code == 401:
+                    auth_error = True
+            except (
+                requests.ConnectionError,
+                json.JSONDecodeError,
+                requests.models.MissingSchema,
+            ):
+                alive = False
+            except RocketAuthenticationException:
+                auth_error = True
+
+        if self.type == "chatwoot":
+            auth_error = False
+            alive = False
+            info = None
+            headers = {"api_access_token": self.secret_token}
+            try:
+                check = requests.get(self.url + "/api/v1/profile", headers=headers)
+                if check.ok:
+                    alive = True
+                    # register account_id
+                    account_id = check.json()["account_id"]
+                    self.config["account_id"] = account_id
+                    # register or create inbox
+                    inboxes_request = requests.get(
+                        self.url + "/api/v1/accounts/" + str(account_id) + "/inboxes",
+                        headers=headers,
+                    )
+                    inboxes = inboxes_request.json()["payload"]
+                    rocket_inbox = [
+                        d
+                        for d in inboxes
+                        if d.get("name", "").upper() == "ROCKETCONNECT"
+                    ]
+                    if rocket_inbox:
+                        self.config["rocketconnect_inbox_id"] = rocket_inbox[0]["id"]
+                    else:
+                        # create ROCKETCONNECT inbox
+                        payload = {
+                            "name": "ROCKETCONNECT",
+                            "channel": {
+                                "type": "api",
+                                "webhook_url": self.url
+                                + "/server/"
+                                + self.external_token
+                                + "/",
+                            },
+                        }
+                        inboxes_request = requests.post(
+                            self.url
+                            + "/api/v1/accounts/"
+                            + str(account_id)
+                            + "/inboxes",
+                            headers=headers,
+                            json=payload,
+                        )
+                    info = "ROCKETCONNECT_INBOX_ID: " + str(
+                        self.config["rocketconnect_inbox_id"]
+                    )
+
+                    self.save()
+                if check.status_code == 401:
+                    alive = True
+                    auth_error = True
+            except (
+                requests.ConnectionError,
+                json.JSONDecodeError,
+                requests.models.MissingSchema,
+            ):
+                alive = False
+
         return {
             "auth_error": auth_error,
             "alive": alive,
@@ -455,6 +540,7 @@ class Server(models.Model):
     owners = models.ManyToManyField(
         settings.AUTH_USER_MODEL, related_name="servers", blank=True
     )
+    type = models.TextField(choices=SERVER_TYPE, default="rocketchat")
     external_token = models.CharField(max_length=50, default=random_string, unique=True)
     secret_token = models.CharField(
         max_length=50,
@@ -488,10 +574,10 @@ class Server(models.Model):
         help_text="separate users or channels with comma, eg: user1,user2,user3,#channel1,#channel2",
     )
     tasks = models.ManyToManyField("django_celery_beat.PeriodicTask", blank=True)
-    default_messages = models.JSONField(
+    config = models.JSONField(
         blank=True,
         null=True,
-        help_text="Default Messages to load at the Rocket.Connect App",
+        help_text="General Config for this Server",
         default=dict,
     )
     # meta
@@ -543,19 +629,70 @@ class Connector(models.Model):
         """
         this method will get the possible status_session of the connector instance logic from the plugin
         """
+        status = {}
         # get connector
         Connector = self.get_connector_class()
         # initiate with fake message, as it doesnt matter
         connector = Connector(self, {}, "incoming")
-        # return initialize result
-        try:
-            # return informations from the connector
-            status = connector.status_session()
-            if self.config.get("include_connector_status"):
-                status["connector"] = self.connector_status()
-            return status
-        except requests.ConnectionError:
-            return {"success": False, "message": "ConnectionError"}
+
+        if self.server.type == "chatwoot":
+            # if not contact yet:
+            if not self.config.get("chatwoot_connector_contact_id"):
+                # check for this connector contact
+                headers = {"api_access_token": self.server.secret_token}
+                payload = {"q": self.external_token}
+                search_contact = requests.get(
+                    self.server.url
+                    + "/api/v1/accounts/"
+                    + str(self.server.config["account_id"])
+                    + "/contacts/search",
+                    headers=headers,
+                    json=payload,
+                )
+                if search_contact.json().get("payload"):
+                    chatwoot_connector_contact_id = (
+                        search_contact.json().get("payload")[0].get("id")
+                    )
+                    self.config[
+                        "chatwoot_connector_contact_id"
+                    ] = chatwoot_connector_contact_id
+                    self.save()
+                else:
+                    payload = {"name": self.name, "identifier": self.external_token}
+                    create = requests.post(
+                        self.server.url
+                        + "/api/v1/accounts/"
+                        + str(self.server.config["account_id"])
+                        + "/contacts",
+                        headers=headers,
+                        json=payload,
+                    )
+                    if create.ok:
+                        if create.json().get("payload"):
+                            chatwoot_connector_contact_id = (
+                                create.json().get("payload").get("id")
+                            )
+                            self.config[
+                                "chatwoot_connector_contact_id"
+                            ] = chatwoot_connector_contact_id
+                            self.save()
+
+            return {
+                "success": True,
+                "ServerType": "Chatwoot",
+                "connector_contact_id": self.config["chatwoot_connector_contact_id"],
+            }
+
+        else:
+            # return initialize result
+            try:
+                # return informations from the connector
+                status.update(connector.status_session())
+                if self.config.get("include_connector_status"):
+                    status["connector"] = self.connector_status()
+                return status
+            except requests.ConnectionError:
+                return {"success": False, "message": "ConnectionError"}
 
     def initialize(self, request=None):
         """

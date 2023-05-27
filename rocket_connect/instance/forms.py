@@ -23,6 +23,16 @@ class NewServerForm(ModelForm):
         ]
 
 
+class NewChatwootServerForm(ModelForm):
+    class Meta:
+        model = Server
+        fields = [
+            "name",
+            "url",
+            "secret_token",
+        ]
+
+
 class NewInboundForm(Form):
     def __init__(self, *args, **kwargs):
         server = kwargs.pop("server")
@@ -71,3 +81,23 @@ class NewConnectorForm(ModelForm):
     class Meta:
         model = Connector
         fields = ["external_token", "name", "connector_type", "department", "managers"]
+
+
+class NewChatwootConnectorForm(ModelForm):
+    def __init__(self, *args, **kwargs):
+        kwargs.pop("server")
+        super().__init__(*args, **kwargs)
+        connector_choices = [
+            ("wppconnect", "WPPConnect"),
+            ("codechat", "CodeChat - IN DEVELOPMENT"),
+            ("facebook", "Meta Cloud Facebook"),
+            ("metacloudapi_whatsapp", "Meta Cloud WhatsApp"),
+            ("instagram_direct", "Meta Cloud Instagram"),
+        ]
+        self.fields["connector_type"] = ChoiceField(
+            required=False, choices=connector_choices
+        )
+
+    class Meta:
+        model = Connector
+        fields = ["external_token", "name", "connector_type"]
