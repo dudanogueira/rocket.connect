@@ -54,7 +54,10 @@ class Connector:
         return True
 
     def logger_info(self, message):
-        output = f"{self.connector} > {self.type.upper()} > {message}"
+        output = (
+            f"{self.connector.server.name} ({self.connector.server.type}) > {self.connector} >"
+            f"{self.type.upper()} > {message}"
+        )
         if self.message:
             if self.get_message_id():
                 output = f"MESSAGE ID {self.get_message_id()} > " + output
@@ -771,82 +774,90 @@ class Connector:
         comming from Rocketchat, and deliver to the connector
         """
         self.logger_info(f"RECEIVED: {json.dumps(self.message)}")
-        # Session start
-        if self.message.get("type") == "LivechatSessionStart":
-            if settings.DEBUG:
-                print("LivechatSessionStart")
-                # some welcome message may fit here
-        if self.message.get("type") == "LivechatSession":
-            #
-            # This message is sent at the end of the chat,
-            # with all the chats from the session.
-            # if the Chat Close Hook is On
-            # TODO: move the close_message hook here as the actual department is not
-            # being sent
-            if settings.DEBUG:
-                print("LivechatSession")
-        if self.message.get("type") == "LivechatSessionTaken":
-            #
-            # This message is sent when the message if taken
-            # message, created = self.register_message()
-            self.handle_livechat_session_taken()
-        if self.message.get("type") == "LivechatSessionForwarded":
-            #
-            # This message is sent when the message if Forwarded
-            if settings.DEBUG:
-                print("LivechatSessionForwarded")
-        if self.message.get("type") == "LivechatSessionQueued":
-            #
-            # This message is sent when the Livechat is queued
-            if settings.DEBUG:
-                print("LivechatSessionQueued")
-            self.handle_livechat_session_queued()
-        if self.message.get("type") == "Message":
-            message, created = self.register_message()
-            ignore_close_message = self.message_object.room.token in self.config.get(
-                "ignore_token_force_close_message", ""
-            ).split(",")
-            if not message.delivered:
-                # prepare message to be sent to client
-                for message in self.message.get("messages", []):
-                    agent_name = self.get_agent_name(message)
-                    # closing message, if not requested do ignore
-                    if message.get("closingMessage"):
-                        # cant trust the receiving department. let's query it.
-                        # seems fixed in Six
-                        self.get_rocket_client()
-                        room_info = self.rocket.rooms_info(
-                            room_id=self.message_object.room.room_id
-                        ).json()
-                        department = room_info.get("room", {}).get("departmentId")
-                        message["msg"] = self.get_close_message(department=department)
-                        print("SHOULD GET: ", message.get("msg"))
-                        print("DEPARTMENT CLOSING: ", department)
-                        print("ROOM INFo:", room_info)
-                        if message.get("msg") and not ignore_close_message:
-                            print("GOT IN!!!!")
-                            if self.connector.config.get(
-                                "add_agent_name_at_close_message"
-                            ):
-                                self.outgo_text_message(message, agent_name=agent_name)
+        if self.connector.server.type == "rocketchat":
+            # Session start
+            if self.message.get("type") == "LivechatSessionStart":
+                if settings.DEBUG:
+                    print("LivechatSessionStart")
+                    # some welcome message may fit here
+            if self.message.get("type") == "LivechatSession":
+                #
+                # This message is sent at the end of the chat,
+                # with all the chats from the session.
+                # if the Chat Close Hook is On
+                # TODO: move the close_message hook here as the actual department is not
+                # being sent
+                if settings.DEBUG:
+                    print("LivechatSession")
+            if self.message.get("type") == "LivechatSessionTaken":
+                #
+                # This message is sent when the message if taken
+                # message, created = self.register_message()
+                self.handle_livechat_session_taken()
+            if self.message.get("type") == "LivechatSessionForwarded":
+                #
+                # This message is sent when the message if Forwarded
+                if settings.DEBUG:
+                    print("LivechatSessionForwarded")
+            if self.message.get("type") == "LivechatSessionQueued":
+                #
+                # This message is sent when the Livechat is queued
+                if settings.DEBUG:
+                    print("LivechatSessionQueued")
+                self.handle_livechat_session_queued()
+            if self.message.get("type") == "Message":
+                message, created = self.register_message()
+                ignore_close_message = (
+                    self.message_object.room.token
+                    in self.config.get("ignore_token_force_close_message", "").split(
+                        ","
+                    )
+                )
+                if not message.delivered:
+                    # prepare message to be sent to client
+                    for message in self.message.get("messages", []):
+                        agent_name = self.get_agent_name(message)
+                        # closing message, if not requested do ignore
+                        if message.get("closingMessage"):
+                            # cant trust the receiving department. let's query it.
+                            # seems fixed in Six
+                            self.get_rocket_client()
+                            room_info = self.rocket.rooms_info(
+                                room_id=self.message_object.room.room_id
+                            ).json()
+                            department = room_info.get("room", {}).get("departmentId")
+                            message["msg"] = self.get_close_message(
+                                department=department
+                            )
+                            print("SHOULD GET: ", message.get("msg"))
+                            print("DEPARTMENT CLOSING: ", department)
+                            print("ROOM INFo:", room_info)
+                            if message.get("msg") and not ignore_close_message:
+                                print("GOT IN!!!!")
+                                if self.connector.config.get(
+                                    "add_agent_name_at_close_message"
+                                ):
+                                    self.outgo_text_message(
+                                        message, agent_name=agent_name
+                                    )
+                                else:
+                                    self.outgo_text_message(message)
+                            # closing message without message, or mark
+                            # ignored as delivered
                             else:
-                                self.outgo_text_message(message)
-                        # closing message without message, or mark
-                        # ignored as delivered
+                                self.message_object.delivered = True
+                                self.message_object.save()
+                            # close room, after all
+                            self.close_room()
                         else:
-                            self.message_object.delivered = True
-                            self.message_object.save()
-                        # close room, after all
-                        self.close_room()
-                    else:
-                        # regular message, maybe with attach
-                        if message.get("attachments", {}):
-                            # send file
-                            self.outgo_file_message(message, agent_name=agent_name)
-                        else:
-                            self.outgo_text_message(message, agent_name=agent_name)
-            else:
-                self.logger_info("MESSAGE ALREADY SENT. IGNORING.")
+                            # regular message, maybe with attach
+                            if message.get("attachments", {}):
+                                # send file
+                                self.outgo_file_message(message, agent_name=agent_name)
+                            else:
+                                self.outgo_text_message(message, agent_name=agent_name)
+                else:
+                    self.logger_info("MESSAGE ALREADY SENT. IGNORING.")
 
     def get_agent_name(self, message):
         agent_name = message.get("u", {}).get("name", {})

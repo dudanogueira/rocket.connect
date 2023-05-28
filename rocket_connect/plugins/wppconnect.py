@@ -74,7 +74,9 @@ class Connector(ConnectorBase):
                     status = {"success": False, **status_req.json()}
             except urllib3.exceptions.ReadTimeoutError as e:
                 status = {"success": False, "message": str(e)}
-
+        if status.get("status") == "CLOSED":
+            del status["qrcode"]
+            del status["urlcode"]
         return status
 
     def close_session(self):
@@ -550,6 +552,9 @@ class Connector(ConnectorBase):
         start_session_req = requests.post(endpoint, headers=headers, json=data)
         if start_session_req.ok:
             start_session = start_session_req.json()
+            if start_session.get("status") == "CLOSED":
+                del start_session["qrcode"]
+                del start_session["urlcode"]
             return start_session
         return False
 

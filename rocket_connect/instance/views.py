@@ -133,7 +133,26 @@ def server_endpoint(request, server_id):
                     )
                     sconnector.ingoing()
     if server.type == "chatwoot":
+        # for chatwoot, the outgoing messages will also be sent to the connector
+        # here we only will receive the ROCKETCONNECT INBOX payalods
+        # so we need to find the connector, based on source_id
         print("INCOMING ON CHATWOOT", request.body)
+        raw_message = json.loads(request.body).get("conversation")
+        source_id = raw_message.get("contact_inbox", {}).get("source_id")
+        if raw_message.get("messages", {}):
+            content = raw_message.get("messages", {})[0].get("content")
+            connector_instance = server.connectors.get(external_token=source_id)
+            Connectorcls = connector_instance.get_connector_class()
+            connector = Connectorcls(
+                connector_instance, request.body, "ingoing", request
+            )
+            if content == "status":
+                status_session = connector.status_session()
+                connector.outcome_admin_message(status_session)
+            if content == "start":
+                initialize = connector.initialize()
+                connector.outcome_admin_message(initialize)
+
     return JsonResponse({})
 
 
