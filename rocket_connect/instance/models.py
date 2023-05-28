@@ -646,6 +646,7 @@ class Connector(models.Model):
                     "connector_conversation_id": self.config.get(
                         "connector_conversation_id"
                     ),
+                    "connector_inbox_id": self.config.get("connector_inbox_id"),
                 }
             )
 
@@ -707,6 +708,7 @@ class Connector(models.Model):
                                 "chatwoot_connector_contact_id"
                             ] = chatwoot_connector_contact_id
                             self.save()
+            # if not conversation yet:
             if not self.config.get("connector_conversation_id"):
                 payload = {
                     "source_id": self.external_token,
@@ -727,7 +729,29 @@ class Connector(models.Model):
                         "connector_conversation_id"
                     ] = create_conversation.json().get("id")
                     self.save()
-
+            # create the connector INBOX
+            if not self.config.get("connector_inbox_id"):
+                payload = {
+                    "name": self.name,
+                    "lock_to_single_conversation": self.config.get(
+                        "connector_inbox_id", True
+                    ),
+                    "channel": {
+                        "type": "api",
+                        "webhook_url": self.config.get("webhook") + "?ingoing=1",
+                    },
+                }
+                create_inbox = requests.post(
+                    self.server.url
+                    + "/api/v1/accounts/"
+                    + str(self.server.config["account_id"])
+                    + "/inboxes",
+                    headers=headers,
+                    json=payload,
+                )
+                if create_inbox.ok:
+                    self.config["connector_inbox_id"] = create_inbox.json().get("id")
+                    self.save()
             status.update(
                 {
                     "success": True,
