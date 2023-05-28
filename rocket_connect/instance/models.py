@@ -98,6 +98,7 @@ class Server(models.Model):
                         # create ROCKETCONNECT inbox
                         payload = {
                             "name": "ROCKETCONNECT",
+                            "lock_to_single_conversation": True,
                             "channel": {
                                 "type": "api",
                                 "webhook_url": self.url
@@ -629,17 +630,47 @@ class Connector(models.Model):
         """
         this method will get the possible status_session of the connector instance logic from the plugin
         """
-        status = {}
+        status = {
+            "ServerType": self.server.type,
+        }
         # get connector
         Connector = self.get_connector_class()
         # initiate with fake message, as it doesnt matter
         connector = Connector(self, {}, "incoming")
-
         if self.server.type == "chatwoot":
+            status.update(
+                {
+                    "connector_contact_id": self.config.get(
+                        "chatwoot_connector_contact_id"
+                    ),
+                    "connector_conversation_id": self.config.get(
+                        "connector_conversation_id"
+                    ),
+                }
+            )
+
+        # return initialize result
+        try:
+            # return informations from the connector
+            status.update(connector.status_session())
+            if self.config.get("include_connector_status"):
+                status["connector"] = self.connector_status()
+            return status
+        except requests.ConnectionError:
+            return {"success": False, "message": "ConnectionError"}
+
+    def initialize(self, request=None):
+        """
+        this method will instantiate the connector instance logic from the plugin
+        """
+        status = {
+            "ServerType": self.server.type,
+        }
+        if self.server.type == "chatwoot":
+            headers = {"api_access_token": self.server.secret_token}
             # if not contact yet:
             if not self.config.get("chatwoot_connector_contact_id"):
                 # check for this connector contact
-                headers = {"api_access_token": self.server.secret_token}
                 payload = {"q": self.external_token}
                 search_contact = requests.get(
                     self.server.url
@@ -676,34 +707,47 @@ class Connector(models.Model):
                                 "chatwoot_connector_contact_id"
                             ] = chatwoot_connector_contact_id
                             self.save()
+            if not self.config.get("connector_conversation_id"):
+                payload = {
+                    "source_id": self.external_token,
+                    "inbox_id": self.server.config.get("rocketconnect_inbox_id"),
+                    "contact_id": self.config.get("chatwoot_connector_contact_id"),
+                    "status": "open",
+                }
+                create_conversation = requests.post(
+                    self.server.url
+                    + "/api/v1/accounts/"
+                    + str(self.server.config["account_id"])
+                    + "/conversations",
+                    headers=headers,
+                    json=payload,
+                )
+                if create_conversation.ok:
+                    self.config[
+                        "connector_conversation_id"
+                    ] = create_conversation.json().get("id")
+                    self.save()
 
-            return {
-                "success": True,
-                "ServerType": "Chatwoot",
-                "connector_contact_id": self.config["chatwoot_connector_contact_id"],
-            }
+            status.update(
+                {
+                    "success": True,
+                    "connector_contact_id": self.config.get(
+                        "chatwoot_connector_contact_id"
+                    ),
+                    "connector_conversation_id": self.config.get(
+                        "connector_conversation_id"
+                    ),
+                }
+            )
 
-        else:
-            # return initialize result
-            try:
-                # return informations from the connector
-                status.update(connector.status_session())
-                if self.config.get("include_connector_status"):
-                    status["connector"] = self.connector_status()
-                return status
-            except requests.ConnectionError:
-                return {"success": False, "message": "ConnectionError"}
-
-    def initialize(self, request=None):
-        """
-        this method will instantiate the connector instance logic from the plugin
-        """
         # get connector
         Connector = self.get_connector_class()
         # initiate with fake message, as it doesnt matter
         connector = Connector(self, {}, "incoming")
         # return initialize result
-        return connector.initialize()
+        connector_init = connector.initialize()
+        status.update(connector_init)
+        return status
 
     def close_session(self, request=None):
         """

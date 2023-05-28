@@ -18,6 +18,7 @@ from django.http import JsonResponse
 from django.template import Context, Template
 from envelope.models import LiveChatRoom
 from PIL import Image
+from requests_toolbelt import MultipartEncoder
 
 from emojipy import emojipy
 
@@ -78,22 +79,21 @@ class Connector:
         """
         this method will send the qrbase64 image to the connector managers at RocketChat
         """
-        if self.server.type == "rocketchat":
+        # get image data
+        try:
+            data = qrbase64.split(",")[1]
+        except IndexError:
+            data = qrbase64
+        imgdata = base64.b64decode(str.encode(data))
+        if self.connector.server.type == "rocketchat":
             # send message as bot
             rocket = self.get_rocket_client(bot=True)
             # create im for managers
             managers = self.connector.get_managers()
-            if settings.DEBUG:
-                print("GOT MANAGERS: ", managers)
             im_room = rocket.im_create(username="", usernames=managers)
             im_room_created = im_room.json()
 
             # send qrcode
-            try:
-                data = qrbase64.split(",")[1]
-            except IndexError:
-                data = qrbase64
-            imgdata = base64.b64decode(str.encode(data))
             with tempfile.NamedTemporaryFile(suffix=".png") as tmp:
                 tmp.write(imgdata)
                 if im_room_created["success"]:
@@ -133,9 +133,41 @@ class Connector:
                             )
                         )
 
-            if self.server.type == "chatwoot":
-                # output qrcode
-                pass
+        if self.connector.server.type == "chatwoot":
+            # output qrcode
+            headers = {
+                # "Content-Type": 'multipart/form-data; boundary=----WebKitFormBoundary',
+                "api_access_token": self.connector.server.secret_token
+            }
+            with tempfile.NamedTemporaryFile(suffix=".png") as tmp:
+                tmp.write(imgdata)
+
+                url = "{}/api/v1/accounts/{}/conversations/{}/messages".format(
+                    self.connector.server.url,
+                    self.connector.server.config.get("account_id"),
+                    self.config.get("connector_conversation_id"),
+                )
+
+                msg = "🚀 Connect > *Connector Name*: {}\nScan this QR Code at your Whatsapp Phone:".format(
+                    self.connector.name
+                )
+
+                fields = {
+                    "attachments[]": (tmp.name, open(tmp.name, "rb"), "image/png"),
+                    "content": msg,
+                }
+                boundary = "----WebKitFormBoundary" + "".join(
+                    random.sample(string.ascii_letters + string.digits, 16)
+                )
+
+                m = MultipartEncoder(fields=fields, boundary=boundary)
+                headers["Content-Type"] = m.content_type
+                response = requests.post(url, headers=headers, data=m)
+                if response.ok:
+                    return True
+                return False
+
+            pass
 
     def outcome_file(self, base64_data, room_id, mime, filename=None, description=None):
         if settings.DEBUG:
@@ -293,7 +325,24 @@ class Connector:
             return False
         if self.connector.server.type == "chatwoot":
             # if the connector already has conversation
-            pass
+            headers = {"api_access_token": self.connector.server.secret_token}
+            payload = {
+                "content": text,
+                "message_type": "incoming",
+            }
+            create = requests.post(
+                self.connector.server.url
+                + "/api/v1/accounts/"
+                + str(self.connector.server.config["account_id"])
+                + "/conversations/"
+                + str(self.config["connector_conversation_id"])
+                + "/messages",
+                headers=headers,
+                json=payload,
+            )
+            if create.ok:
+                return True
+            return False
 
     def get_visitor_name(self):
         try:
