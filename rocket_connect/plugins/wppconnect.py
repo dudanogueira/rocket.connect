@@ -74,12 +74,11 @@ class Connector(ConnectorBase):
                     status = {"success": False, **status_req.json()}
             except urllib3.exceptions.ReadTimeoutError as e:
                 status = {"success": False, "message": str(e)}
-        if status.get("status") == "CLOSED":
-            del status["qrcode"]
-            del status["urlcode"]
-        if status.get("status") == "CONNECTED":
-            del status["qrcode"]
-            del status["urlcode"]
+        if status.get("status") in ["CLOSED", "CONNECTED"]:
+            if status.get("qrcode"):
+                del status["qrcode"]
+            if status.get("urlcode"):
+                del status["urlcode"]
         return status
 
     def close_session(self):
@@ -621,11 +620,7 @@ class Connector(ConnectorBase):
                 self.message.get("session"), self.message.get("status")
             )
             if self.message.get("status") in ["isLogged", "inChat", "qrReadSuccess"]:
-                text = (
-                    text
-                    + " :white_check_mark: :white_check_mark: :white_check_mark: "
-                    + "SUCESS!!!      :white_check_mark: :white_check_mark: :white_check_mark: "
-                )
+                text = text + " ✅ ✅ ✅ " + "SUCESS!!! ✅ ✅ ✅ "
                 # call intake unread task
                 if self.config.get("process_unread_messages_on_start", False):
                     tasks.intake_unread_messages.delay(self.connector.id)
@@ -993,10 +988,12 @@ class Connector(ConnectorBase):
         return name
 
     def get_visitor_phone(self):
+        visitor_phone = None
         if self.message.get("event") == "incomingcall":
             visitor_phone = self.message.get("peerJid").split("@")[0]
         else:
-            visitor_phone = self.message.get("from").split("@")[0]
+            if self.message.get("from"):
+                visitor_phone = self.message.get("from").split("@")[0]
         return visitor_phone
 
     def get_visitor_username(self):
@@ -1008,6 +1005,12 @@ class Connector(ConnectorBase):
         else:
             visitor_username = "whatsapp:{}".format(self.message.get("from"))
         return visitor_username
+
+    def get_visitor_avatar_url(self):
+        if self.message.get("sender", {}).get("profilePicThumbObj", {}).get("img"):
+            return (
+                self.message.get("sender", {}).get("profilePicThumbObj", {}).get("img")
+            )
 
     def get_message_body(self):
         return self.message.get("body")

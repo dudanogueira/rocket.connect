@@ -41,7 +41,9 @@
     <a href="{{server.get_external_url}}">{{server.get_external_url}}</a>
     {% if status.alive %}
         <span class="badge badge-success">UP</span>
-        <span class="badge badge-info">{{status.info}}</span>
+        {% for info in status.info %}
+            <span class="badge badge-info">{{info}}</span>
+        {% endfor %}
     {% else %}
         <span class="badge badge-danger">Down!</span>
     {% endif %}

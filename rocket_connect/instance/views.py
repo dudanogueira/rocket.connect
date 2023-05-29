@@ -24,6 +24,10 @@ def connector_endpoint(request, connector_id):
         Connector, external_token=connector_id, enabled=True, server__enabled=True
     )
     return_response = connector.intake(request)
+    if not (return_response):
+        return JsonResponse(
+            {"connector_name": connector.name, "connector_id": connector.external_token}
+        )
     return return_response
 
 
@@ -152,6 +156,10 @@ def server_endpoint(request, server_id):
             if content == "start":
                 initialize = connector.initialize()
                 connector.outcome_admin_message(initialize)
+            if content == "close":
+                status_session = connector.status_session()
+                close = connector.close_session()
+                connector.outcome_admin_message(close)
 
     return JsonResponse({})
 

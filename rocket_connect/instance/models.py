@@ -52,11 +52,11 @@ class Server(models.Model):
         if self.type == "rocketchat":
             auth_error = False
             alive = False
-            info = None
+            info = []
             try:
                 client = self.get_rocket_client()
                 alive = True
-                info = "Version: " + client.info().json()["info"]["version"]
+                info = ["Version: " + client.info().json()["info"]["version"]]
                 check_auth = client.users_list()
                 if check_auth.status_code == 401:
                     auth_error = True
@@ -80,6 +80,9 @@ class Server(models.Model):
                     alive = True
                     # register account_id
                     account_id = check.json()["account_id"]
+                    account_info = requests.get(
+                        self.url + f"/api/v1/accounts/{account_id}", headers=headers
+                    ).json()
                     self.config["account_id"] = account_id
                     # register or create inbox
                     inboxes_request = requests.get(
@@ -115,9 +118,11 @@ class Server(models.Model):
                             headers=headers,
                             json=payload,
                         )
-                    info = "ROCKETCONNECT_INBOX_ID: " + str(
-                        self.config["rocketconnect_inbox_id"]
-                    )
+                    info = [
+                        "ROCKETCONNECT_INBOX_ID: "
+                        + str(self.config["rocketconnect_inbox_id"]),
+                        "VERSION: " + account_info.get("latest_chatwoot_version"),
+                    ]
 
                     self.save()
                 if check.status_code == 401:
@@ -537,6 +542,85 @@ class Server(models.Model):
                 supported_connectors_ids.append(connector.id)
         return enabled_connectors.filter(id__in=supported_connectors_ids)
 
+    #
+    # CHATWOOT
+    #
+
+    def chatwoot_get_or_create_contact(self, visitor_json, avatar_url=None):
+        identifier = visitor_json.get("token")
+        headers = {"api_access_token": self.secret_token}
+        payload = {
+            "payload": [
+                {
+                    "attribute_key": "identifier",
+                    "filter_operator": "equal_to",
+                    "values": [identifier],
+                }
+            ]
+        }
+        url = "{}/api/v1/accounts/{}/contacts/filter".format(
+            self.url, self.config.get("account_id")
+        )
+        contact_search = requests.post(url, headers=headers, json=payload)
+        if contact_search.ok:
+            # contact found
+            if contact_search.json().get("payload"):
+                output = contact_search.json()
+            else:
+                # contact not found, create one
+                url = "{}/api/v1/accounts/{}/contacts".format(
+                    self.url, self.config.get("account_id")
+                )
+                payload = {
+                    "name": visitor_json.get("name"),
+                    "identifier": visitor_json.get("token"),
+                    "source_id": visitor_json.get("token"),
+                    "phone_number": "+" + visitor_json.get("phone"),
+                    "avatar_url": avatar_url,
+                }
+                contact_new = requests.post(url, headers=headers, json=payload)
+                output = contact_new.json()
+        return output
+
+    def chatwoot_get_or_create_conversation(
+        self, contact_id, connector_inbox_id, identifier
+    ):
+        headers = {"api_access_token": self.secret_token}
+        create = False
+        open_item = None
+        url = "{}/api/v1/accounts/{}/contacts/{}/conversations".format(
+            self.url, self.config.get("account_id"), contact_id
+        )
+        conversations_list = requests.get(url, headers=headers)
+        conversation_json = conversations_list.json()
+        if conversations_list.ok:
+            if not conversation_json.get("payload"):
+                create = True
+            if conversation_json.get("payload"):
+                # get first open conversation from this contact
+                open_item = None
+                for item in conversation_json.get("payload"):
+                    if item["status"] == "open":
+                        open_item = item
+                        break
+        # open new conversation
+        if open_item:
+            return open_item
+        else:
+            create = True
+        if create:
+            payload = {
+                "identifier": identifier,
+                "inbox_id": connector_inbox_id,
+                "contact_id": contact_id,
+                "status": "open",
+            }
+            url = "{}/api/v1/accounts/{}/conversations".format(
+                self.url, self.config.get("account_id")
+            )
+            new_conversation = requests.post(url, headers=headers, json=payload)
+            return new_conversation.json()
+
     uuid = models.UUIDField(default=uuid.uuid4, editable=False)
     owners = models.ManyToManyField(
         settings.AUTH_USER_MODEL, related_name="servers", blank=True
@@ -734,7 +818,7 @@ class Connector(models.Model):
                 payload = {
                     "name": self.name,
                     "lock_to_single_conversation": self.config.get(
-                        "connector_inbox_id", True
+                        "connector_inbox_id", False
                     ),
                     "channel": {
                         "type": "api",
@@ -792,10 +876,20 @@ class Connector(models.Model):
         """
         # get connector
         Connector = self.get_connector_class()
-        # initiate with raw message
-        connector = Connector(self, request.body, "incoming", request)
         # income message
-        main_incoming = connector.incoming()
+        if self.server.type == "chatwoot" and request.GET.get("ingoing"):
+            # at chatwoot, both incoming and ingoing comes thru here
+            connector = Connector(self, request.body, "ingoing", request)
+            connector.logger_info(
+                f"INGOING CHATWOOT MESSAGE: {json.dumps(connector.message)}"
+            )
+            main_incoming = connector.ingoing()
+            connector.get_room()
+        else:
+            # initiate with raw message
+            connector = Connector(self, request.body, "incoming", request)
+            main_incoming = connector.incoming()
+
         # secondary connectors
         for secondary_connector in self.secondary_connectors.all():
             SConnector = secondary_connector.get_connector_class()

@@ -433,7 +433,24 @@ class Connector:
         if self.type == "incoming":
             visitor_id = self.get_incoming_visitor_id()
         else:
-            visitor_id = self.message.get("visitor", {}).get("token").split(":")[1]
+            if self.connector.server.type == "rocketchat":
+                visitor_id = self.message.get("visitor", {}).get("token").split(":")[1]
+            if self.connector.server.type == "chatwoot":
+                if self.message.get("conversation", {}):
+                    visitor_id = (
+                        self.message.get("conversation", {})
+                        .get("meta", {})
+                        .get("sender", {})
+                        .get("identifier")
+                        .split(":")[1]
+                    )
+                else:
+                    visitor_id = (
+                        self.message.get("meta", {})
+                        .get("sender", {})
+                        .get("identifier")
+                        .split(":")[1]
+                    )
         visitor_id = str(visitor_id).strip()
         return visitor_id
 
@@ -447,6 +464,187 @@ class Connector:
             return "channel:visitor-id"
 
     def get_room(
+        self,
+        department=None,
+        create=True,
+        allow_welcome_message=True,
+        check_if_open=False,
+        force_transfer=None,
+    ):
+        if self.connector.server.type == "chatwoot":
+            return self.get_room_chatwoot(
+                department, create, allow_welcome_message, check_if_open, force_transfer
+            )
+        return self.get_room_rocketchat(
+            department, create, allow_welcome_message, check_if_open, force_transfer
+        )
+
+    def get_room_chatwoot(
+        self,
+        department=None,
+        create=True,
+        allow_welcome_message=True,
+        check_if_open=False,
+        force_transfer=None,
+    ):
+        room = None
+        connector_token = self.get_visitor_token()
+        # ignore some tokens
+        if self.config.get("ignore_visitors_token"):
+            if connector_token in self.config.get("ignore_visitors_token").split(","):
+                self.logger_info(f"Ignoring visitor token {connector_token}")
+                return room
+
+        try:
+            room = LiveChatRoom.objects.get(
+                connector=self.connector, token=connector_token, open=True
+            )
+            self.logger_info(f"get_room, got {room} - {room.id}")
+            # if check_if_open:
+            #     self.logger_info("checking if room is open")
+            #     open_rooms = self.rocket.livechat_rooms(open="true").json()
+            #     open_rooms_id = [r["_id"] for r in open_rooms["rooms"]]
+            #     if room.room_id not in open_rooms_id:
+            #         self.logger_info(
+            #             "room was open in Rocket.Connect, but not in Rocket.Chat"
+            #         )
+            #         # close room
+            #         room.open = False
+            #         room.save()
+            #         raise LiveChatRoom.DoesNotExist
+
+        except LiveChatRoom.MultipleObjectsReturned:
+            # this should not happen. Mitigation for issue #12
+            # TODO: replicate error at development
+
+            return (
+                LiveChatRoom.objects.filter(
+                    connector=self.connector, token=connector_token, open=True
+                )
+                .order_by("-created")
+                .last()
+            )
+        except LiveChatRoom.DoesNotExist:
+            if create:
+                self.logger_info("get_room, didn't got room")
+                if self.config.get("open_room", True):
+                    # room not available, let's create one.
+                    # first, create contact in chatwoot
+                    visitor_json = self.get_visitor_json(department)
+                    # get the visitor object
+                    visitor_object = (
+                        self.connector.server.chatwoot_get_or_create_contact(
+                            visitor_json, self.get_visitor_avatar_url()
+                        )
+                    )
+                    if settings.DEBUG:
+                        print("VISITOR REGISTERING: ", visitor_object)
+                    # we registered the visitor
+                    # now we register the conversation
+                    if visitor_object:
+                        if type(visitor_object.get("payload", {})) == list:
+                            contact_id = visitor_object.get("payload", {})[0].get("id")
+                        else:
+                            contact_id = visitor_object.get("payload", {}).get("id")
+                        # get or create the conversation
+                        chatwoot_room = (
+                            self.connector.server.chatwoot_get_or_create_conversation(
+                                contact_id,
+                                self.config.get("connector_inbox_id"),
+                                identifier=visitor_json.get("token"),
+                            )
+                        )
+                        if settings.DEBUG:
+                            print("REGISTERING ROOM, ", chatwoot_room)
+                        if chatwoot_room:
+                            room = LiveChatRoom.objects.create(
+                                connector=self.connector,
+                                token=connector_token,
+                                room_id=chatwoot_room.get("id"),
+                                open=True,
+                            )
+
+        self.room = room
+        # # optionally force transfer to department
+        # if force_transfer:
+        #     payload = {
+        #         "rid": self.room.room_id,
+        #         "token": self.room.token,
+        #         "department": force_transfer,
+        #     }
+        #     force_transfer_response = self.rocket.call_api_post(
+        #         "livechat/room.transfer", **payload
+        #     )
+        #     if force_transfer_response.ok:
+        #         self.logger_info(f"Force Transfer Response: {force_transfer_response}")
+        #     else:
+        #         self.logger_error(f"Force Transfer ERROR: {force_transfer_response}")
+
+        # # optionally allow welcome message
+        # if allow_welcome_message:
+        #     if self.config.get("welcome_message"):
+        #         # only send welcome message when
+        #         # 1 - open_room is False and there is a welcome_message
+        #         # 2 - open_room is True, room_created is True and there is a welcome_message
+        #         if (
+        #             not self.config.get("open_room", True)
+        #             and self.config.get("welcome_message")
+        #         ) or (
+        #             self.config.get("open_room", True)
+        #             and room_created
+        #             and self.config.get("welcome_message")
+        #         ):
+        #             # if we have room, send it using the room
+        #             if room_created:
+        #                 payload = {
+        #                     "rid": self.room.room_id,
+        #                     "msg": self.config.get("welcome_message"),
+        #                 }
+        #                 a = self.outgo_message_from_rocketchat(payload)
+        #                 print("AQUI! ", a)
+        #                 self.logger_info(
+        #                     "OUTWENT welcome message from Rocket.Chat " + str(payload)
+        #                 )
+        #             # no room, send directly
+        #             else:
+        #                 message = {"msg": self.config.get("welcome_message")}
+        #                 self.outgo_text_message(message)
+
+        #     if self.config.get("welcome_vcard") != {}:
+        #         # only send welcome vcard when
+        #         #
+        #         # 1 - open_room is False and there is a welcome_vcard
+        #         # 2 - open_room is True, room_created is True and there is a welcome_vcard
+        #         if (
+        #             not self.config.get("open_room", True)
+        #             and self.config.get("welcome_vcard")
+        #         ) or (
+        #             self.config.get("open_room", True)
+        #             and room_created
+        #             and self.config.get("welcome_vcard")
+        #         ):
+        #             payload = self.config.get("welcome_vcard")
+        #             self.outgo_vcard(payload)
+        #             # if room was created
+        #             if room and self.config.get(
+        #                 "alert_agent_of_automated_message_sent", False
+        #             ):
+        #                 # let the agent know
+        #                 self.outcome_text(
+        #                     room_id=room.room_id,
+        #                     text="VCARD SENT: {}".format(
+        #                         self.config.get("welcome_vcard")
+        #                     ),
+        #                     message_id=self.get_message_id() + "VCARD",
+        #                 )
+        # # save message obj
+        if self.message_object:
+            self.message_object.room = room
+            self.message_object.save()
+
+        return room
+
+    def get_room_rocketchat(
         self,
         department=None,
         create=True,
@@ -636,20 +834,31 @@ class Connector:
         self.incoming()
 
     def room_send_text(self, room_id, text, message_id=None):
-        if settings.DEBUG:
-            print(f"SENDING MESSAGE TO ROOM ID {room_id}: {text}")
-        if not message_id:
-            message_id = self.get_message_id()
-        rocket = self.get_rocket_client()
-        response = rocket.livechat_message(
-            token=self.get_visitor_token(),
-            rid=room_id,
-            msg=text,
-            _id=message_id,
-        )
-        if settings.DEBUG:
-            self.logger_info(f"MESSAGE SENT. RESPONSE: {response.json()}")
-        return response
+        if self.connector.server.type == "rocketchat":
+            if settings.DEBUG:
+                print(f"SENDING MESSAGE TO ROOM ID {room_id}: {text}")
+            if not message_id:
+                message_id = self.get_message_id()
+            rocket = self.get_rocket_client()
+            response = rocket.livechat_message(
+                token=self.get_visitor_token(),
+                rid=room_id,
+                msg=text,
+                _id=message_id,
+            )
+            if settings.DEBUG:
+                self.logger_info(f"MESSAGE SENT. RESPONSE: {response.json()}")
+            return response
+        if self.connector.server.type == "chatwoot":
+            url = "{}/api/v1/accounts/{}/conversations/{}/messages".format(
+                self.connector.server.url,
+                self.connector.server.config.get("account_id"),
+                room_id,
+            )
+            payload = {"content": text, "message_type": "incoming"}
+            headers = {"api_access_token": self.connector.server.secret_token}
+            new_message = requests.post(url, headers=headers, json=payload)
+            return new_message
 
     def register_message(self, type=None):
         self.logger_info(f"REGISTERING MESSAGE: {json.dumps(self.message)}")
@@ -680,13 +889,16 @@ class Connector:
         if self.type == "incoming":
             return self.get_incoming_message_id()
         if self.type == "ingoing":
-            # rocketchat message id
-            if self.message["messages"]:
-                rc_message_id = self.message["messages"][0]["_id"]
-                return rc_message_id
-            # other types of message
-            if self.message.get("_id"):
-                return self.message.get("_id")
+            if self.connector.server.type == "rocketchat":
+                # rocketchat message id
+                if self.message["messages"]:
+                    rc_message_id = self.message["messages"][0]["_id"]
+                    return rc_message_id
+                # other types of message
+                if self.message.get("_id"):
+                    return self.message.get("_id")
+            if self.connector.server.type == "chatwoot":
+                return self.message.get("id")
 
         # last resource
         return self.get_incoming_message_id()
@@ -773,7 +985,8 @@ class Connector:
         this method will process the outcoming messages
         comming from Rocketchat, and deliver to the connector
         """
-        self.logger_info(f"RECEIVED: {json.dumps(self.message)}")
+
+        self.logger_info(f"INGOING MESSAGE: {json.dumps(self.message)}")
         if self.connector.server.type == "rocketchat":
             # Session start
             if self.message.get("type") == "LivechatSessionStart":
@@ -858,6 +1071,34 @@ class Connector:
                                 self.outgo_text_message(message, agent_name=agent_name)
                 else:
                     self.logger_info("MESSAGE ALREADY SENT. IGNORING.")
+        if self.connector.server.type == "chatwoot":
+            if (
+                self.message.get("event") == "message_created"
+                and self.message.get("message_type") == "outgoing"
+            ):
+                message, created = self.register_message()
+                if not message.delivered:
+                    self.outgo_text_message(
+                        self.message.get("content"),
+                        agent_name=self.message.get("sender", {}).get("name"),
+                    )
+            # TODO: FIX CLOSING MESSAGE TO ALSO CLOSE ON ROCKETCONNECT
+            # if self.message.get("event") == "conversation_status_changed":
+            #     message, created = self.register_message()
+            #     if self.message.get("status") == "resolved":
+            #         # close message
+            #         self.logger_info(f"CLOSING CONVERSATION: {json.dumps(self.message)}")
+            #         self.get_room(create=False)
+            #         print("AAA", self.room.id)
+            #         self.room.open = False
+            #         self.room.save()
+            #         print("BBB", self.room.open)
+
+            return JsonResponse(
+                {
+                    "connector": self.connector.name,
+                }
+            )
 
     def get_agent_name(self, message):
         agent_name = message.get("u", {}).get("name", {})
@@ -1027,6 +1268,9 @@ class Connector:
         """
         self.logger_info("HANDLING INBOUND, returning default")
         return {"success": True, "redirect": "http://rocket.chat"}
+
+    def get_visitor_avatar_url(self):
+        return "https://avatars.githubusercontent.com/u/1761174?s=400&v=4"
 
     #
     # CHATWOOT METHODS
