@@ -3,6 +3,7 @@ import json
 import logging
 import mimetypes
 import random
+import re
 import string
 import tempfile
 import time
@@ -1092,8 +1093,12 @@ class Connector:
                 if not message.delivered:
                     # only send text if message has content
                     if self.message.get("content"):
+                        text = self.message.get("content")
+                        text = re.sub(
+                            r"(\*{1,2})(.*?)(\1)", self.chatwoot_replace_tags, text
+                        )
                         self.outgo_text_message(
-                            self.message.get("content"),
+                            text,
                             agent_name=self.message.get("sender", {}).get("name"),
                         )
                     if self.message.get("attachments"):
@@ -1118,6 +1123,7 @@ class Connector:
                                 "video",
                                 "audio",
                             ]:
+                                # TODO: audio is not working
                                 file_url = replaced.geturl()
                                 mime = mimetypes.guess_type(file_url)[0]
                                 self.outgo_file_message(
@@ -1322,6 +1328,15 @@ class Connector:
 
     def get_connector_conversation(self):
         pass
+
+    def chatwoot_replace_tags(self, match):
+        tag = match.group(1)
+        content = match.group(2)
+
+        if tag == "**":
+            return "*" + content + "*"
+        elif tag == "*":
+            return "_" + content + "_"
 
 
 class BaseConnectorConfigForm(forms.Form):
