@@ -880,11 +880,8 @@ class Connector(models.Model):
         if self.server.type == "chatwoot" and request.GET.get("ingoing"):
             # at chatwoot, both incoming and ingoing comes thru here
             connector = Connector(self, request.body, "ingoing", request)
-            connector.logger_info(
-                f"INGOING CHATWOOT MESSAGE: {json.dumps(connector.message)}"
-            )
             main_incoming = connector.ingoing()
-            connector.get_room()
+            connector.get_room(create=False)
         else:
             # initiate with raw message
             connector = Connector(self, request.body, "incoming", request)

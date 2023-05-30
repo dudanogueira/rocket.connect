@@ -1082,17 +1082,25 @@ class Connector:
                         self.message.get("content"),
                         agent_name=self.message.get("sender", {}).get("name"),
                     )
-            # TODO: FIX CLOSING MESSAGE TO ALSO CLOSE ON ROCKETCONNECT
-            # if self.message.get("event") == "conversation_status_changed":
-            #     message, created = self.register_message()
-            #     if self.message.get("status") == "resolved":
-            #         # close message
-            #         self.logger_info(f"CLOSING CONVERSATION: {json.dumps(self.message)}")
-            #         self.get_room(create=False)
-            #         print("AAA", self.room.id)
-            #         self.room.open = False
-            #         self.room.save()
-            #         print("BBB", self.room.open)
+            if self.message.get("event") == "conversation_status_changed":
+                message, created = self.register_message()
+                conversation_id = self.message.get("id")
+                if self.message.get("status") == "resolved":
+                    room = self.get_room(create=False)
+                    # close message
+                    self.logger_info(f"CLOSING CONVERSATION: {conversation_id}")
+                    room.open = False
+                    room.save()
+                elif self.message.get("status") == "open":
+                    # message was reopened, get the exact livechat and reopen it
+
+                    self.logger_info(f"REOPENING CONVERSATION: {conversation_id}")
+                    visitor_token = self.get_visitor_token()
+                    room = self.connector.rooms.get(
+                        room_id=conversation_id, token=visitor_token
+                    )
+                    room.open = True
+                    room.save()
 
             return JsonResponse(
                 {
