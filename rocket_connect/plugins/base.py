@@ -6,6 +6,7 @@ import random
 import string
 import tempfile
 import time
+import urllib.parse
 from io import BytesIO
 
 import qrcode
@@ -489,6 +490,7 @@ class Connector:
     ):
         room = None
         connector_token = self.get_visitor_token()
+
         # ignore some tokens
         if self.config.get("ignore_visitors_token"):
             if connector_token in self.config.get("ignore_visitors_token").split(","):
@@ -496,9 +498,16 @@ class Connector:
                 return room
 
         try:
-            room = LiveChatRoom.objects.get(
-                connector=self.connector, token=connector_token, open=True
-            )
+            if self.type == "ingoing":
+                room = LiveChatRoom.objects.get(
+                    connector=self.connector,
+                    token=connector_token,
+                    room_id=self.message.get("id"),
+                )
+            else:
+                room = LiveChatRoom.objects.get(
+                    connector=self.connector, token=connector_token, open=True
+                )
             self.logger_info(f"get_room, got {room} - {room.id}")
             # if check_if_open:
             #     self.logger_info("checking if room is open")
@@ -1072,33 +1081,60 @@ class Connector:
                 else:
                     self.logger_info("MESSAGE ALREADY SENT. IGNORING.")
         if self.connector.server.type == "chatwoot":
+            conversation_id = self.message.get("id")
+            # get room early, as ingoing always will have a room
+
             if (
                 self.message.get("event") == "message_created"
                 and self.message.get("message_type") == "outgoing"
             ):
                 message, created = self.register_message()
                 if not message.delivered:
-                    self.outgo_text_message(
-                        self.message.get("content"),
-                        agent_name=self.message.get("sender", {}).get("name"),
-                    )
+                    # only send text if message has content
+                    if self.message.get("content"):
+                        self.outgo_text_message(
+                            self.message.get("content"),
+                            agent_name=self.message.get("sender", {}).get("name"),
+                        )
+                    if self.message.get("attachments"):
+                        # TODO treat attachments
+                        for attachment in self.message.get("attachments"):
+                            # TODO: create one new message for each attachment,
+                            # so we can guarantee it's deliverability
+                            # build url using the server url
+                            data_url = attachment.get("data_url")
+                            data_url_parsed = urllib.parse.urlparse(data_url)
+                            server_url_parsed = urllib.parse.urlparse(
+                                self.connector.server.url
+                            )
+                            replaced = data_url_parsed._replace(
+                                scheme=server_url_parsed.scheme,
+                                netloc=server_url_parsed.netloc,
+                            )
+
+                            if attachment.get("file_type") in [
+                                "file",
+                                "image",
+                                "video",
+                                "audio",
+                            ]:
+                                file_url = replaced.geturl()
+                                mime = mimetypes.guess_type(file_url)[0]
+                                self.outgo_file_message(
+                                    message={}, file_url=file_url, mime=mime
+                                )
+
             if self.message.get("event") == "conversation_status_changed":
                 message, created = self.register_message()
-                conversation_id = self.message.get("id")
+                room = self.get_room(create=False)
                 if self.message.get("status") == "resolved":
-                    room = self.get_room(create=False)
                     # close message
                     self.logger_info(f"CLOSING CONVERSATION: {conversation_id}")
                     room.open = False
                     room.save()
                 elif self.message.get("status") == "open":
                     # message was reopened, get the exact livechat and reopen it
-
                     self.logger_info(f"REOPENING CONVERSATION: {conversation_id}")
-                    visitor_token = self.get_visitor_token()
-                    room = self.connector.rooms.get(
-                        room_id=conversation_id, token=visitor_token
-                    )
                     room.open = True
                     room.save()
 

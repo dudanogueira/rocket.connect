@@ -1096,7 +1096,7 @@ class Connector(ConnectorBase):
             self.message_object.save()
         return sent
 
-    def outgo_file_message(self, message, agent_name=None):
+    def outgo_file_message(self, message, file_url=None, mime=None, agent_name=None):
         # if its audio, treat different
         # ppt = False
         # if message["file"]["type"] == "audio/mpeg":
@@ -1107,26 +1107,32 @@ class Connector(ConnectorBase):
         # the url to get the uploaded file may be different
         # eg: the publicFilePath is public, but waautomate is running inside
         # docker
-        file_url = (
-            self.connector.server.url
-            + message["attachments"][0]["title_link"]
-            + "?"
-            + urlparse.urlparse(message["fileUpload"]["publicFilePath"]).query
-        )
+        if not file_url:
+            file_url = (
+                self.connector.server.url
+                + message["attachments"][0]["title_link"]
+                + "?"
+                + urlparse.urlparse(message["fileUpload"]["publicFilePath"]).query
+            )
         content = base64.b64encode(requests.get(file_url).content).decode("utf-8")
-        mime = self.message["messages"][0]["fileUpload"]["type"]
+        if not mime:
+            mime = self.message["messages"][0]["fileUpload"]["type"]
         payload = {
             "phone": self.get_visitor_id(),
             "base64": f"data:{mime};base64,{content}",
             "isGroup": False,
         }
-        if settings.DEBUG:
-            print("PAYLOAD OUTGOING FILE: ", payload)
+
         session = self.get_request_session()
         url = self.connector.config["endpoint"] + "/api/{}/send-file-base64".format(
             self.connector.config["instance_name"]
         )
+        if settings.DEBUG:
+            print("PAYLOAD OUTGOING FILE: ", payload)
         sent = session.post(url, json=payload)
+        if settings.DEBUG:
+            print("PAYLOAD OUTGOING FILE RESPONSE: ", sent.json())
+
         if sent.ok:
             timestamp = int(time.time())
             if settings.DEBUG:
