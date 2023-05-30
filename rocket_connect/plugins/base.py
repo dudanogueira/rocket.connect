@@ -1088,6 +1088,7 @@ class Connector:
             if (
                 self.message.get("event") == "message_created"
                 and self.message.get("message_type") == "outgoing"
+                and not self.message.get("private")
             ):
                 message, created = self.register_message()
                 if not message.delivered:
