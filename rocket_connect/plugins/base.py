@@ -175,54 +175,84 @@ class Connector:
             pass
 
     def outcome_file(self, base64_data, room_id, mime, filename=None, description=None):
-        if settings.DEBUG:
-            print("OUTCOMING FILE TO ROCKETCHAT")
-        # prepare payload
-        filedata = base64.b64decode(base64_data)
-        extension = mimetypes.guess_extension(mime)
-        if not filename:
-            # random filename
-            filename = "".join(
-                random.choices(string.ascii_letters + string.digits, k=16)
-            )
-        # write file to temp file
-        # TODO: maybe dont touch the hard drive, keep it buffer
-        with tempfile.NamedTemporaryFile(suffix=extension) as tmp:
-            tmp.write(filedata)
-            headers = {"x-visitor-token": self.get_visitor_token()}
-            # TODO: open an issue to be able to change the ID of the uploaded file like a message allows
-            files = {"file": (filename, open(tmp.name, "rb"), mime)}
-            data = {}
-            if description:
-                data["description"] = description
-            url = "{}/api/v1/livechat/upload/{}".format(
-                self.connector.server.url, room_id
-            )
-            deliver = requests.post(url, headers=headers, files=files, data=data)
-            self.logger_info(f"RESPONSE OF FILE OUTCOME: {deliver.json()}")
-            timestamp = int(time.time())
-            if self.message_object:
-                self.message_object.payload[timestamp] = {
-                    "data": "sent attached file to rocketchat"
-                }
-            if deliver.ok:
-                if settings.DEBUG and deliver.ok:
-                    print("teste, ", deliver)
-                    print("OUTCOME FILE RESPONSE: ", deliver.json())
-                self.message_object.response[timestamp] = deliver.json()
-                self.message_object.delivered = deliver.ok
-                self.message_object.save()
-
-            if self.connector.config.get(
-                "outcome_attachment_description_as_new_message", True
-            ):
+        if self.connector.server.type == "rocketchat":
+            if settings.DEBUG:
+                print("OUTCOMING FILE TO ROCKETCHAT")
+            # prepare payload
+            filedata = base64.b64decode(base64_data)
+            extension = mimetypes.guess_extension(mime)
+            if not filename:
+                # random filename
+                filename = "".join(
+                    random.choices(string.ascii_letters + string.digits, k=16)
+                )
+            # write file to temp file
+            # TODO: maybe dont touch the hard drive, keep it buffer
+            with tempfile.NamedTemporaryFile(suffix=extension) as tmp:
+                tmp.write(filedata)
+                headers = {"x-visitor-token": self.get_visitor_token()}
+                # TODO: open an issue to be able to change the ID of the uploaded file like a message allows
+                files = {"file": (filename, open(tmp.name, "rb"), mime)}
+                data = {}
                 if description:
-                    description_message_id = self.get_message_id() + "_description"
-                    self.outcome_text(
-                        room_id, description, message_id=description_message_id
-                    )
+                    data["description"] = description
+                url = "{}/api/v1/livechat/upload/{}".format(
+                    self.connector.server.url, room_id
+                )
+                deliver = requests.post(url, headers=headers, files=files, data=data)
+                self.logger_info(f"RESPONSE OF FILE OUTCOME: {deliver.json()}")
+                timestamp = int(time.time())
+                if self.message_object:
+                    self.message_object.payload[timestamp] = {
+                        "data": "sent attached file to rocketchat"
+                    }
+                if deliver.ok:
+                    if settings.DEBUG and deliver.ok:
+                        print("teste, ", deliver)
+                        print("OUTCOME FILE RESPONSE: ", deliver.json())
+                    self.message_object.response[timestamp] = deliver.json()
+                    self.message_object.delivered = deliver.ok
+                    self.message_object.save()
 
-            return deliver
+                if self.connector.config.get(
+                    "outcome_attachment_description_as_new_message", True
+                ):
+                    if description:
+                        description_message_id = self.get_message_id() + "_description"
+                        self.outcome_text(
+                            room_id, description, message_id=description_message_id
+                        )
+
+                return deliver
+        elif self.connector.server.type == "chatwoot":
+            headers = {
+                # "Content-Type": 'multipart/form-data; boundary=----WebKitFormBoundary',
+                "api_access_token": self.connector.server.secret_token
+            }
+            with tempfile.NamedTemporaryFile(suffix=".png") as tmp:
+                filedata = base64.b64decode(base64_data)
+                tmp.write(filedata)
+
+                url = "{}/api/v1/accounts/{}/conversations/{}/messages".format(
+                    self.connector.server.url,
+                    self.connector.server.config.get("account_id"),
+                    self.room.room_id,
+                )
+                msg = self.message.get("caption")
+
+                fields = {
+                    "attachments[]": (tmp.name, open(tmp.name, "rb"), mime),
+                    "content": msg,
+                    "message_type": "incoming",
+                }
+                boundary = "----WebKitFormBoundary" + "".join(
+                    random.sample(string.ascii_letters + string.digits, 16)
+                )
+
+                m = MultipartEncoder(fields=fields, boundary=boundary)
+                headers["Content-Type"] = m.content_type
+                response = requests.post(url, headers=headers, data=m)
+                return response
 
     def outcome_text(self, room_id, text, message_id=None):
         deliver = self.room_send_text(room_id, text, message_id)
@@ -871,7 +901,7 @@ class Connector:
             return new_message
 
     def register_message(self, type=None):
-        self.logger_info(f"REGISTERING MESSAGE: {json.dumps(self.message)}")
+        self.logger_info(f"REGISTERING MESSAGE: {self.get_message_id()}")
         try:
             if not type:
                 type = self.type
