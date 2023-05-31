@@ -788,10 +788,12 @@ class Connector(ConnectorBase):
                                 except self.connector.messages.model.DoesNotExist:
                                     file_to_send = None
                                 if file_to_send:
+                                    filename = self.message.get("filename")
                                     file_sent = self.outcome_file(
                                         file_to_send,
                                         room.room_id,
                                         mime,
+                                        filename=filename,
                                         description=self.message.get("quotedMsg").get(
                                             "caption", None
                                         ),
