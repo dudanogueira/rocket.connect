@@ -126,7 +126,6 @@ services:
       timeout: 10s
       retries: 3
     command: /start-flower
-    ports: []
     networks:
       - default
 
