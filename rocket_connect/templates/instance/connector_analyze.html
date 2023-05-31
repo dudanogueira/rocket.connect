@@ -3,9 +3,13 @@
 {% block content %}
     <nav class="breadcrumb">
         <a class="breadcrumb-item" href="{% url 'home' %}">home</a>
-        <a class="breadcrumb-item"
-           href="{% url 'instance:server_detail' connector.server.external_token %}">
-           <img src="{{connector.server.get_icon}}" width="20px"/> {{ connector.server }} </a>
+        <span class="breadcrumb-item">
+
+            <img src="{{connector.server.get_icon}}" width="20px"/>
+            <a  href="{% url 'instance:server_detail' connector.server.external_token %}">
+                {{ connector.server }}
+            </a>
+        </span>
         <span class="breadcrumb-item active">{{ connector }}</span>
     </nav>
     <h3>
