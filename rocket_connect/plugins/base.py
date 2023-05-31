@@ -251,6 +251,12 @@ class Connector:
                     "message_type": "incoming",
                 }
 
+                if msg and self.connector.config.get(
+                    "outcome_attachment_description_as_new_message", True
+                ):
+                    description_message_id = self.get_message_id() + "_description"
+                    self.outcome_text(self.room.room_id, msg)
+
                 boundary = "----WebKitFormBoundary" + "".join(
                     random.sample(string.ascii_letters + string.digits, 16)
                 )
@@ -1427,6 +1433,7 @@ class BaseConnectorConfigForm(forms.Form):
     outcome_attachment_description_as_new_message = forms.BooleanField(
         required=False,
         help_text="This might be necessary for the bot to react accordingly",
+        initial=True,
     )
     add_agent_name_at_close_message = forms.BooleanField(required=False)
     supress_agent_name = forms.CharField(
