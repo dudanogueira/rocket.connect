@@ -229,7 +229,9 @@ class Connector:
                 # "Content-Type": 'multipart/form-data; boundary=----WebKitFormBoundary',
                 "api_access_token": self.connector.server.secret_token
             }
-            with tempfile.NamedTemporaryFile(suffix=".png") as tmp:
+            # DISCOVER THE EXTENSION
+            extension = mimetypes.guess_extension(mime)
+            with tempfile.NamedTemporaryFile(suffix=extension) as tmp:
                 filedata = base64.b64decode(base64_data)
                 tmp.write(filedata)
 
@@ -239,12 +241,15 @@ class Connector:
                     self.room.room_id,
                 )
                 msg = self.message.get("caption")
+                if not filename:
+                    filename = tmp.name
 
                 fields = {
-                    "attachments[]": (tmp.name, open(tmp.name, "rb"), mime),
+                    "attachments[]": (filename, open(tmp.name, "rb"), mime),
                     "content": msg,
                     "message_type": "incoming",
                 }
+
                 boundary = "----WebKitFormBoundary" + "".join(
                     random.sample(string.ascii_letters + string.digits, 16)
                 )

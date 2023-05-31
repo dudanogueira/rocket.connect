@@ -837,19 +837,44 @@ class Connector(ConnectorBase):
 
                     # upload type
                     else:
+                        body = self.message.get("body")
                         if self.message.get("type") == "ptt":
                             self.handle_ptt()
+                        if self.message.get("type") in ["poll_creation"]:
+                            return JsonResponse({})
+                            # download the media file
+                            # NOT WORKING FOR NOW
+                            # session = self.get_request_session()
+                            # endpoint = "{0}/api/{1}/get-media-by-message/{2}".format(
+                            #     self.config.get("endpoint"),
+                            #     self.config.get("instance_name"),
+                            #     self.message.get("id")
+                            # )
+                            # # payload = {
+                            # #     "messageId": self.message.get("id")
+                            # # }
+                            # payload = None
+                            # media = session.get(endpoint, json=payload).json()
+
                         # media type
                         mime = self.message.get("mimetype")
-                        file_sent = self.outcome_file(
-                            self.message.get("body"),
-                            room.room_id,
-                            mime,
-                            description=self.message.get("caption", None),
-                        )
-                        if file_sent.ok:
+                        filename = self.message.get("filename")
+                        if body:
+                            file_sent = self.outcome_file(
+                                body,
+                                room.room_id,
+                                mime,
+                                description=self.message.get("caption", None),
+                                filename=filename,
+                            )
+                            if file_sent.ok:
+                                self.message_object.delivered = True
+                                self.message_object.save()
+                        else:
+                            # COULD NOT SEND MESSAGE WITHOUT BODY. MARK AS DELIVERED
                             self.message_object.delivered = True
                             self.message_object.save()
+
                 else:
                     self.logger_info(
                         "Message Object {} Already delivered. Ignoring".format(
