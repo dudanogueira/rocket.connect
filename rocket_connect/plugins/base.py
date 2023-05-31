@@ -177,14 +177,15 @@ class Connector:
     def outcome_file(self, base64_data, room_id, mime, filename=None, description=None):
         if self.connector.server.type == "rocketchat":
             if settings.DEBUG:
-                print("OUTCOMING FILE TO ROCKETCHAT")
+                print("OUTCOMING FILE TO ROCKETCHAT: ", filename)
             # prepare payload
             filedata = base64.b64decode(base64_data)
             extension = mimetypes.guess_extension(mime)
             if not filename:
                 # random filename
-                filename = "".join(
-                    random.choices(string.ascii_letters + string.digits, k=16)
+                filename = (
+                    "".join(random.choices(string.ascii_letters + string.digits, k=16))
+                    + extension
                 )
             # write file to temp file
             # TODO: maybe dont touch the hard drive, keep it buffer
