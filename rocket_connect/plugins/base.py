@@ -578,8 +578,8 @@ class Connector:
             )
         except LiveChatRoom.DoesNotExist:
             if create:
-                self.logger_info("get_room, didn't got room")
                 if self.config.get("open_room", True):
+                    self.logger_info("get_room, didn't got room, opening...")
                     # room not available, let's create one.
                     # first, create contact in chatwoot
                     visitor_json = self.get_visitor_json(department)
@@ -589,8 +589,8 @@ class Connector:
                             visitor_json, self.get_visitor_avatar_url()
                         )
                     )
-                    if settings.DEBUG:
-                        print("VISITOR REGISTERING: ", visitor_object)
+                    self.logger_info(f"VISITOR REGISTERING: {visitor_object}")
+
                     # we registered the visitor
                     # now we register the conversation
                     if visitor_object:
@@ -607,13 +607,16 @@ class Connector:
                             )
                         )
                         if settings.DEBUG:
-                            print("REGISTERING ROOM, ", chatwoot_room)
+                            self.logger_info(f"REGISTERING ROOM: {chatwoot_room}")
                         if chatwoot_room:
                             room = LiveChatRoom.objects.create(
                                 connector=self.connector,
                                 token=connector_token,
                                 room_id=chatwoot_room.get("id"),
                                 open=True,
+                            )
+                            self.logger_info(
+                                f"CREATED ROCKETCONNECT CONVERSATION: {room.id}"
                             )
 
         self.room = room
@@ -907,6 +910,7 @@ class Connector:
                 self.connector.server.config.get("account_id"),
                 room_id,
             )
+            self.logger_info(f"CHATWOOT URL: {url}")
             payload = {"content": text, "message_type": "incoming"}
             headers = {"api_access_token": self.connector.server.secret_token}
             new_message = requests.post(url, headers=headers, json=payload)
@@ -1179,13 +1183,15 @@ class Connector:
                 if self.message.get("status") == "resolved":
                     # close message
                     self.logger_info(f"CLOSING CONVERSATION: {conversation_id}")
-                    room.open = False
-                    room.save()
+                    if self.room:
+                        room.open = False
+                        room.save()
                 elif self.message.get("status") == "open":
                     # message was reopened, get the exact livechat and reopen it
                     self.logger_info(f"REOPENING CONVERSATION: {conversation_id}")
-                    room.open = True
-                    room.save()
+                    if self.room:
+                        self.room.open = True
+                        self.room.save()
 
             return JsonResponse(
                 {

@@ -11,7 +11,7 @@ import vobject
 from django import forms
 from django.conf import settings
 from django.core import validators
-from django.http import HttpResponse, JsonResponse
+from django.http import JsonResponse
 from django.utils import timezone
 from instance import tasks
 
@@ -652,9 +652,9 @@ class Connector(ConnectorBase):
                 message, created = self.register_message()
                 if not message.delivered:
                     # get rocket client
-                    self.get_rocket_client()
-                    if not self.rocket:
-                        return HttpResponse("Rocket Down!", status=503)
+                    # self.get_rocket_client()
+                    # if not self.rocket:
+                    #     return HttpResponse("Rocket Down!", status=503)
                     # department triage is enabled
                     if self.config.get("department_triage"):
                         # message has no department, always

@@ -3,7 +3,7 @@ import json
 import requests
 from django import forms
 from django.core import validators
-from django.http import HttpResponse, JsonResponse
+from django.http import JsonResponse
 
 from .base import BaseConnectorConfigForm
 from .base import Connector as ConnectorBase
@@ -60,17 +60,21 @@ class Connector(ConnectorBase):
         return output
 
     def status_session(self):
-        # GET {{baseUrl}}/instance/connectionState/{{instance}}
-        secret_key = self.config.get("secret_key")
-        instance_name = self.config.get("instance_name")
-        headers = {"apiKey": secret_key, "Content-Type": "application/json"}
-        endpoint_status = "{}/instance/connect/{}".format(
-            self.config.get("endpoint"), instance_name
-        )
-        status_instance_response = requests.request(
-            "GET", endpoint_status, headers=headers
-        )
-        return status_instance_response.json()
+        if self.config.get("endpoint", None):
+            # GET {{baseUrl}}/instance/connectionState/{{instance}}
+            secret_key = self.config.get("secret_key")
+            instance_name = self.config.get("instance_name")
+            headers = {"apiKey": secret_key, "Content-Type": "application/json"}
+
+            endpoint_status = "{}/instance/connect/{}".format(
+                self.config.get("endpoint"), instance_name
+            )
+            status_instance_response = requests.request(
+                "GET", endpoint_status, headers=headers
+            )
+            return status_instance_response.json()
+        else:
+            return {"error": "no endpoint"}
 
     def close_session(self):
         # DELETE {{baseUrl}}/instance/logout/{{instance}}
@@ -90,7 +94,6 @@ class Connector(ConnectorBase):
     #
 
     def incoming(self):
-        # output qrcode
         message = json.dumps(self.message)
         self.logger_info(f"INCOMING MESSAGE: {message}")
         #
@@ -109,7 +112,7 @@ class Connector(ConnectorBase):
                 self.connector.name, json.dumps(data)
             )
             if data.get("state") == "open":
-                text = text + "\n" + " :white_check_mark: " * 6
+                text = text + "\n" + " ✅ " * 6
             self.outcome_admin_message(text)
         #
         # message upsert
@@ -118,9 +121,6 @@ class Connector(ConnectorBase):
             department = None
             message, created = self.register_message()
             if not message.delivered:
-                self.get_rocket_client()
-                if not self.rocket:
-                    return HttpResponse("Rocket Down!", status=503)
                 # get room
                 room = self.get_room(department)
                 if not room:
@@ -128,13 +128,18 @@ class Connector(ConnectorBase):
                 #
                 # oucome if text
                 #
-                if self.message.get("data", {}).get("message", {}).get("conversation"):
-                    message = (
+                if (
+                    self.message.get("data", {})
+                    .get("message", {})
+                    .get("extendedTextMessage")
+                ):
+                    text = (
                         self.message.get("data", {})
                         .get("message", {})
-                        .get("conversation")
+                        .get("extendedTextMessage")
+                        .get("text")
                     )
-                    deliver = self.outcome_text(room.room_id, message)
+                    deliver = self.outcome_text(room.room_id, text)
                     print(deliver)
                 #
                 # outcome if image
@@ -166,7 +171,7 @@ class Connector(ConnectorBase):
         return id
 
     def get_visitor_name(self):
-        name = self.message.get("data", {}).get("name")
+        name = self.message.get("data", {}).get("pushName")
         if name:
             return name
         return None
@@ -175,20 +180,20 @@ class Connector(ConnectorBase):
         remoteJid = self.message.get("data", {}).get("key", {}).get("remoteJid")
         if remoteJid:
             return remoteJid.split("@")[0]
+
         return None
 
     def get_visitor_username(self):
         visitor_username = f"whatsapp:{self.get_visitor_phone()}@c.us"
         return visitor_username
 
-    def get_visitor_id(self):
+    def get_incoming_visitor_id(self):
         return self.get_visitor_phone() + "@c.us"
 
 
 class ConnectorConfigForm(BaseConnectorConfigForm):
     webhook = forms.CharField(
-        help_text="Where WPPConnect will send the events",
-        required=True,
+        help_text="Where WPPConnect will send the events", required=True, initial=""
     )
     endpoint = forms.CharField(
         help_text="Where your WPPConnect is installed",

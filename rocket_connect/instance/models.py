@@ -1,5 +1,6 @@
 import datetime
 import json
+import logging
 import uuid
 
 import requests
@@ -13,6 +14,8 @@ from django_celery_beat.models import CrontabSchedule, PeriodicTask
 from envelope.models import Message
 from rocketchat_API.APIExceptions.RocketExceptions import RocketAuthenticationException
 from rocketchat_API.rocketchat import RocketChat
+
+logger = logging.getLogger(__name__)
 
 
 def random_string(size=20):
@@ -566,6 +569,7 @@ class Server(models.Model):
             # contact found
             if contact_search.json().get("payload"):
                 output = contact_search.json()
+                contact_status = "found"
             else:
                 # contact not found, create one
                 url = "{}/api/v1/accounts/{}/contacts".format(
@@ -574,12 +578,15 @@ class Server(models.Model):
                 payload = {
                     "name": visitor_json.get("name"),
                     "identifier": visitor_json.get("token"),
-                    "source_id": visitor_json.get("token"),
                     "phone_number": "+" + visitor_json.get("phone"),
                     "avatar_url": avatar_url,
                 }
                 contact_new = requests.post(url, headers=headers, json=payload)
                 output = contact_new.json()
+                contact_status = "created"
+        logger.info(
+            f"CHATWOOT CONTACT ({contact_status}) URL {url} / output: {output} "
+        )
         return output
 
     def chatwoot_get_or_create_conversation(
@@ -593,6 +600,10 @@ class Server(models.Model):
         )
         conversations_list = requests.get(url, headers=headers)
         conversation_json = conversations_list.json()
+        logger.debug(
+            f"CHATWOOT CONTACT ID ({contact_id}) CONVERSATIONS {conversation_json}"
+        )
+
         if conversations_list.ok:
             if not conversation_json.get("payload"):
                 create = True
@@ -600,26 +611,25 @@ class Server(models.Model):
                 # get first open conversation from this contact
                 open_item = None
                 for item in conversation_json.get("payload"):
-                    if item["status"] == "open":
+                    if (
+                        item["status"] == "open"
+                        and item["inbox_id"] == connector_inbox_id
+                    ):
                         open_item = item
                         break
         # open new conversation
         if open_item:
+            logger.debug(f"CHATWOOT GOT CONVERSATION ({open_item})")
             return open_item
         else:
             create = True
         if create:
-            payload = {
-                "identifier": identifier,
-                "inbox_id": connector_inbox_id,
-                "contact_id": contact_id,
-                "status": "open",
-            }
+            payload = {"inbox_id": connector_inbox_id, "contact_id": contact_id}
             url = "{}/api/v1/accounts/{}/conversations".format(
                 self.url, self.config.get("account_id")
             )
-            new_conversation = requests.post(url, headers=headers, json=payload)
-            return new_conversation.json()
+            new_conversation = requests.post(url, headers=headers, json=payload).json()
+            return new_conversation
 
     uuid = models.UUIDField(default=uuid.uuid4, editable=False)
     owners = models.ManyToManyField(
