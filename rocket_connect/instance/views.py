@@ -3,7 +3,6 @@ import json
 import uuid
 
 import pytz
-from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Max, Q
@@ -86,8 +85,6 @@ def server_endpoint(request, server_id):
         # income message, we have a body
         if request.body:
             raw_message = json.loads(request.body)
-            if settings.DEBUG:
-                print("DEBUG: NEW SERVER PAYLOAD: ", raw_message)
 
             #
             # roketchat test message
