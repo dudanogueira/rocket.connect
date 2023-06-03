@@ -110,7 +110,10 @@ get a message connector class initialized
 Resetting the dev environment
 ----------------------------------------------------------------------
 Run:
-docker compose -f local.yml -f chatwoot-compose.yml -f rocketchat-compose-yml down -v
+
+    ::
+        
+        docker compose -f local.yml -f chatwoot-compose.yml -f rocketchat-compose.yml down -v
 
 
 
