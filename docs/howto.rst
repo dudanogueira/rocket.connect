@@ -4,10 +4,12 @@ How To
 Run the development stack
 ----------------------------------------------------------------------
 
-To run the development stack, you must haver docker and docker compose properly installed. You should run
+To run the development stack, you must haver docker and docker compose properly installed. 
+
+For convenience, RocketChat and ChatWoot are on separte files now.
     ::
     
-        docker compose -f local.yml -f chatwoot.compose.yml up -d
+        docker compose -f local.yml -f rocketchat-compose.yml -f chatwoot-compose.yml up -d
 
 Now you should wait a little bit. check the logs to see whats happening:
     ::
@@ -34,28 +36,32 @@ If everything went fine, you should have the following running services and expo
 * http://localhost:8000 - Rocket Connect Admin User/Password: admin/admin
 * http://localhost:3000 - Rocket Chat Server. User/Password: adminrc/admin or agent1/agent1 or manager1/manager1
 
-
-* http://localhost:4000 - 
-ChatWoot Server. User/Password: register a new one. Go to http://localhost:4000/super_admin/sign_in, login, and get your token at http://localhost:4000/super_admin/access_tokens. You will need it later on as your ApiKey. This ApiKey you will add as Secret Token to http://localhost:8000/admin/instance/server/2/change/
+* http://localhost:4000 - ChatWoot Server. User/Password: register a new one and then get your token at the Super Admin console. You will need it later on as your ApiKey. This ApiKey you will update as Secret Token to the Chatwoot server
 
 * http://localhost:80 - Livechat Widget Demo. A simple website with livechat installed.
 * http://localhost:5555 - Flower, where you see how the tasks are running. User/Password: admin/admin
 * http://localhost:8025 - Mailhog - A nice mailserver. The stack is configured to deliver emails there
 * http://localhost:21465/api-docs/ - WPPCONNECT API DOCS
-* http://localhost:3001/ - Grafana Interface with Monitoring. admin/admin, then go to Dashboards > Manage > Rocket.Chat Metrics
 
-Generating and Scanning the QR CODE
+Generating and Scanning the QR CODE in ROCKET.CHAT
 ----------------------------------------------------------------------
 
-Go to Rocket.Connect (http://localhost:8000) login in (admin/admin), pick de default registered server, then go to WPPCONNECT Connector page.
+Go to Rocket.Connect (http://localhost:8000) login in (admin/admin), pick de default registered server, then go the Connector page.
 click at Initialize. Wait a little bit, and then click at get status.
-You should see the QR code at the website.
+You should see the QR code at the correspnding chat platform.
 
 .. figure:: wppconnect-launch-messages.png
 
 At the end, you should see the QR CODE, that should be scanned with the device you want to PAIR.
 
-Active Chat
+Generating and Scanning the QR CODE in ChatWoot
+
+The same goes to chatwoot. After initializing its connectors, you should get one Inbox for ROCKETCONNECT itself, where there will be conversations for each connector,
+and an inbox per connector, where the incoming conversations and messages will be created:
+
+.. figure:: chatwoot-rocketconnect.png
+
+Active Chat (for Rocket.Chat)
 ----------------------------------------------------------------------
 WPPCONNECT Connector comes with active chat. 
 
@@ -78,7 +84,7 @@ Which means that
 will also work.
 
 
-Monitoring with Grafana
+Monitoring with Grafana (REMOVED)
 ----------------------------------------------------------------------
 
 .. figure:: grafana-monitoring.png
@@ -104,9 +110,7 @@ get a message connector class initialized
 Resetting the dev environment
 ----------------------------------------------------------------------
 Run:
-docker compose -f local.yml stop
-docker compose -f local.yml rm
-docker volume rm $(docker volume ls | grep rocketconnect | awk '{print $2}')
+docker compose -f local.yml -f chatwoot-compose.yml -f rocketchat-compose-yml down -v
 
 
 
@@ -141,14 +145,16 @@ you need to change the "generate this" with the token facebook will give you.
 
 After that messages to your facebook account should be connected to RocketChat. If something goes wrong, facebook will stop sending messages for a while. That's normal. 
 
-WPPCONNECT
+Supported Connectors
 ----------------------------------------------------------------------
 
-`WPPCONNECT <https://wppconnect.io/>`_ is our currently community supported connector.
+`WPPCONNECT <https://wppconnect.io/>`_ 
+
+`CODECHAT <https://github.com/code-chat-br/whatsapp-api>`_ 
 
 
 
-META CLOUD API (SPONSORS NEEDED)
+META CLOUD API (SPONSORED)
 ----------------------------------------------------------------------
 
 `SPONSORS NEEDED <https://github.com/sponsors/dudanogueira/>`_
