@@ -1,7 +1,12 @@
+import base64
 import json
+import os
+import time
+import urllib.parse as urlparse
 
 import requests
 from django import forms
+from django.conf import settings
 from django.core import validators
 from django.http import JsonResponse
 
@@ -181,6 +186,56 @@ class Connector(ConnectorBase):
         self.logger_info(
             f"OUTGO TEXT MESSAGE. URL: {url}. PAYLOAD {payload} RESULT: {sent.json()}"
         )
+        return sent
+
+    def outgo_file_message(self, message, file_url=None, mime=None, agent_name=None):
+        caption = None
+        if not file_url:
+            file_url = (
+                self.connector.server.url
+                + message["attachments"][0]["title_link"]
+                + "?"
+                + urlparse.urlparse(message["fileUpload"]["publicFilePath"]).query
+            )
+            caption = message["attachments"][0].get("description")
+        content = base64.b64encode(requests.get(file_url).content).decode("utf-8")
+        file_name = os.path.basename(file_url).split("?")[0]
+        if not mime:
+            mime = self.message["messages"][0]["fileUpload"]["type"]
+        mediatype = mime.split("/")[0]
+        if mediatype == "application":
+            mediatype = "document"
+        payload = {
+            "number": self.get_ingoing_visitor_phone(),
+            "options": {"delay": self.connector.config.get("send_message_delay", 1200)},
+            "mediaMessage": {
+                "mediatype": mediatype,
+                "fileName": file_name,
+                "media": content,
+            },
+        }
+        if caption:
+            payload["mediaMessage"]["caption"] = str(caption)
+        url = self.connector.config["endpoint"] + "/message/SendMedia/{}".format(
+            self.connector.config["instance_name"]
+        )
+        headers = {
+            "apiKey": self.config.get("secret_key"),
+            "Content-Type": "application/json",
+        }
+        sent = requests.post(url, headers=headers, json=payload)
+        self.logger_info(
+            f"OUTGOING FILE. URL: {url}. PAYLOAD {payload} response: {sent.json()}"
+        )
+        if sent.ok:
+            timestamp = int(time.time())
+            if settings.DEBUG:
+                self.logger.info(f"RESPONSE OUTGOING FILE to url {url}: {sent.json()}")
+            self.message_object.payload[timestamp] = payload
+            self.message_object.delivered = True
+            self.message_object.response[timestamp] = sent.json()
+            self.message_object.save()
+            # self.send_seen()
         return sent
 
     #

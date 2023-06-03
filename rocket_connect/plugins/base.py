@@ -1128,7 +1128,7 @@ class Connector:
                             # regular message, maybe with attach
                             if message.get("attachments", {}):
                                 # send file
-                                self.outgo_file_message(message, agent_name=agent_name)
+                                self.outgo_file_message(message, agent_name=agent_name),
                             else:
                                 self.outgo_text_message(message, agent_name=agent_name)
                 else:
