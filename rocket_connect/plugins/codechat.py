@@ -161,7 +161,27 @@ class Connector(ConnectorBase):
     #
 
     def outgo_text_message(self, message, agent_name=None):
-        print("MESSAGE!!!", message)
+        if type(message) == str:
+            content = message
+        else:
+            content = message["msg"]
+        payload = {
+            "number": self.get_ingoing_visitor_phone(),
+            "options": {"delay": self.connector.config.get("send_message_delay", 1200)},
+            "textMessage": {"text": content},
+        }
+        url = self.connector.config["endpoint"] + "/message/SendText/{}".format(
+            self.connector.config["instance_name"]
+        )
+        headers = {
+            "apiKey": self.config.get("secret_key"),
+            "Content-Type": "application/json",
+        }
+        sent = requests.post(url, headers=headers, json=payload)
+        self.logger_info(
+            f"OUTGO TEXT MESSAGE. URL: {url}. PAYLOAD {payload} RESULT: {sent.json()}"
+        )
+        return sent
 
     #
     # MESSAGE METADA DATA
@@ -210,9 +230,14 @@ class ConnectorConfigForm(BaseConnectorConfigForm):
         help_text="CodeChat instance name", validators=[validators.validate_slug]
     )
 
+    send_message_delay = forms.IntegerField(
+        help_text="CodeChat delay to send message. Defaults to 1200", initial=1200
+    )
+
     field_order = [
         "webhook",
         "endpoint",
         "secret_key",
         "instance_name",
+        "send_message_delay",
     ]

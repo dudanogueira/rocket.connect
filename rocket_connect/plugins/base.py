@@ -57,7 +57,7 @@ class Connector:
 
     def logger_info(self, message):
         output = (
-            f"{self.connector.server.name} ({self.connector.server.type}) > {self.connector} >"
+            f"{self.connector.server.name} ({self.connector.server.type}) > {self.connector} > "
             f"{self.type.upper()} > {message}"
         )
         if self.message:
@@ -1204,6 +1204,13 @@ class Connector:
                     "connector": self.connector.name,
                 }
             )
+
+    def get_ingoing_visitor_phone(self):
+        if self.connector.server.type == "rocketchat":
+            phone = self.message.get("visitor", {}).get("phone")
+            if phone:
+                return phone[0].get("phoneNumber")
+        return None
 
     def get_agent_name(self, message):
         agent_name = message.get("u", {}).get("name", {})
