@@ -65,6 +65,7 @@ class Command(BaseCommand):
             )
             connector.config = {
                 "webhook": "http://django:8000/connector/WPP_EXTERNAL_TOKEN/",
+                "token": connector.config.get("token"),
                 "endpoint": "http://wppconnect:21465",
                 "secret_key": "THISISMYSECURETOKEN",
                 "instance_name": "test",
@@ -102,6 +103,30 @@ class Command(BaseCommand):
             connector.connector_type = "wppconnect"
             connector.managers = "agent1,manager1"
             connector.department = "WPPCONNECT-DEPARTMENT"
+            connector.save()
+            if connector_created:
+                print("CONNECTOR CREATED: ", connector)
+            else:
+                print("CONNECTOR UPDATED: ", connector)
+
+            #
+            # create default codechat connector
+            #
+
+            connector, connector_created = server.connectors.get_or_create(
+                external_token="ROCKETCHAT_CODECHAT_EXTERNAL_TOKEN"
+            )
+            connector.config = {
+                "webhook": "http://django.local:8000/connector/ROCKETCHAT_CODECHAT_EXTERNAL_TOKEN/",
+                "endpoint": "http://codechat:8083",
+                "secret_key": "t8OOEeISKzpmc3jjcMqBWYSaJsafdefer",
+                "instance_name": "rocketchat_codechat_test",
+                "include_connector_status": True,
+                "enable_ack_receipt": True,
+                "outcome_attachment_description_as_new_message": True,
+            }
+            connector.name = "CODECHAT"
+            connector.connector_type = "codechat"
             connector.save()
             if connector_created:
                 print("CONNECTOR CREATED: ", connector)
@@ -178,6 +203,7 @@ class Command(BaseCommand):
                 "webhook": "http://django.local:8000/connector/CHATWOOT_WPP_EXTERNAL_TOKEN/",
                 "endpoint": "http://wppconnect:21465",
                 "secret_key": "THISISMYSECURETOKEN",
+                "token": connector.config.get("token"),
                 "instance_name": "chatwoot_wppconnect_test",
                 "include_connector_status": True,
                 "enable_ack_receipt": True,
