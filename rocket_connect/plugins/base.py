@@ -181,6 +181,10 @@ class Connector:
             # prepare payload
             filedata = base64.b64decode(base64_data)
             extension = mimetypes.guess_extension(mime)
+            if not extension:
+                if mime == "audio/ogg; codecs=opus":
+                    extension = ".ogg"
+
             if not filename:
                 # random filename
                 filename = (
