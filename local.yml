@@ -168,7 +168,7 @@ services:
         mode: host
 
   mongodb:
-    image: docker.io/bitnami/mongodb:${MONGODB_VERSION:-4.4}
+    image: docker.io/bitnami/mongodb:${MONGODB_VERSION:-5.0}
     restart: on-failure
     volumes:
       - local_rocket_mongodb_data:/bitnami/mongodb
@@ -235,6 +235,7 @@ services:
       - local_codechat_data:/codechat/instances
     command: ['node', './dist/src/main.js']
     environment:
+      - CHATWOOT_INSTALLATION_ONBOARDING=true
       - CORS_ORIGIN=* # Or separate by commas -  ex.: 'yourdomain1.com, yourdomain2.com'
       - CORS_METHODS=POST,GET,PUT,DELETE
       - CORS_CREDENTIALS=true
@@ -314,26 +315,3 @@ services:
     volumes:
       - ./compose/local/apache/site:/var/www/html
       - ./compose/local/apache/confs/additional.conf:/etc/apache2/conf-enabled/additional.conf
-
-  grafana:
-    image: grafana/grafana:8.2.5
-    ports:
-      - 3001:3000
-    volumes:
-      - ./compose/local/rocket_metrics/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
-      - ./compose/local/rocket_metrics/grafana/provisioning/dashboards/provider:/etc/grafana/provisioning/dashboards:ro
-      - ./compose/local/rocket_metrics/grafana/provisioning/dashboards/json-exports:/var/lib/grafana/dashboards:ro
-    depends_on:
-      - prometheus
-
-  prometheus:
-    image: quay.io/prometheus/prometheus:v2.31.1
-    ports:
-      - 9090:9090
-    command:
-      - --config.file=/etc/prometheus/prometheus.yml
-      - '--storage.tsdb.retention.time=12w'
-      - '--storage.tsdb.path=/prometheus'
-    volumes:
-      - local_prometeus_data:/prometheus
-      - ./compose/local/rocket_metrics/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro

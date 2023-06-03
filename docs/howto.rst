@@ -7,7 +7,7 @@ Run the development stack
 To run the development stack, you must haver docker and docker compose properly installed. You should run
     ::
     
-        docker compose -f local.yml up -d
+        docker compose -f local.yml -f chatwoot.compose.yml up -d
 
 Now you should wait a little bit. check the logs to see whats happening:
     ::
@@ -20,6 +20,11 @@ We have created a nice management command to setup everything for you.
     
         docker compose -f local.yml run --rm django python manage.py dev_settings
 
+Also, if playing with Chatwoot, you need to run:
+
+    ::
+
+        docker compose -f chatwoot-compose.yml run --rm rails bundle exec rails db:chatwoot_prepare
 
 
 You can `check what this command does <https://github.com/dudanogueira/rocket.connect/blob/master/rocket_connect/instance/management/commands/dev_settings.py>`_ to replicate it while deploying in production
@@ -28,6 +33,11 @@ If everything went fine, you should have the following running services and expo
 
 * http://localhost:8000 - Rocket Connect Admin User/Password: admin/admin
 * http://localhost:3000 - Rocket Chat Server. User/Password: adminrc/admin or agent1/agent1 or manager1/manager1
+
+
+* http://localhost:4000 - 
+ChatWoot Server. User/Password: register a new one. Go to http://localhost:4000/super_admin/sign_in, login, and get your token at http://localhost:4000/super_admin/access_tokens. You will need it later on as your ApiKey. This ApiKey you will add as Secret Token to http://localhost:8000/admin/instance/server/2/change/
+
 * http://localhost:80 - Livechat Widget Demo. A simple website with livechat installed.
 * http://localhost:5555 - Flower, where you see how the tasks are running. User/Password: admin/admin
 * http://localhost:8025 - Mailhog - A nice mailserver. The stack is configured to deliver emails there

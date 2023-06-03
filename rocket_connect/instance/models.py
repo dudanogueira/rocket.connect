@@ -123,8 +123,8 @@ class Server(models.Model):
                         )
                     info = [
                         "ROCKETCONNECT_INBOX_ID: "
-                        + str(self.config["rocketconnect_inbox_id"]),
-                        "VERSION: " + account_info.get("latest_chatwoot_version"),
+                        + str(self.config.get("rocketconnect_inbox_id")),
+                        "VERSION: " + str(account_info.get("latest_chatwoot_version")),
                     ]
 
                     self.save()
@@ -305,8 +305,9 @@ class Server(models.Model):
         task = PeriodicTask.objects.filter(
             task="instance.tasks.server_maintenance",
             kwargs__contains=self.external_token,
-        )
-        if not task.exists():
+        ).count()
+        print(task)
+        if not task:
             crontab = CrontabSchedule.objects.first()
             task = PeriodicTask.objects.create(
                 enabled=False,

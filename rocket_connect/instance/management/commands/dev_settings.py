@@ -24,141 +24,192 @@ class Command(BaseCommand):
         email.verified = True
         email.primary = True
         email.save()
-        # create default server and default connector
-        server, server_created = Server.objects.get_or_create(
-            name="rocketchat_dev_server"
-        )
-        if server_created:
-            print("SERVER CREATED")
-        else:
-            print("SERVER UPDATED")
-        # create default server tasks
-        installed_tasks = server.install_server_tasks()
-        print("TASKS INSTALLED: ", installed_tasks)
         #
-        server.url = "http://rocketchat:3000"
-        server.external_url = "http://localhost:3000"
-        server.admin_user = "adminrc"
-        server.admin_password = "admin"
-        server.bot_user = "bot"
-        server.bot_password = "bot"
-        server.managers = "admin,#manager_channel"
-        server.external_token = "SERVER_EXTERNAL_TOKEN"
-        server.owners.add(admin)
-        server.save()
+        # ROCKET.CHAT
+        #
+        rocket_chat = True
+        if rocket_chat:
+            print("HANDLING ROCKET.CHAT IN DJANGO")
+            # create default server and default connector
+            server, server_created = Server.objects.get_or_create(
+                name="rocketchat_dev_server"
+            )
+            if server_created:
+                print("SERVER CREATED")
+            else:
+                print("SERVER UPDATED")
+            # create default server tasks
+            installed_tasks = server.install_server_tasks()
+            print("TASKS INSTALLED: ", installed_tasks)
+            #
+            server.url = "http://rocketchat:3000"
+            server.external_url = "http://localhost:3000"
+            server.admin_user = "adminrc"
+            server.admin_password = "admin"
+            server.bot_user = "bot"
+            server.bot_password = "bot"
+            server.managers = "admin,#manager_channel"
+            server.external_token = "SERVER_EXTERNAL_TOKEN"
+            server.owners.add(admin)
+            server.save()
 
-        #
-        # create default asterisk
-        #
-        connector, connector_created = server.connectors.get_or_create(
-            external_token="ASTERISK_CONNECTOR"
-        )
-        connector.config = {
-            "queue_notify_map": {"*": "admin", "5002": "agent1,agent2,#general"},
-            "userevent_context_filter": ["satisfacao-atendimento"],
-            "notify_voicemail_template": "You've got a new Voicemail from Caller {{CallerIDNum}} at extension "
-            + "{{extension}} and time {{now|date:'SHORT_DATETIME_FORMAT'}}. You have now {{New}} new "
-            + "message{{New|pluralize}} and {{Old}} old{{New|pluralize}}",
-            "notify_abandoned_queue_template": "A Queue Call was abandoned by the caller just now "
-            + "({{now|date:'SHORT_DATETIME_FORMAT'}}). Caller: {{CallerIDName}} <{{CallerIDNum}}> at Queue {{Queue}}."
-            + "The position at queue was {{Position}} and the caller waited for {{waitseconds}}",
-        }
-        connector.name = "ASTERISK CONNECTOR"
-        connector.connector_type = "asterisk"
-        connector.managers = "agent1,manager1"
-        connector.save()
-        if connector_created:
-            print("CONNECTOR CREATED: ", connector)
-        else:
-            print("CONNECTOR UPDATED: ", connector)
+            #
+            # create default wppconnect
+            #
 
-        #
-        # create default wppconnect
-        #
-
-        connector, connector_created = server.connectors.get_or_create(
-            external_token="WPP_EXTERNAL_TOKEN"
-        )
-        connector.config = {
-            "webhook": "http://django:8000/connector/WPP_EXTERNAL_TOKEN/",
-            "endpoint": "http://wppconnect:21465",
-            "secret_key": "THISISMYSECURETOKEN",
-            "instance_name": "test",
-            "include_connector_status": True,
-            "enable_ack_receipt": True,
-            "outcome_attachment_description_as_new_message": True,
-            "active_chat_webhook_integration_token": "WPP_ZAPIT_TOKEN",
-            "session_management_token": "session_management_secret_token",
-            "department_triage_payload": {
-                "message": "Message for your buttons",
-                "options": {
-                    "title": "Title text",
-                    "footer": "Footer text",
-                    "useTemplateButtons": "true",
-                    "buttons": [
-                        {"id": "2", "phoneNumber": "5531999999999", "text": "Call Us"},
-                        {
-                            "id": "3",
-                            "url": "https://wppconnect-team.github.io/",
-                            "text": "Long Life WPPCONNECT",
-                        },
-                    ],
+            connector, connector_created = server.connectors.get_or_create(
+                external_token="WPP_EXTERNAL_TOKEN"
+            )
+            connector.config = {
+                "webhook": "http://django:8000/connector/WPP_EXTERNAL_TOKEN/",
+                "endpoint": "http://wppconnect:21465",
+                "secret_key": "THISISMYSECURETOKEN",
+                "instance_name": "test",
+                "include_connector_status": True,
+                "enable_ack_receipt": True,
+                "outcome_attachment_description_as_new_message": True,
+                "active_chat_webhook_integration_token": "WPP_ZAPIT_TOKEN",
+                "session_management_token": "session_management_secret_token",
+                "department_triage_payload": {
+                    "message": "Message for your buttons",
+                    "options": {
+                        "title": "Title text",
+                        "footer": "Footer text",
+                        "useTemplateButtons": "true",
+                        "buttons": [
+                            {
+                                "id": "2",
+                                "phoneNumber": "5531999999999",
+                                "text": "Call Us",
+                            },
+                            {
+                                "id": "3",
+                                "url": "https://wppconnect-team.github.io/",
+                                "text": "Long Life WPPCONNECT",
+                            },
+                        ],
+                    },
                 },
-            },
-            "no_agent_online_alert_admin": "No agent online!. **Message**: {{body}} **From**: {{from}}",
-            "session_taken_alert_template": "You are now talking with {{agent.name}}"
-            + "{% if department %} at department {{department.name}}{% endif %}",
-        }
-        connector.name = "WPPCONNECT CONNECTOR"
-        connector.connector_type = "wppconnect"
-        connector.managers = "agent1,manager1"
-        connector.department = "WPPCONNECT-DEPARTMENT"
-        connector.save()
-        if connector_created:
-            print("CONNECTOR CREATED: ", connector)
-        else:
-            print("CONNECTOR UPDATED: ", connector)
+                "no_agent_online_alert_admin": "No agent online!. **Message**: {{body}} **From**: {{from}}",
+                "session_taken_alert_template": "You are now talking with {{agent.name}}"
+                + "{% if department %} at department {{department.name}}{% endif %}",
+            }
+            connector.name = "WPPCONNECT CONNECTOR"
+            connector.connector_type = "wppconnect"
+            connector.managers = "agent1,manager1"
+            connector.department = "WPPCONNECT-DEPARTMENT"
+            connector.save()
+            if connector_created:
+                print("CONNECTOR CREATED: ", connector)
+            else:
+                print("CONNECTOR UPDATED: ", connector)
 
-        # create default 1 facebook connector
-        connector, connector_created = server.connectors.get_or_create(
-            external_token="FACEBOOK_DEV_CONNECTOR"
-        )
-        connector.config = {
-            "verify_token": "verify_token",
-            "access_token": "generate this",
-            "advanced_force_close_message": {
-                "wa_automate_department": "Closing message for wa_automate_department department",
-                "wppconnect_department": "Closing message for wppconnect department",
-            },
-        }
-        connector.name = "FACEBOOK CONNECTOR"
-        connector.connector_type = "facebook"
-        connector.managers = "agent1,manager1"
-        connector.department = "FACEBOOK-DEPARTMENT"
-        connector.save()
-        if connector_created:
-            print("CONNECTOR CREATED: ", connector)
-        else:
-            print("CONNECTOR UPDATED: ", connector)
+            # create default 1 facebook connector
+            connector, connector_created = server.connectors.get_or_create(
+                external_token="FACEBOOK_DEV_CONNECTOR"
+            )
+            connector.config = {
+                "verify_token": "verify_token",
+                "access_token": "generate this",
+                "advanced_force_close_message": {
+                    "wa_automate_department": "Closing message for wa_automate_department department",
+                    "wppconnect_department": "Closing message for wppconnect department",
+                },
+            }
+            connector.name = "FACEBOOK CONNECTOR"
+            connector.connector_type = "facebook"
+            connector.managers = "agent1,manager1"
+            connector.department = "FACEBOOK-DEPARTMENT"
+            connector.save()
+            if connector_created:
+                print("CONNECTOR CREATED: ", connector)
+            else:
+                print("CONNECTOR UPDATED: ", connector)
 
-        # create default 1 meta cloud connector
-        connector, connector_created = server.connectors.get_or_create(
-            external_token="META_CLOUD_API_WHATSAPP"
-        )
-        connector.config = {
-            "verify_token": "verify_token_here",
-            "bearer_token": "generate this at facebook for developers",
-            "endpoint": "https://graph.facebook.com/v13.0/111042638282794/",
-        }
-        connector.name = "META CLOUD API WHATSAPP"
-        connector.connector_type = "metacloudapi_whatsapp"
-        connector.managers = ""
-        connector.department = "METACLOUD-DEPARTMENT"
-        connector.save()
-        if connector_created:
-            print("CONNECTOR CREATED: ", connector)
-        else:
-            print("CONNECTOR UPDATED: ", connector)
+            # create default 1 meta cloud connector
+            connector, connector_created = server.connectors.get_or_create(
+                external_token="META_CLOUD_API_WHATSAPP"
+            )
+            connector.config = {
+                "verify_token": "verify_token_here",
+                "bearer_token": "generate this at facebook for developers",
+                "endpoint": "https://graph.facebook.com/v13.0/111042638282794/",
+            }
+            connector.name = "META CLOUD API WHATSAPP"
+            connector.connector_type = "metacloudapi_whatsapp"
+            connector.managers = ""
+            connector.department = "METACLOUD-DEPARTMENT"
+            connector.save()
+            if connector_created:
+                print("CONNECTOR CREATED: ", connector)
+            else:
+                print("CONNECTOR UPDATED: ", connector)
+        chatwoot = True
+        if chatwoot:
+            print("HANDLING CHATWOOT IN DJANGO")
+            server, server_created = Server.objects.get_or_create(
+                name="chatwoot_dev_server"
+            )
+            server.managers = "admin,#manager_channel"
+            server.external_token = "CHATWOOT_SERVER_EXTERNAL_TOKEN"
+            server.owners.add(admin)
+            server.url = "http://rails:3000"
+            server.type = "chatwoot"
+            if server.secret_token == "":
+                server.secret_token = "YOUR_CHATWOOT_APIKEY_HERE"
+            server.external_url = "http://localhost:4000/"
+            if server_created:
+                print("SERVER CREATED")
+            else:
+                print("SERVER UPDATED")
+            server.save()
+            #
+            # create default wppconnect
+            #
+
+            connector, connector_created = server.connectors.get_or_create(
+                external_token="CHATWOOT_WPP_EXTERNAL_TOKEN"
+            )
+            connector.config = {
+                "webhook": "http://django.local:8000/connector/CHATWOOT_WPP_EXTERNAL_TOKEN/",
+                "endpoint": "http://wppconnect:21465",
+                "secret_key": "THISISMYSECURETOKEN",
+                "instance_name": "chatwoot_wppconnect_test",
+                "include_connector_status": True,
+                "enable_ack_receipt": True,
+                "outcome_attachment_description_as_new_message": True,
+            }
+            connector.name = "WPPCONNECT"
+            connector.connector_type = "wppconnect"
+            connector.save()
+            if connector_created:
+                print("CONNECTOR CREATED: ", connector)
+            else:
+                print("CONNECTOR UPDATED: ", connector)
+
+            #
+            # create default codechat
+            #
+
+            connector, connector_created = server.connectors.get_or_create(
+                external_token="CHATWOOT_CODECHAT_EXTERNAL_TOKEN"
+            )
+            connector.config = {
+                "webhook": "http://django.local:8000/connector/CHATWOOT_CODECHAT_EXTERNAL_TOKEN/",
+                "endpoint": "http://codechat:8083",
+                "secret_key": "t8OOEeISKzpmc3jjcMqBWYSaJsafdefer",
+                "instance_name": "chatwoot_codechat_test",
+                "include_connector_status": True,
+                "enable_ack_receipt": True,
+                "outcome_attachment_description_as_new_message": True,
+            }
+            connector.name = "CODECHAT"
+            connector.connector_type = "codechat"
+            connector.save()
+            if connector_created:
+                print("CONNECTOR CREATED: ", connector)
+            else:
+                print("CONNECTOR UPDATED: ", connector)
 
     def handle_rocketchat(self):
         server = Server.objects.first()

@@ -72,7 +72,9 @@ class Connector(ConnectorBase):
             status_instance_response = requests.request(
                 "GET", endpoint_status, headers=headers
             )
-            return status_instance_response.json()
+            if status_instance_response:
+                return status_instance_response.json()
+            return {"error": "no endpoint"}
         else:
             return {"error": "no endpoint"}
 
