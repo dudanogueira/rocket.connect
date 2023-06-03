@@ -1,5 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
+from django_celery_beat.models import PeriodicTask
 from instance.models import Server
 
 wpp_admin_script = """// Check gist https://gist.github.com/dudanogueira/ae8e92c5071b750de405546980eba7dc"""
@@ -24,6 +25,8 @@ class Command(BaseCommand):
         email.verified = True
         email.primary = True
         email.save()
+        # Clears tasks
+        PeriodicTask.objects.all().delete()
         #
         # ROCKET.CHAT
         #

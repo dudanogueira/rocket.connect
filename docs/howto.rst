@@ -11,7 +11,7 @@ For convenience, RocketChat and ChatWoot are on separte files now.
     
         docker compose -f local.yml -f rocketchat-compose.yml -f chatwoot-compose.yml up -d
 
-Now you should wait a little bit. check the logs to see whats happening:
+Now you **should wait a little bit**. check the logs to see whats happening:
     ::
     
         docker compose -f local.yml logs -f
@@ -36,7 +36,7 @@ If everything went fine, you should have the following running services and expo
 * http://localhost:8000 - Rocket Connect Admin User/Password: admin/admin
 * http://localhost:3000 - Rocket Chat Server. User/Password: adminrc/admin or agent1/agent1 or manager1/manager1
 
-* http://localhost:4000 - ChatWoot Server. User/Password: register a new one and then get your token at the Super Admin console. You will need it later on as your ApiKey. This ApiKey you will update as Secret Token to the Chatwoot server
+* http://localhost:4000 - ChatWoot Server. User/Password: register a new one and then get your token at the Super Admin console. You will need it later on as your ApiKey. This ApiKey you will update as `Secret Token <http://localhost:8000/admin/instance/server/2/change/>`_ to the Chatwoot server
 
 * http://localhost:80 - Livechat Widget Demo. A simple website with livechat installed.
 * http://localhost:5555 - Flower, where you see how the tasks are running. User/Password: admin/admin
@@ -55,6 +55,7 @@ You should see the QR code at the correspnding chat platform.
 At the end, you should see the QR CODE, that should be scanned with the device you want to PAIR.
 
 Generating and Scanning the QR CODE in ChatWoot
+----------------------------------------------------------------------
 
 The same goes to chatwoot. After initializing its connectors, you should get one Inbox for ROCKETCONNECT itself, where there will be conversations for each connector,
 and an inbox per connector, where the incoming conversations and messages will be created:
