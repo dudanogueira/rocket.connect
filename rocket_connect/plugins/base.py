@@ -711,6 +711,8 @@ class Connector:
         room = None
         room_created = False
         connector_token = self.get_visitor_token()
+        # get rocket_client
+        self.get_rocket_client()
 
         # ignore some tokens
         if self.config.get("ignore_visitors_token"):

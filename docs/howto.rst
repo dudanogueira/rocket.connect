@@ -14,7 +14,7 @@ For convenience, RocketChat and ChatWoot are on separte files now.
 Now you **should wait a little bit**. check the logs to see whats happening:
     ::
     
-        docker compose -f local.yml logs -f
+        docker compose -f local.yml -f rocketchat-compose.yml -f chatwoot-compose.yml logs -f --tail 10
 
 We have created a nice management command to setup everything for you.
 
