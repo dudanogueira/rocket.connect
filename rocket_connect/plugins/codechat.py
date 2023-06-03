@@ -228,6 +228,9 @@ class Connector(ConnectorBase):
             f"OUTGOING FILE. URL: {url}. PAYLOAD {payload} response: {sent.json()}"
         )
         if sent.ok:
+            # Audio doesnt have caption, so outgo as message
+            if mediatype == "audio" and caption:
+                self.outgo_text_message(caption)
             timestamp = int(time.time())
             if settings.DEBUG:
                 self.logger.info(f"RESPONSE OUTGOING FILE to url {url}: {sent.json()}")
