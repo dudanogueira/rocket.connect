@@ -155,10 +155,36 @@ class Connector(ConnectorBase):
                     or message.get("stickerMessage")
                     or message.get("documentWithCaptionMessage")
                     or message.get("documentMessage")
+                    or message.get("contactsArrayMessage")
+                    or message.get("locationMessage")
                 ):
                     filename = None
                     caption = None
 
+                    # files that are actually text
+                    if message.get("contactsArrayMessage"):
+                        for contact in message.get("contactsArrayMessage").get(
+                            "contacts"
+                        ):
+                            sent = self.outcome_text(
+                                room_id=room.room_id,
+                                text=f"{contact.get('displayName')}\n{contact.get('vcard')}",
+                            )
+                        if sent.ok:
+                            self.message_object.delivered = True
+                            self.message_object.save()
+                        return JsonResponse({})
+
+                    if message.get("locationMessage"):
+                        message_type = "locationMessage"
+                        text = (
+                            f"Lat: {message.get(message_type).get('degreesLatitude')} "
+                        )
+                        +"Lon: {message.get(message_type).get('degreesLongitude')}"
+                        self.outcome_text(room.room_id, text=text)
+                        return JsonResponse({})
+
+                    # "real" files
                     if message.get("imageMessage"):
                         message_type = "imageMessage"
 
@@ -218,6 +244,7 @@ class Connector(ConnectorBase):
                         "Content-Type": "application/json",
                     }
                     media_body = requests.post(url, headers=headers, json=payload)
+
                     if media_body.ok:
                         body = media_body.json().get("base64")
                         filename = filename
