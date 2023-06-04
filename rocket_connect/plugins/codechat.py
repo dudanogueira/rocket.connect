@@ -152,7 +152,42 @@ class Connector(ConnectorBase):
                 # outcome if image
                 #
                 if self.message.get("data", {}).get("message", {}).get("imageMessage"):
-                    pass
+                    # get base64 from media
+                    payload = {
+                        "key": {
+                            "id": self.message.get("data", {}).get("key", {}).get("id")
+                        }
+                    }
+                    url = self.connector.config[
+                        "endpoint"
+                    ] + "/chat/getBase64FromMediaMessage/{}".format(
+                        self.connector.config["instance_name"]
+                    )
+                    headers = {
+                        "apiKey": self.config.get("secret_key"),
+                        "Content-Type": "application/json",
+                    }
+                    media_body = requests.post(url, headers=headers, json=payload)
+                    if media_body.ok:
+                        body = media_body.json().get("base64")
+                        file_sent = self.outcome_file(
+                            body,
+                            room.room_id,
+                            self.message.get("data", {})
+                            .get("message", {})
+                            .get("imageMessage")
+                            .get("mimetype"),
+                            description=self.message.get("data", {})
+                            .get("message", {})
+                            .get("imageMessage")
+                            .get("caption"),
+                        )
+                        self.logger_info(
+                            f"Outcoming message. url {url}, file sent: {file_sent.json()}"
+                        )
+                        if file_sent.ok:
+                            self.message_object.delivered = True
+                            self.message_object.save()
 
             else:
                 self.logger_info(
