@@ -151,8 +151,26 @@ class Connector(ConnectorBase):
                 #
                 # outcome if image
                 #
-                if self.message.get("data", {}).get("message", {}).get("imageMessage"):
+                if self.message.get("data", {}).get("message", {}).get(
+                    "imageMessage"
+                ) or self.message.get("data", {}).get("message", {}).get(
+                    "audioMessage"
+                ):
                     # get base64 from media
+                    if (
+                        self.message.get("data", {})
+                        .get("message", {})
+                        .get("imageMessage")
+                    ):
+                        message_type = "imageMessage"
+
+                    if (
+                        self.message.get("data", {})
+                        .get("message", {})
+                        .get("audioMessage")
+                    ):
+                        message_type = "audioMessage"
+
                     payload = {
                         "key": {
                             "id": self.message.get("data", {}).get("key", {}).get("id")
@@ -175,11 +193,11 @@ class Connector(ConnectorBase):
                             room.room_id,
                             self.message.get("data", {})
                             .get("message", {})
-                            .get("imageMessage")
+                            .get(message_type)
                             .get("mimetype"),
                             description=self.message.get("data", {})
                             .get("message", {})
-                            .get("imageMessage")
+                            .get(message_type)
                             .get("caption"),
                         )
                         self.logger_info(
