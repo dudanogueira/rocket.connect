@@ -154,8 +154,10 @@ class Connector(ConnectorBase):
                     or message.get("videoMessage")
                     or message.get("stickerMessage")
                     or message.get("documentWithCaptionMessage")
+                    or message.get("documentMessage")
                 ):
                     filename = None
+                    caption = None
 
                     if message.get("imageMessage"):
                         message_type = "imageMessage"
@@ -189,6 +191,10 @@ class Connector(ConnectorBase):
                             .get("documentMessage")
                             .get("mimetype")
                         )
+                    if message.get("documentMessage"):
+                        message_type = "documentMessage"
+                        filename = message.get(message_type).get("title")
+                        mime = message.get(message_type).get("mimetype")
 
                     if not caption:
                         # get default caption
