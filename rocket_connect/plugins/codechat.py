@@ -128,6 +128,7 @@ class Connector(ConnectorBase):
             department = None
             message, created = self.register_message()
             if not message.delivered:
+                message = self.message.get("data", {}).get("message", {})
                 # get room
                 room = self.get_room(department)
                 if not room:
@@ -135,11 +136,7 @@ class Connector(ConnectorBase):
                 #
                 # oucome if text
                 #
-                if (
-                    self.message.get("data", {})
-                    .get("message", {})
-                    .get("extendedTextMessage")
-                ):
+                if message.get("extendedTextMessage"):
                     text = (
                         self.message.get("data", {})
                         .get("message", {})
@@ -151,25 +148,20 @@ class Connector(ConnectorBase):
                 #
                 # outcome if image
                 #
-                if self.message.get("data", {}).get("message", {}).get(
-                    "imageMessage"
-                ) or self.message.get("data", {}).get("message", {}).get(
-                    "audioMessage"
+                if (
+                    message.get("imageMessage")
+                    or message.get("audioMessage")
+                    or message.get("videoMessage")
                 ):
                     # get base64 from media
-                    if (
-                        self.message.get("data", {})
-                        .get("message", {})
-                        .get("imageMessage")
-                    ):
+                    if message.get("imageMessage"):
                         message_type = "imageMessage"
 
-                    if (
-                        self.message.get("data", {})
-                        .get("message", {})
-                        .get("audioMessage")
-                    ):
+                    if message.get("audioMessage"):
                         message_type = "audioMessage"
+
+                    if message.get("videoMessage"):
+                        message_type = "videoMessage"
 
                     payload = {
                         "key": {
@@ -191,14 +183,8 @@ class Connector(ConnectorBase):
                         file_sent = self.outcome_file(
                             body,
                             room.room_id,
-                            self.message.get("data", {})
-                            .get("message", {})
-                            .get(message_type)
-                            .get("mimetype"),
-                            description=self.message.get("data", {})
-                            .get("message", {})
-                            .get(message_type)
-                            .get("caption"),
+                            message.get(message_type).get("mimetype"),
+                            description=message.get(message_type).get("caption"),
                         )
                         self.logger_info(
                             f"Outcoming message. url {url}, file sent: {file_sent.json()}"
