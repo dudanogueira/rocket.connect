@@ -152,8 +152,11 @@ class Connector(ConnectorBase):
                     message.get("imageMessage")
                     or message.get("audioMessage")
                     or message.get("videoMessage")
+                    or message.get("stickerMessage")
+                    or message.get("documentWithCaptionMessage")
                 ):
-                    # get base64 from media
+                    filename = None
+
                     if message.get("imageMessage"):
                         message_type = "imageMessage"
 
@@ -162,6 +165,37 @@ class Connector(ConnectorBase):
 
                     if message.get("videoMessage"):
                         message_type = "videoMessage"
+
+                    if message.get("stickerMessage"):
+                        message_type = "stickerMessage"
+
+                    if message.get("documentWithCaptionMessage"):
+                        message_type = "documentWithCaptionMessage"
+                        filename = (
+                            message.get(message_type)
+                            .get("message")
+                            .get("documentMessage")
+                            .get("title")
+                        )
+                        caption = (
+                            message.get(message_type)
+                            .get("message")
+                            .get("documentMessage")
+                            .get("caption")
+                        )
+                        mime = (
+                            message.get(message_type)
+                            .get("message")
+                            .get("documentMessage")
+                            .get("mimetype")
+                        )
+
+                    if not caption:
+                        # get default caption
+                        caption = message.get(message_type, {}).get("caption")
+
+                    if not mime:
+                        mime = message.get(message_type).get("mimetype")
 
                     payload = {
                         "key": {
@@ -180,11 +214,14 @@ class Connector(ConnectorBase):
                     media_body = requests.post(url, headers=headers, json=payload)
                     if media_body.ok:
                         body = media_body.json().get("base64")
+                        filename = filename
+
                         file_sent = self.outcome_file(
                             body,
                             room.room_id,
-                            message.get(message_type).get("mimetype"),
-                            description=message.get(message_type).get("caption"),
+                            mime,
+                            description=caption,
+                            filename=filename,
                         )
                         self.logger_info(
                             f"Outcoming message. url {url}, file sent: {file_sent.json()}"

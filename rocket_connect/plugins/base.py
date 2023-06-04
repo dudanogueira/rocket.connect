@@ -184,6 +184,8 @@ class Connector:
             if not extension:
                 if mime == "audio/ogg; codecs=opus":
                     extension = ".ogg"
+                if mime == "image/webp":
+                    extension = ".webp"
 
             if not filename:
                 # random filename
