@@ -157,9 +157,11 @@ class Connector(ConnectorBase):
                     or message.get("documentMessage")
                     or message.get("contactsArrayMessage")
                     or message.get("locationMessage")
+                    or message.get("stickerMessage")
                 ):
                     filename = None
                     caption = None
+                    mime = None
 
                     # files that are actually text
                     if message.get("contactsArrayMessage"):
@@ -195,6 +197,8 @@ class Connector(ConnectorBase):
                         message_type = "videoMessage"
 
                     if message.get("stickerMessage"):
+                        # TODO: sticker not supported
+                        return JsonResponse({})
                         message_type = "stickerMessage"
 
                     if message.get("documentWithCaptionMessage"):
@@ -262,6 +266,10 @@ class Connector(ConnectorBase):
                         if file_sent.ok:
                             self.message_object.delivered = True
                             self.message_object.save()
+                    else:
+                        self.logger_info(
+                            f"GETTOMG message MEDIA ERROR. url {url}, file sent: {media_body.json()} media_body"
+                        )
 
             else:
                 self.logger_info(
