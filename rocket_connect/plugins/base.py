@@ -1212,6 +1212,15 @@ class Connector:
             phone = self.message.get("visitor", {}).get("phone")
             if phone:
                 return phone[0].get("phoneNumber")
+        if self.connector.server.type == "chatwoot":
+            phone = (
+                self.message.get("conversation")
+                .get("meta")
+                .get("sender")
+                .get("phone_number")
+            )
+            phone = phone.replace("+", "")
+            return phone
         return None
 
     def get_agent_name(self, message):
