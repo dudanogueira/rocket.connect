@@ -1045,9 +1045,10 @@ class Connector(ConnectorBase):
     def get_request_session(self):
         s = requests.Session()
         s.headers = {"content-type": "application/json"}
-        token = self.connector.config.get("token", {}).get("token")
-        if token:
-            s.headers.update({"Authorization": f"Bearer {token}"})
+        if self.connector.config.get("token", {}):
+            token = self.connector.config.get("token", {}).get("token")
+            if token:
+                s.headers.update({"Authorization": f"Bearer {token}"})
         return s
 
     def outgo_text_message(self, message, agent_name=None):
