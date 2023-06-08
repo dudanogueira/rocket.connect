@@ -595,7 +595,10 @@ class Connector:
                             visitor_json, self.get_visitor_avatar_url()
                         )
                     )
-                    self.logger_info(f"VISITOR REGISTERING: {visitor_object}")
+
+                    self.logger_info(
+                        f"VISITOR REGISTERING: {json.dumps(visitor_object)}"
+                    )
 
                     # we registered the visitor
                     # now we register the conversation
@@ -604,12 +607,17 @@ class Connector:
                             contact_id = visitor_object.get("payload", {})[0].get("id")
                         else:
                             contact_id = visitor_object.get("payload", {}).get("id")
+                        if not contact_id:
+                            contact_id = (
+                                visitor_object.get("payload", {})
+                                .get("contact", {})
+                                .get("id")
+                            )
+                        self.logger_info(f"WE GOT CONTACT ID: {contact_id}")
                         # get or create the conversation
                         chatwoot_room = (
                             self.connector.server.chatwoot_get_or_create_conversation(
-                                contact_id,
-                                self.config.get("connector_inbox_id"),
-                                identifier=visitor_json.get("token"),
+                                contact_id, self.config.get("connector_inbox_id")
                             )
                         )
                         if settings.DEBUG:

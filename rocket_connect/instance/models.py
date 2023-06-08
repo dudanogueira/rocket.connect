@@ -100,6 +100,7 @@ class Server(models.Model):
                     ]
                     if rocket_inbox:
                         self.config["rocketconnect_inbox_id"] = rocket_inbox[0]["id"]
+                        rocket_inbox_id = rocket_inbox[0]["id"]
                     else:
                         # create ROCKETCONNECT inbox
                         payload = {
@@ -121,9 +122,9 @@ class Server(models.Model):
                             headers=headers,
                             json=payload,
                         )
+                        rocket_inbox_id = inboxes_request.json().get("id")
                     info = [
-                        "ROCKETCONNECT_INBOX_ID: "
-                        + str(self.config.get("rocketconnect_inbox_id")),
+                        "ROCKETCONNECT_INBOX_ID: " + str(rocket_inbox_id),
                         "VERSION: " + str(account_info.get("latest_chatwoot_version")),
                     ]
 
@@ -586,13 +587,11 @@ class Server(models.Model):
                 output = contact_new.json()
                 contact_status = "created"
         logger.info(
-            f"CHATWOOT CONTACT ({contact_status}) URL {url} / output: {output} "
+            f"CHATWOOT CONTACT ({contact_status}) URL {url} / output: {output} payload: {payload}"
         )
         return output
 
-    def chatwoot_get_or_create_conversation(
-        self, contact_id, connector_inbox_id, identifier
-    ):
+    def chatwoot_get_or_create_conversation(self, contact_id, connector_inbox_id):
         headers = {"api_access_token": self.secret_token}
         create = False
         open_item = None
@@ -601,9 +600,7 @@ class Server(models.Model):
         )
         conversations_list = requests.get(url, headers=headers)
         conversation_json = conversations_list.json()
-        logger.debug(
-            f"CHATWOOT CONTACT ID ({contact_id}) CONVERSATIONS {conversation_json}"
-        )
+        print(f"CHATWOOT CONTACT ID ({contact_id}) CONVERSATIONS {conversation_json}")
 
         if conversations_list.ok:
             if not conversation_json.get("payload"):
@@ -806,16 +803,12 @@ class Connector(models.Model):
             # if not conversation yet:
             if not self.config.get("connector_conversation_id"):
                 payload = {
-                    "source_id": self.external_token,
                     "inbox_id": self.server.config.get("rocketconnect_inbox_id"),
                     "contact_id": self.config.get("chatwoot_connector_contact_id"),
-                    "status": "open",
                 }
+                url = f"{self.server.url}/api/v1/accounts/{str(self.server.config['account_id'])}/conversations"
                 create_conversation = requests.post(
-                    self.server.url
-                    + "/api/v1/accounts/"
-                    + str(self.server.config["account_id"])
-                    + "/conversations",
+                    url,
                     headers=headers,
                     json=payload,
                 )

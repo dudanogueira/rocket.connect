@@ -323,6 +323,11 @@ def connector_analyze(request, server_id, connector_id):
 
     if request.GET.get("connector_action") == "initialize":
         connector_action_response["initialize"] = connector.initialize()
+        connector = get_object_or_404(
+            Connector.objects,
+            server__external_token=server_id,
+            external_token=connector_id,
+        )
 
     if request.GET.get("connector_action") == "close_session":
         connector_action_response["close_session"] = connector.close_session()

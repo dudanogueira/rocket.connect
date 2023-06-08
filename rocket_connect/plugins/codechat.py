@@ -387,6 +387,25 @@ class Connector(ConnectorBase):
     def get_incoming_visitor_id(self):
         return self.get_visitor_phone() + "@c.us"
 
+    # def get_visitor_avatar_url(self):
+    #     secret_key = self.config.get("secret_key")
+    #     headers = {"apiKey": secret_key, "Content-Type": "application/json"}
+    #     url = self.connector.config["endpoint"] + "/chat/fetchProfilePictureUrl/{}".format(
+    #         self.connector.config["instance_name"]
+    #     )
+    #     payload = {
+    #     "number": self.get_visitor_phone()
+    #     }
+    #     headers = {
+    #         "apiKey": self.config.get("secret_key"),
+    #         "Content-Type": "application/json",
+    #     }
+    #     profile_picture_request = requests.post(url, headers=headers, json=payload)
+    #     if profile_picture_request.ok:
+    #         profile_url = profile_picture_request.json().get("profilePictureUrl")
+    #         self.logger_info(f"GOT PROFILE URL: {profile_url}")
+    #         return profile_picture_request.json().get("profilePictureUrl")
+
 
 class ConnectorConfigForm(BaseConnectorConfigForm):
     webhook = forms.CharField(
