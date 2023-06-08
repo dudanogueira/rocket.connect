@@ -1306,7 +1306,10 @@ class Connector(ConnectorBase):
                     + f"room response: {room_response}"
                 )
         # ack receipt
-        if self.config.get("enable_ack_receipt"):
+        if (
+            self.config.get("enable_ack_receipt")
+            and self.connector.server.type == "rocketchat"
+        ):
             # get the sent message
             self.get_rocket_client()
             message_id = self.message.get("id", {}).get("_serialized")
