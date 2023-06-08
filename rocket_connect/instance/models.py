@@ -108,7 +108,7 @@ class Server(models.Model):
                             "lock_to_single_conversation": True,
                             "channel": {
                                 "type": "api",
-                                "webhook_url": self.url
+                                "webhook_url": "http://rocketconnect:5000"
                                 + "/server/"
                                 + self.external_token
                                 + "/",

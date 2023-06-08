@@ -1156,6 +1156,7 @@ class Connector:
                 if not message.delivered:
                     # only send text if message has content
                     if self.message.get("content"):
+                        # format to make chatwoot markup compatible to whatsapp
                         text = self.message.get("content")
                         text = re.sub(
                             r"(\*{1,2})(.*?)(\1)", self.chatwoot_replace_tags, text

@@ -139,10 +139,12 @@ def server_endpoint(request, server_id):
         # so we need to find the connector, based on source_id
         print("INCOMING ON CHATWOOT", request.body)
         raw_message = json.loads(request.body).get("conversation")
-        source_id = raw_message.get("contact_inbox", {}).get("source_id")
         if raw_message.get("messages", {}):
             content = raw_message.get("messages", {})[0].get("content")
-            connector_instance = server.connectors.get(external_token=source_id)
+            connector_conversation_id = raw_message.get("id")
+            connector_instance = server.connectors.get(
+                config__connector_conversation_id=connector_conversation_id
+            )
             Connectorcls = connector_instance.get_connector_class()
             connector = Connectorcls(
                 connector_instance, request.body, "ingoing", request
