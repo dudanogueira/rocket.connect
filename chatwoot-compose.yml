@@ -54,7 +54,7 @@ services:
     image: redis:alpine
     restart: always
     command: ["sh", "-c", "redis-server --requirepass \"$REDIS_PASSWORD\""]
-    env_file: .env
+    env_file: ./.envs/.local/.chatwoot
     volumes:
       - redis_storage:/data
     ports:
