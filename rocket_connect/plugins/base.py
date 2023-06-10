@@ -1427,6 +1427,23 @@ class BaseConnectorConfigForm(forms.Form):
         self.connector = kwargs.pop("connector")
         # pass the connector config as initial
         super().__init__(*args, **kwargs, initial=self.connector.config)
+        if self.connector.server.type == "rocketchat":
+            self.fields["session_taken_alert_ignore_departments"] = forms.CharField(
+                required=False,
+                help_text="Ignore this departments ID for the session taken alert."
+                + "multiple separated with comma. eg. departmentID1,departmentID2",
+            )
+            self.fields["no_agent_online_alert_admin"] = forms.CharField(
+                required=False,
+                widget=forms.Textarea(attrs={"rows": 4, "cols": 15}),
+                help_text="Template to alert admin when no agent is online."
+                + "Eg: No agent online!. **Message**: {{body}} **From**: {{from}}",
+            )
+            self.fields["no_agent_online_autoanswer_visitor"] = forms.CharField(
+                required=False,
+                widget=forms.Textarea(attrs={"rows": 4, "cols": 15}),
+                help_text="Template to auto answer visitor when no agent is online",
+            )
 
     def save(self):
         for field in self.cleaned_data.keys():
@@ -1486,6 +1503,7 @@ class BaseConnectorConfigForm(forms.Form):
         required=False,
         help_text="do not overwrite visitor name with connector visitor name",
     )
+    # OTHERS
     include_connector_status = forms.BooleanField(
         required=False,
         help_text="Includes connector status in the status payload. Disable for better performance",
@@ -1495,6 +1513,7 @@ class BaseConnectorConfigForm(forms.Form):
         help_text="Alert the agent whenever you send an automated text."
         + "WARNING: this option will cause a bot to react to those messages.",
     )
+    # CONNECTOR SPECIFIC
     auto_answer_incoming_call = forms.CharField(
         widget=forms.Textarea(attrs={"rows": 4, "cols": 15}),
         help_text="Auto answer this message on incoming call",
@@ -1528,20 +1547,4 @@ class BaseConnectorConfigForm(forms.Form):
         widget=forms.Textarea(attrs={"rows": 4, "cols": 15}),
         help_text="Template to use for the alert session taken. eg. \
         You are now talking with {{agent.name}} at department {{department.name}}",
-    )
-    session_taken_alert_ignore_departments = forms.CharField(
-        required=False,
-        help_text="Ignore this departments ID for the session taken alert."
-        + "multiple separated with comma. eg. departmentID1,departmentID2",
-    )
-    no_agent_online_alert_admin = forms.CharField(
-        required=False,
-        widget=forms.Textarea(attrs={"rows": 4, "cols": 15}),
-        help_text="""Template to alert admin when no agent is online.
-        Eg: No agent online!. **Message**: {{body}} **From**: {{from}}""",
-    )
-    no_agent_online_autoanswer_visitor = forms.CharField(
-        required=False,
-        widget=forms.Textarea(attrs={"rows": 4, "cols": 15}),
-        help_text="Template to auto answer visitor when no agent is online",
     )

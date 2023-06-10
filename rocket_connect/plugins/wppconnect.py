@@ -1348,6 +1348,53 @@ class Connector(ConnectorBase):
 
 
 class ConnectorConfigForm(BaseConnectorConfigForm):
+    def __init__(self, *args, **kwargs):
+        self.connector = kwargs.get("connector")
+        super().__init__(*args, **kwargs)
+        if self.connector.server.type == "rocketchat":
+            # this is how we show only rocket.chat options
+            self.fields["active_chat_webhook_integration_token"] = forms.CharField(
+                required=False,
+                help_text="Put here the same token used for the active chat integration",
+                validators=[validators.validate_slug],
+            )
+            self.fields["active_chat_force_department_transfer"] = forms.BooleanField(
+                help_text="If the Chat is already open, force the transfer to this department",
+                required=False,
+                initial=False,
+            )
+            self.fields["department_triage"] = forms.BooleanField(required=False)
+            self.fields["department_triage_payload"] = forms.JSONField(required=False)
+            self.fields["department_triage_to_ignore"] = forms.CharField(
+                max_length=None, required=False
+            )
+            self.fields["session_management_token"] = forms.CharField(required=False)
+            self.fields["default_fromme_ack_department"] = forms.CharField(
+                required=False,
+                help_text="This is a deparment where should be created a message sent from the mobile",
+            )
+            self.fields["fromme_ack_department_force_transfer"] = forms.BooleanField(
+                help_text="Force the transfer if chat is already open with visitor",
+                initial=True,
+                required=False,
+            )
+            self.fields["default_fromme_ack_department_trigger"] = forms.CharField(
+                required=False,
+                help_text="This is trigger word a message must have in order to trigger the ack from me feature",
+            )
+            self.fields["fromme_reply_trigger_message"] = forms.BooleanField(
+                required=False,
+                help_text="When activated, it will reply the trigger message, emulating the visitor text",
+            )
+            self.fields["enable_ack_receipt"] = forms.BooleanField(
+                required=False,
+                help_text="This will update the ingoing message to show it was delivered and received",
+            )
+            self.fields["default_inbound_department"] = forms.CharField(
+                required=False,
+                help_text="This is the deparment that will be opened inbound active messages to by default",
+            )
+
     webhook = forms.CharField(
         help_text="Where WPPConnect will send the events",
         required=True,
@@ -1365,18 +1412,6 @@ class ConnectorConfigForm(BaseConnectorConfigForm):
         help_text="WPPConnect instance name", validators=[validators.validate_slug]
     )
 
-    active_chat_webhook_integration_token = forms.CharField(
-        required=False,
-        help_text="Put here the same token used for the active chat integration",
-        validators=[validators.validate_slug],
-    )
-
-    active_chat_force_department_transfer = forms.BooleanField(
-        help_text="If the Chat is already open, force the transfer to this department",
-        required=False,
-        initial=False,
-    )
-
     name_extraction_order = forms.CharField(
         required=False,
         help_text="The prefered order to extract a visitor name",
@@ -1385,46 +1420,9 @@ class ConnectorConfigForm(BaseConnectorConfigForm):
 
     process_unread_messages_on_start = forms.BooleanField(initial=False, required=False)
 
-    department_triage = forms.BooleanField(required=False)
-
-    department_triage_payload = forms.JSONField(required=False)
-
-    department_triage_to_ignore = forms.CharField(max_length=None, required=False)
-
     outcome_message_with_quoted_message = forms.BooleanField(required=False)
 
-    session_management_token = forms.CharField(required=False)
-
-    default_fromme_ack_department = forms.CharField(
-        required=False,
-        help_text="This is a deparment where should be created a message sent from the mobile",
-    )
-
-    fromme_ack_department_force_transfer = forms.BooleanField(
-        help_text="Force the transfer if chat is already open with visitor",
-        initial=True,
-        required=False,
-    )
-
-    default_fromme_ack_department_trigger = forms.CharField(
-        required=False,
-        help_text="This is trigger word a message must have in order to trigger the ack from me feature",
-    )
-
-    fromme_reply_trigger_message = forms.BooleanField(
-        required=False,
-        help_text="When activated, it will reply the trigger message, emulating the visitor text",
-    )
-
-    enable_ack_receipt = forms.BooleanField(
-        required=False,
-        help_text="This will update the ingoing message to show it was delivered and received",
-    )
-
-    default_inbound_department = forms.CharField(
-        required=False,
-        help_text="This is the deparment that will be opened inbound active messages to by default",
-    )
+    # ORDERING
 
     field_order = [
         "webhook",
