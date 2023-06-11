@@ -487,6 +487,32 @@ class Server(models.Model):
             )
             self.tasks.add(task)
             added_tasks.append(task)
+
+        #
+        # T8 reset department count
+        #
+        task = PeriodicTask.objects.filter(
+            task="instance.tasks.reset_department_count",
+            kwargs__contains=self.external_token,
+        )
+        if not task.exists():
+            crontab = CrontabSchedule.objects.first()
+            task = PeriodicTask.objects.create(
+                enabled=False,
+                name=f"Reset Department Count for agents for {self.name} (ID {self.id})",
+                description="""This task will reset the agent chat count for configured departments""",
+                crontab=crontab,
+                task="instance.tasks.reset_department_count",
+                kwargs=json.dumps(
+                    {
+                        "server_token": self.external_token,
+                        "department_ids": [],
+                    }
+                ),
+            )
+            self.tasks.add(task)
+            added_tasks.append(task)
+
         # return added tasks
         return added_tasks
 

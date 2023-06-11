@@ -337,3 +337,32 @@ def manage_abandoned_chats(
                                     )
 
     return output
+
+
+# T8
+@celery_app.task(retry_kwargs={"max_retries": 7, "countdown": 5})
+def reset_department_count(server_token, department_ids=[]):
+    output = {}
+    # get server
+    server = Server.objects.get(external_token=server_token)
+    # get rocket
+    rocket = server.get_rocket_client()
+    # for each department
+    for department_id in department_ids:
+        department_info = rocket.call_api_get("livechat/department/" + department_id)
+        department_payload = department_info.json()
+        new_agents = []
+        for agent in department_payload.get("agents", []):
+            agent["count"] = 0
+            new_agents.append(agent)
+        department_payload["agents"] = new_agents
+        # remove the success from the department info payload
+        del department_payload["success"]
+        # update department
+        output[department_id] = rocket.call_api_put(
+            "livechat/department/" + department_id, **department_payload
+        ).json()
+
+    # clear all selected deparments
+
+    return output
