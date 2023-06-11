@@ -987,17 +987,22 @@ class Connector(ConnectorBase):
 
     def get_incoming_visitor_id(self):
         if self.message.get("event") == "incomingcall":
-            return self.message.get("peerJid")
+            visitor_id = self.message.get("peerJid")
         if self.message.get("event") == "onreactionmessage":
-            return self.message.get("id").get("remote")
+            visitor_id = self.message.get("id").get("remote")
         if self.message.get("event") == "onack":
             if self.message.get("id", {}).get("fromMe"):
-                return self.message.get("id").get("remote")
+                visitor_id = self.message.get("id").get("remote")
         else:
             if self.message.get("event") in ["unreadmessages", "onrevokedmessage"]:
                 return self.message.get("from")
             else:
-                return self.message.get("chatId")
+                visitor_id = self.message.get("chatId")
+
+        if not self.config.get("append_connector_to_visitor_id"):
+            return visitor_id
+        else:
+            return str(visitor_id) + "|" + self.connector.external_token
 
     def get_visitor_name(self):
         # get name order
@@ -1393,6 +1398,13 @@ class ConnectorConfigForm(BaseConnectorConfigForm):
             self.fields["default_inbound_department"] = forms.CharField(
                 required=False,
                 help_text="This is the deparment that will be opened inbound active messages to by default",
+            )
+            self.fields["append_connector_to_visitor_id"] = forms.BooleanField(
+                required=False,
+                initial=False,
+                help_text="EXPERIMENTAL!! This will append the connector_token to the user id."
+                + "Its useful to make Rocket.Chat create different visitors per connector, "
+                + "so their messages and history doesn't get mixed up.",
             )
 
     webhook = forms.CharField(

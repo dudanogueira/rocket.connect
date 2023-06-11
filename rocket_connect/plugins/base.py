@@ -467,8 +467,7 @@ class Connector:
         if visitor_name and not self.config.get("supress_visitor_name", False):
             visitor["name"] = visitor_name
 
-        if settings.DEBUG:
-            print("GOT VISITOR JSON: ", visitor)
+        self.logger_info(f"GOT VISITOR JSON {json.dumps(visitor)}")
 
         return visitor
 
@@ -774,15 +773,15 @@ class Connector:
                         visitor=visitor_json, token=connector_token
                     )
                     response = visitor_object.json()
-                    if settings.DEBUG:
-                        print("VISITOR REGISTERING: ", response)
+                    self.logger_info(f"VISITOR REGISTERING: {json.dumps(response)}")
                     # we got a new room
                     # this is where you can hook some "welcoming features"
                     if response["success"]:
                         rc_room = self.rocket.livechat_room(token=connector_token)
                         rc_room_response = rc_room.json()
-                        if settings.DEBUG:
-                            print("REGISTERING ROOM, ", rc_room_response)
+                        self.logger_info(
+                            f"REGISTERING ROOM with token {connector_token}: {rc_room_response}"
+                        )
                         if rc_room_response["success"]:
                             room = LiveChatRoom.objects.create(
                                 connector=self.connector,
@@ -792,7 +791,7 @@ class Connector:
                             )
                             room_created = True
                         else:
-                            if rc_room_response["errorType"] == "no-agent-online":
+                            if rc_room_response.get("errorType") == "no-agent-online":
                                 self.logger_info("NO AGENTS ONLINE")
                                 if self.config.get("no_agent_online_alert_admin"):
                                     # add message as template
