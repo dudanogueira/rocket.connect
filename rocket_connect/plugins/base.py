@@ -1274,6 +1274,12 @@ class Connector:
                     ).get(department, None)
                 except KeyError:
                     close_message = None
+        # pass room as context for close_message as template
+        if self.room:
+            template = Template(close_message)
+            context = Context({"room": self.room})
+            close_message = template.render(context)
+
         self.logger_info(f"GOT CLOSE MESSAGE: {close_message}")
         return close_message
 

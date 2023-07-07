@@ -69,7 +69,7 @@ class Connector(ConnectorBase):
                             self.config.get("instance_name"),
                         )
                         host_device = session.get(endpoint, timeout=1).json()
-                        status["host_device"] = host_device["response"]
+                        status["host_device"] = host_device.get("response")
                 else:
                     status = {"success": False, **status_req.json()}
             except urllib3.exceptions.ReadTimeoutError as e:
