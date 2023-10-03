@@ -30,6 +30,9 @@ urlpatterns = [
     re_path(
         r"^connector/(?P<connector_id>\w+)/inbound/?$", views.connector_inbound_endpoint
     ),
+    re_path(
+        r"^connector/(?P<connector_id>\w+)/inbound_custom/?$", views.connector_inbound_endpoint_custom
+    ),
     re_path(r"^connector/(?P<connector_id>\w+)/?$", views.connector_endpoint),
     re_path(r"^server/(?P<server_id>\w+)/?$", views.server_endpoint),
     re_path(r"^server/(?P<server_id>\w+)/messages/?$", views.server_messages_endpoint),

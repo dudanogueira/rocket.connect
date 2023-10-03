@@ -14,6 +14,7 @@ from django.views.decorators.csrf import csrf_exempt
 from envelope.models import LiveChatRoom
 from instance.forms import NewConnectorForm, NewServerForm
 from instance.models import Connector, Server
+from plugins.base import Connector as BaseConnector
 
 from .forms import NewInboundForm
 
@@ -40,6 +41,22 @@ def connector_inbound_endpoint(request, connector_id):
         return redirect(return_response["redirect"])
     if return_response.get("notfound"):
         return HttpResponse(return_response.get("notfound"), status=404)
+    return JsonResponse(return_response)
+
+@csrf_exempt
+def connector_inbound_endpoint_custom(request, connector_id):
+    connector = get_object_or_404(
+        Connector, external_token=connector_id, enabled=True, server__enabled=True
+    )
+    return_response = connector.inbound_intake(request)
+    if not return_response:
+        return HttpResponse("No inbound return.", status=404)
+    # it can request a redirect
+    if return_response.get("redirect"):
+        return redirect(return_response["redirect"])
+    if return_response.get("notfound"):
+        return HttpResponse(return_response.get("notfound"), status=404)
+    
     return JsonResponse(return_response)
 
 
