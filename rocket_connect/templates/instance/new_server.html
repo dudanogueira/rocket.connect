@@ -1,50 +1,68 @@
 {% extends "base.html" %}
+
+{# Carrega as tags do pacote django-crispy-forms para melhor estilização dos formulários. #}
 {% load crispy_forms_tags %}
+
 {% block content %}
+
     <nav class="breadcrumb">
         <a class="breadcrumb-item" href="{% url 'home' %}">home</a>
         <span class="breadcrumb-item active">New Server<span>
-        </nav>
-        <div id="form" class="container">
-            <form action="" method="post">
-                {% csrf_token %}
-                {{ form|crispy }}
-                <hr />
-                <div class="form-check">
-                    <label class="form-check-label">
-                        <input type="checkbox"
-                               class="form-check-input"
-                               name="install_omnichannel_webhooks"
-                               id=""
-                               value="1"
-                               checked>
-                        Install Omnichannel Webhook on this Server <small>(using default configs)</small>
-                    </label>
-                </div>
-                <div class="form-check">
-                    <label class="form-check-label">
-                        <input type="checkbox"
-                               class="form-check-input"
-                               name="install_default_wppconnect"
-                               id=""
-                               value="1"
-                               checked>
-                        Add default wppconnect connector <small>(using default configs)</small>
-                    </label>
-                </div>
-                <div class="form-check">
-                    <label class="form-check-label">
-                        <input type="checkbox"
-                               class="form-check-input"
-                               name="add_default_server_tasks"
-                               id=""
-                               value="1"
-                               checked>
-                        Add default server tasks <small>(using default configs)</small>
-                    </label>
-                </div>
-                <hr />
-                <button type="submit" class="btn btn-primary mb-5">Add Server</button>
-            </form>
-        </div>
-    {% endblock content %}
+    </nav>
+
+    <div id="form" class="container">
+
+
+        <form action="" method="post">
+
+            {% comment %} {# Token CSRF para proteção contra ataques CSRF. #} {% endcomment %}
+            {% csrf_token %}
+            
+            {# Renderiza o formulário usando estilos do crispy-forms. #}
+            {{ form|crispy }}
+            
+            <hr />
+
+            {# Opção para instalar um webhook omnichannel no servidor com configurações padrão. #}
+            <div class="form-check">
+                <label class="form-check-label">
+                    <input type="checkbox"
+                           class="form-check-input"
+                           name="install_omnichannel_webhooks"
+                           value="1"
+                           checked>
+                    Install Omnichannel Webhook on this Server <small>(using default configs)</small>
+                </label>
+            </div>
+
+            {# Opção para adicionar um conector wppconnect padrão ao servidor. #}
+            <div class="form-check">
+                <label class="form-check-label">
+                    <input type="checkbox"
+                           class="form-check-input"
+                           name="install_default_wppconnect"
+                           value="1"
+                           checked>
+                    Add default wppconnect connector <small>(using default configs)</small>
+                </label>
+            </div>
+
+            {# Opção para adicionar tarefas padrão ao servidor. #}
+            <div class="form-check">
+                <label class="form-check-label">
+                    <input type="checkbox"
+                           class="form-check-input"
+                           name="add_default_server_tasks"
+                           value="1"
+                           checked>
+                    Add default server tasks <small>(using default configs)</small>
+                </label>
+            </div>
+
+            <hr />
+
+            {# Botão para enviar o formulário. #}
+            <button type="submit" class="btn btn-primary mb-5">Add Server</button>
+        </form>
+    </div>
+{% endblock content %}

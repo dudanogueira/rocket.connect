@@ -119,7 +119,7 @@ services:
     command: /start-flower
 
   rocketchat:
-    image: registry.rocket.chat/rocketchat/rocket.chat:${RELEASE:-5.4.8-alpine}
+    image: registry.rocket.chat/rocketchat/rocket.chat:${RELEASE:-5.4.10-alpine}
     restart: on-failure
     environment:
       MONGO_URL: "${MONGO_URL:-\

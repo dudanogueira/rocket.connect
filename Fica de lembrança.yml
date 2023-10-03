@@ -1,0 +1,15 @@
+wppconnect:
+    image: wppconnect/server-cli:latest 
+    restart: unless-stopped
+    command: wppserver
+      --log-level DEBUG
+      --secretKey My53cr3tKY
+      --port 21465
+      --startAllSession
+      --webhook-allUnreadOnStart
+      --no-webhook-onPresenceChanged
+      --no-webhook-onParticipantsChanged
+      #--no-webhook-listenAcks
+    volumes:
+      - wppconnect_data:/usr/src/server-cli/tokens
+      - wppconnect_userdata_dir:/usr/src/server-cli/userDataDir

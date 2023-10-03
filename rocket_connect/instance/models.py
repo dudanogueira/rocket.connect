@@ -21,21 +21,21 @@ class Server(models.Model):
     class Meta:
         verbose_name = "Server"
         verbose_name_plural = "Servers"
-
     def __str__(self):
         return self.name
-
     def status(self):
+        # Inicializa variáveis ​​para verificar erros de autenticação, se o servidor está vivo e informações do servidor.
         auth_error = False
         alive = False
         info = None
-        try:
-            client = self.get_rocket_client()
-            alive = True
+        # Vamos tentar obter informações do cliente RocketChat.
+        try: 
+            client = self.get_rocket_client()  # Obtemos o cliente RocketChat.
+            alive = True  
             info = client.info().json()
-            check_auth = client.users_list()
+            check_auth = client.users_list() 
             if check_auth.status_code == 401:
-                auth_error = True
+                auth_error = True       
         except (
             requests.ConnectionError,
             json.JSONDecodeError,
@@ -44,12 +44,16 @@ class Server(models.Model):
             alive = False
         except RocketAuthenticationException:
             auth_error = True
+            
         return {
             "auth_error": auth_error,
             "alive": alive,
             "info": info,
         }
 
+    # Função para adquir o cliente / seus dados do rocketchat, utiliza a API do rocktechat
+    # Essa função verifica se o usuario retornado é um bot ou não
+    
     def get_rocket_client(self, bot=False):
         """
         this will return a working ROCKETCHAT_API instance
@@ -80,20 +84,25 @@ class Server(models.Model):
 
         return rocket
 
-    def get_managers(self, as_string=True):
+        #No caso a API retorna tudo e não queremos tudo então.
+        # Este metodo irá realiza o retorno dos Usuarios(user@1,etc...),bots e removendo os canais)
+    
+    def get_managers(self, as_string=True, ignore_bots=False):
         """
         this method will return the managers (user@1,user2,user3,#channel1,#channel2)
         and the bot. The final result should be:
         user1,user2,user3
         Obs: it will remove all channels
         """
+        
         # remove the channels
         managers = [i for i in self.managers.split(",") if i[0] != "#"]
-        managers.append(self.bot_user)
+        if not ignore_bots:
+            managers.append(self.bot_user)
         if as_string:
             return ",".join(managers)
         return list(set(managers))
-
+    
     def get_managers_channel(self, as_string=True):
         # keep only the channels
         managers_channel = [i for i in self.managers.split(",") if i[0] == "#"]
@@ -101,6 +110,8 @@ class Server(models.Model):
             return ",".join(managers_channel)
         return list(set(managers_channel))
 
+
+    #não sei
     def get_open_rooms(self, **kwargs):
         rocket = self.get_rocket_client()
         rooms = rocket.livechat_rooms(open="true", **kwargs)
@@ -551,7 +562,7 @@ class Connector(models.Model):
             # )
         # initiate connector plugin
         return plugin.Connector
-
+    
     def get_connector_config_form(self):
         connector_type = self.connector_type
         # import the connector plugin
@@ -582,7 +593,7 @@ class Connector(models.Model):
             return status
         except requests.ConnectionError:
             return {"success": False, "message": "ConnectionError"}
-
+    
     def initialize(self, request=None):
         """
         this method will instantiate the connector instance logic from the plugin
@@ -736,6 +747,7 @@ class Connector(models.Model):
         null=True,
         help_text="separate users or channels with comma, eg: user1,user2,user3,#channel1,#channel2",
     )
+
     config = models.JSONField(
         blank=True, null=True, help_text="Connector General configutarion", default=dict
     )
