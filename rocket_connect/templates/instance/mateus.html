@@ -1,14 +1,7 @@
 {% extends "base.html" %} {% load parse_date crispy_forms_tags %}
 
 
-
 {% block content %}
-
-<nav class="breadcrumb">
-    <a class="breadcrumb-item" href="{% url 'home' %}">home</a>
-    <span class="breadcrumb-item"><a href="{% url 'instance:server_detail' server.external_token %}">{{server}}</a></span>
-    <span class="breadcrumb-item active">Mateus</span>
-</nav>
 
 
 
@@ -198,6 +191,10 @@ function sendMessage() {
     border: 1px solid #ccc;
     margin-right: 10px;
     cursor: pointer;
+}
+
+.navbar {
+  display: none;
 }
 
 .message-sender {
