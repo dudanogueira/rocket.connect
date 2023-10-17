@@ -14,8 +14,7 @@ from django.views.decorators.csrf import csrf_exempt
 from envelope.models import LiveChatRoom
 from instance.forms import NewConnectorForm, NewServerForm
 from instance.models import Connector, Server
-from plugins.base import Connector as BaseConnector
-
+from plugins.base import Connector as baseConnector
 from .forms import NewInboundForm
 
 
@@ -26,7 +25,6 @@ def connector_endpoint(request, connector_id):
     )
     return_response = connector.intake(request)
     return return_response
-
 
 @csrf_exempt
 def connector_inbound_endpoint(request, connector_id):
@@ -52,11 +50,8 @@ def connector_inbound_endpoint_custom(request, connector_id):
     if not return_response:
         return HttpResponse("No inbound return.", status=404)
     # it can request a redirect
-    if return_response.get("redirect"):
-        return redirect(return_response["redirect"])
     if return_response.get("notfound"):
         return HttpResponse(return_response.get("notfound"), status=404)
-    
     return JsonResponse(return_response)
 
 
@@ -189,48 +184,91 @@ def server_active_chat_endpoint(request, server_id):
         return JsonResponse(output, safe=False)
 
 
-@must_be_yours1
-def rota_mateus(request, server_id, connector_id, token_rocketChat, x_user_id):
-    server = get_object_or_404(Server.objects, external_token=server_id)
-    usuarios_ = server.get_rocket_client().users_list().json()['users']
-    usuarios_no_bot = []
-    for i in usuarios_:
-        usuario = i
-        if 'bot' not in usuario["roles"] :
-            usuarios_no_bot.append(usuario)
+# def get_rocket_rooms(url, headers):
+#     # Configuração base da URL e headers
+#     get_rooms_url = f'{url}/api/v1/livechat/rooms'
 
-    url_user ="http://192.168.1.21:3000/api/v1/users.list"
-    url_visitor = "http://192.168.1.21:3000/api/v1/livechat/visitors.search?term="
-    headers = {
-        "X-Auth-Token": "RzZpc9_jMmfjf0sFOg-5V2l8C4bCcIxV2ks5txPeMYY",
-        "X-User-Id": "JoEtAv2bypTKYq2GW",
-    }
-    try:
-        usuarios = requests.get(url_user,headers=headers)
-        visitors = requests.get(url_visitor,headers=headers)
-        # print(visitors.content)
-        # print("estou aqui \n\n")
-        data = json.loads(visitors.content)
-        teste = data['visitors']
-        # print(teste)
-        for visitor in teste:
-            # print(visitor["_id"])
-            visitor['id'] = visitor.pop('_id')
-            # print(visitor["username"])
-        # print("Lista está aqui \n\n")
-    except:
-        usuarios = "Deu erro"
+#     # Chamada para obter as salas de chat
+#     rooms_response = requests.get(get_rooms_url, headers=headers)
+#     if rooms_response.status_code == 200:
+#         return rooms_response.json().get('rooms', [])
+#     else:
+#         print(f"Erro ao buscar as salas: {rooms_response.status_code} - {rooms_response.text}")
+#         return []
+   
+@must_be_yours1
+def macro_chat(request, server_id, connector_id, token_rocketChat, x_user_id):
+    
+    server = get_object_or_404(Server, external_token=server_id)
+    # Obter uma lista de usuários que não são bots
         
-    contexto =  {
-                'token_rocketChat': token_rocketChat,
-                "x_user_id":x_user_id,"server": server,
-                "usuarios": usuarios,
-                "visitors_list": teste,
-                "conector_id": connector_id,
-                "usuarios_no_bot": usuarios_no_bot
-                }
-    # print(usuarios_no_bot,"usuarios_no_bot \n\n")
-    return render(request, "instance/mateus.html", contexto)
+    rocket_client = server.get_rocket_client()
+    users = rocket_client.users_list().json().get('users', [])
+    non_bot_users = [user for user in users if 'bot' not in user.get("roles", [])]
+
+    # Configurar URLs e cabeçalhos para chamadas API
+    base_url = "http://192.168.1.21:3000/"
+    user_list_url = f'{base_url}api/v1/users.list'
+    visitor_search_url = f'{base_url}api/v1/livechat/visitors.search?term='
+    get_department_url = f'{base_url}/api/v1/livechat/department'
+    headers = {
+        "X-Auth-Token": token_rocketChat,
+        "X-User-Id": x_user_id,
+    }
+    
+    if request.method == "POST":
+        # Deserializar o corpo da requisição para transformá-lo em um dicionário Python
+        body_data = json.loads(request.body.decode('utf-8'))
+        
+        # Compor a URL de transferência
+        transfer_url = f"{base_url}api/v1/livechat/room.transfer"
+
+        data_to_send = {
+            "rid": body_data.get('rid'),  # Supondo que 'rid' retorne o ID da sala
+            "token": body_data.get('token'),
+            "department": body_data.get('department')
+        }
+
+        # Fazendo a requisição POST para transfer_url
+        response_request = requests.post(transfer_url, headers=headers, json=data_to_send)
+
+        # Retornando o corpo da requisição original como resposta
+        return HttpResponse(response_request)
+        
+    #Coleta de departamento
+    department_response = requests.get(get_department_url, headers=headers)
+    if department_response.status_code == 200:
+        all_departments = department_response.json().get('departments', [])
+        departments = [{'id': dept['_id'], 'name': dept['name']} for dept in all_departments]
+    else:
+        departments = []
+        print(f"Erro ao buscar os departamentos: {department_response.status_code} - {department_response.text}")
+    #termina coleta de departamento
+    
+    try:
+        user_response = requests.get(user_list_url, headers=headers)
+        visitor_response = requests.get(visitor_search_url, headers=headers)
+
+        visitors = json.loads(visitor_response.content).get('visitors', [])
+        for visitor in visitors:
+            visitor['id'] = visitor.pop('_id')
+            
+    except Exception as e:
+        return JsonResponse({"error": "Failed to fetch data.", "details": str(e)}, status=500)
+    
+    # Configurar contexto para renderização
+    context = {
+        "token_rocketChat": token_rocketChat,
+        "x_user_id": x_user_id,
+        "visitors_list": visitors,
+        "departments": departments,
+        "connector_id": connector_id,  # Adicionado do Connector
+        "non_bot_users": non_bot_users,
+        "headers" : json.dumps(headers)
+    }
+    
+    return render(request, "instance/macro_chat.html", context)
+
 
 
 @login_required(login_url="/accounts/login/")

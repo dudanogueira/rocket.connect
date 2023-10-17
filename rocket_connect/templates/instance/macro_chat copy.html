@@ -3,39 +3,11 @@
 
 {% block content %}
 
-
-
-{% comment %} <!-- Campo de texto para seleção de usuários e botão de envio -->
-<div class="dropdown">
-  <input type="text" id="campoUsuario" placeholder="Escolha" readonly onclick="mostrarOpcoes()">
-  <button type="submit">Enviar</button>
-  <div id="usuariosDropdown" class="dropdown-content">
-    {% for visitor in visitors_list %}
-     <a href="#" onclick="selecionarUsuario('{{ visitor.name }}')">{{ visitor.name }}</a>
-      <hr>
-    {% endfor %}
-
-  </div>
+<div>
+	<h1>
+		Active Chat
+	</h1>
 </div>
-
-<!-- Div de envio de mensagens -->
-<div class="message-sender">
-  <textarea id="messageInput" placeholder="Digite sua mensagem..."></textarea>
-  <button onclick="sendMessage()">Enviar</button>
-</div>
-
-<!-- Mensagens enviadas serão exibidas aqui (Feito para realizar testes)-->
-<div class="messages-display">
-  <!-- As mensagens enviadas serão adicionadas aqui dinamicamente -->
-</div> {% endcomment %}
-
-<!-- Div de seleção de usuários com Select2 -->
-{% comment %} <a>{{usuarios_no_bot}}</a> {% endcomment %}
-
-{% comment %} {%for usuario in usuarios_no_bot%}
-  <div>{{usuario}}</div>
-{%endfor%} {% endcomment %}
-
 <div class="modal fade" id="errorModal" tabindex="-1" aria-labelledby="errorModalLabel" aria-hidden="true">
 	<div class="modal-dialog">
 		<div class="modal-content">
@@ -53,11 +25,13 @@
 	</div>
 </div>
 
-<div class="row">
+
+
+<div class="row justify-content-between">
   <div class="col-4">
     <select class="form-control select2" id="usuario">
       <option value="" disabled selected>Selecione seu Usuario</option>
-      {% for usuario in usuarios_no_bot %}
+      {% for usuario in non_bot_users %}
         <option value="{{ usuario.username }}">
           {{ usuario.username }} 
         </option>
@@ -77,69 +51,27 @@
         {% endfor %}
     </select>
   </div>
-  <div class="col-2">
-    <button type="submit" class="form-control btn btn-success" onclick="sendMessage()">Enviar</button>
-  </div>
 </div>
 {% comment %} para de ser burro muleke, pronto {% endcomment %}
 <!-- Div de envio de mensagens -->
 <div class="message-sender">
   <textarea class="form-control" id="messageInput" placeholder="Digite sua mensagem..."></textarea>
 </div>
-
+<div class="row justify-content-end">
+	<div class="col-2">
+		<button type="submit" class="form-control btn btn-success mt-3" onclick="sendMessage()">Enviar</button>
+		<button id="redirecionar">Redirecionar</button>
+	</div>
+</div>
 <!-- Mensagens enviadas serão exibidas aqui -->
 <div class="messages-display">
   <!-- As mensagens enviadas serão adicionadas aqui dinamicamente -->
 </div>
+<pre id="dataOutput">Teste:</pre>
 
 
 
-<!-- Script para manipulação do dropdown e seleção de usuários -->
 <script>
-{% comment %} function mostrarOpcoes() {
-    document.getElementById("usuariosDropdown").classList.toggle("show");
-}
-
-function sendMessage() {
-  // Pega a mensagem do usuário e o nome do usuário selecionado
-  const message = document.getElementById('messageInput').value;
-  const destination = document.getElementById('campoUsuario').value;
-
-  // Verifica se a mensagem e o destino não estão vazios
-  if(message.trim() !== "" && destination.trim() !== "") {
-      // Adiciona a mensagem à div de exibição
-      const messagesDiv = document.querySelector('.messages-display');
-      const newMessage = document.createElement('div');
-      newMessage.classList.add('message');
-      newMessage.innerHTML = `<strong>Mensagem:</strong> ${message} <br> <strong>Enviado para:</strong> ${destination}`;
-      messagesDiv.appendChild(newMessage);
-
-      // Limpa os campos de entrada
-      document.getElementById('messageInput').value = '';
-      document.getElementById('campoUsuario').value = '';
-  } else {
-      alert("Por favor, preencha ambos os campos: mensagem e destino.");
-  }
-}
-
-function selecionarUsuario(nome) {
-    document.getElementById("campoUsuario").value = nome;
-    document.getElementById("usuariosDropdown").classList.remove("show");
-}
-
-// Fechar dropdown ao clicar fora do campo
-window.onclick = function(event) {
-  if (!event.target.matches('#campoUsuario')) {
-    var dropdowns = document.getElementsByClassName("dropdown-content");
-    for (var i = 0; i < dropdowns.length; i++) {
-      var openDropdown = dropdowns[i];
-      if (openDropdown.classList.contains('show')) {
-        openDropdown.classList.remove('show');
-      }
-    }
-  }
-} {% endcomment %}
-
 // Pegar o pathname da URL atual e dividir usando o caractere "/"
 	var partes = window.location.href.split('/');
 
@@ -196,8 +128,19 @@ window.onclick = function(event) {
 		})
 		.then(data => {
 			console.log(data);
-			// Se você quiser redirecionar baseado em alguma condição nos dados, pode fazer aqui.
-			// Exemplo: if (data.redirect) window.location.href = data.newUrl;
+			const btn = document.getElementById('redirecionar');
+	
+			const output = document.getElementById('dataOutput');
+        	output.textContent = JSON.stringify(data, null, 4); // "null e 4" são usados para formatar o JSON de forma legível
+			// Verifica se a propriedade da URL de redirecionamento existe no objeto retornado
+			if (data.newUrl) {
+				btn.onclick = function() {	
+					window.location.href = data.newUrl;
+				};
+				btn.disabled = false;  // Habilita o botão
+			} else {
+				btn.disabled = true;  // Desabilita o botão se não houver URL
+			}
 		})
 	}
 
@@ -209,27 +152,6 @@ window.onclick = function(event) {
 		$('#errorModal').modal('show');
 	}
 </script>
-
-<!-- Estilos CSS para o campo, botão e dropdown -->
-<style>
-
-.message-sender {
-  display: flex;
-  align-items: center;
-  margin-top: 20px;
-}
-
-.messages-display {
-  margin-top: 20px;
-  border: 1px solid #ccc;
-  padding: 10px;
-  max-height: 200px;
-  overflow-y: auto;
-}
-
-</style>
-
-
 
 
 {% endblock content %}

@@ -88,13 +88,10 @@ class Connector(ConnectorBase):
                     status = {"success": False, **status_req.json()}
             except urllib3.exceptions.ReadTimeoutError as e:
                 status = {"success": False, "message": str(e)}
-        # print("AQUI EU PEGUEI O STATUS DO SERVIDOR ::::::::",status,"\n\n\n\n\n\n")
         return status
 
     def close_session(self):
         # generate token
-        # Termina a conecxão com o whats
-        # obs: NÃO TESTA ESSE NEGOCIO AEW NÃO, DA BO no POSTMAN
         endpoint = "{}/api/{}/close-session".format(
             self.config.get("endpoint"),
             self.config.get("instance_name"),
@@ -289,7 +286,6 @@ class Connector(ConnectorBase):
         # set the message type
         self.type = "active_chat"
         self.message["type"] = self.type
-        print(self.message["type"])
         department = False
         department_id = None
         transfer = False
@@ -596,6 +592,12 @@ class Connector(ConnectorBase):
         and ajust what necessary, to output to rocketchat
         """
         message = json.dumps(self.message)
+        # print("\n\n")
+        # print("\n\n")
+        # print(self.message.get("event"))
+        # print("\n\n")
+        # print("\n\n")
+        
         self.logger_info(f"INCOMING MESSAGE: {message}")
         # qr code
 
@@ -1206,7 +1208,7 @@ class Connector(ConnectorBase):
                             text=request.GET.get("text"), room_id=room.room_id
                         )
                     external_url = room.get_room_url()
-                    return {"success": True, "redirect": external_url}
+                    return {"success": True, "redirect": external_url , "message": self.message}
             else:
                 return {
                     "success": False,
@@ -1214,7 +1216,6 @@ class Connector(ConnectorBase):
                 }
 
             self.logger_info(f"INBOUND MESSAGE. {request.GET}")
-            # print("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n")
             
         trigger_word = self.config.get("default_fromme_ack_department_trigger")
         if trigger_word:

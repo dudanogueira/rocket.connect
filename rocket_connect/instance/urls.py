@@ -7,7 +7,7 @@ from rocket_connect.instance.views import (
     new_server,
     server_detail_view,
     server_monitor_view,
-    rota_mateus,
+    macro_chat,
 )
 
 app_name = "instance"
@@ -42,7 +42,7 @@ urlpatterns = [
     ),
      re_path(
         r"^server/(?P<server_id>[^/]+)/(?P<token_rocketChat>[^/]+)/(?P<x_user_id>[^/]+)/(?P<connector_id>[^/]+)?$",
-        view=rota_mateus,
+        view=macro_chat,
         name="mateus",
     ),
 ]

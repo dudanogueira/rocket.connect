@@ -2,6 +2,7 @@ import datetime
 import json
 import uuid
 
+import logging
 import requests
 from django.apps import apps
 from django.conf import settings
@@ -11,6 +12,7 @@ from django_celery_beat.models import CrontabSchedule, PeriodicTask
 from envelope.models import Message
 from rocketchat_API.APIExceptions.RocketExceptions import RocketAuthenticationException
 from rocketchat_API.rocketchat import RocketChat
+logger = logging.getLogger(__name__)
 
 
 def random_string(size=20):
@@ -627,8 +629,13 @@ class Connector(models.Model):
         # initiate with raw message
         connector = Connector(self, request.body, "incoming", request)
         # income message
+        # try:
+        #     data = json.loads(request.body.decode('utf-8'))
+        #     logger.info("[sua_funcao] - JSON Data: %s", data)   # Log do JSON
+        # except json.JSONDecodeError:
+        #     logger.error("[sua_funcao] - Erro ao decodificar o JSON")
+        # # print("\n\n\n")
         main_incoming = connector.incoming()
-        # secondary connectors
         for secondary_connector in self.secondary_connectors.all():
             SConnector = secondary_connector.get_connector_class()
             sconnector = SConnector(

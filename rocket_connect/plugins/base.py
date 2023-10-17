@@ -740,8 +740,8 @@ class Connector:
                 print("LivechatSession")
         if self.message.get("type") == "LivechatSessionTaken":
             #
-            # This message is sent when the message if taken
-            # message, created = self.register_message()
+                # This message is sent when the message if taken
+                # message, created = self.register_message()
             self.handle_livechat_session_taken()
         if self.message.get("type") == "LivechatSessionForwarded":
             #
@@ -909,6 +909,7 @@ class Connector:
 
     def handle_livechat_session_taken(self):
         self.logger_info("HANDLING LIVECHATSESSION TAKEN")
+        # print("\n\nTeste\n")
         if self.config.get("session_taken_alert_template"):
             # get departments to ignore
             ignore_departments = self.config.get(
@@ -953,6 +954,7 @@ class Connector:
                     f"MESSAGE SENT: {message}",
                     message_id=self.get_message_id() + "SESSION_TAKEN",
                 )
+            
             outgo_text_obj = self.outgo_text_message(message_payload)
             self.logger_info(f"HANDLING LIVECHATSESSION TAKEN {outgo_text_obj}")
             return outgo_text_obj
