@@ -207,7 +207,7 @@ def macro_chat(request, server_id, connector_id, token_rocketChat, x_user_id):
     non_bot_users = [user for user in users if 'bot' not in user.get("roles", [])]
 
     # Configurar URLs e cabeçalhos para chamadas API
-    base_url = "http://192.168.1.21:3000/"
+    base_url = "http://rocketchat:3000/"
     user_list_url = f'{base_url}api/v1/users.list'
     visitor_search_url = f'{base_url}api/v1/livechat/visitors.search?term='
     get_department_url = f'{base_url}/api/v1/livechat/department'
