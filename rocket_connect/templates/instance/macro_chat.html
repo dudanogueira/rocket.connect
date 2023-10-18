@@ -95,7 +95,7 @@
 		// Pega a mensagem do usuário e o nome do usuário selecionado
 		var message = document.getElementById('messageInput').value;
 		var destination = $('#campoContato').val();
-		if(destination == null){
+		if(destination == null || destination == "") {
 			destination = $('#entradaContatoManual').val();
 		}
 
