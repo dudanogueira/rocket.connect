@@ -24,7 +24,7 @@
 
 	  <div class="col-4 mb-2">
 		<select class="form-control select2" id="campoContato">
-		  <option value="" disabled selected>Escolha um contato...</option>
+		  <option value="" selected>Escolha um contato...</option>
 			{% for visitor in visitors_list %}
 			  <option value="{%if visitor.phone and visitor.phone.0.phoneNumber %}{{ visitor.phone.0.phoneNumber }}{% endif %}">
 				{{ visitor.name }}
@@ -34,6 +34,7 @@
 			  </option>
 			{% endfor %}
 		</select>
+		<input type="text" class="form-control" id="entradaContatoManual" placeholder="Ou insira um contato manualmente">
 	  </div>
 </div>
 
@@ -92,8 +93,12 @@
 
   	function sendMessage() {
 		// Pega a mensagem do usuário e o nome do usuário selecionado
-		const message = document.getElementById('messageInput').value;
-		const destination = $('#campoContato').val();
+		var message = document.getElementById('messageInput').value;
+		var destination = $('#campoContato').val();
+		if(destination == null){
+			destination = $('#entradaContatoManual').val();
+		}
+
 		let url = `${dicionario.endereco_conector}/inbound_custom?phone=${destination}@adminrc&text=${message}`;
 		 
 		

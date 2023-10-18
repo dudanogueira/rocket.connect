@@ -1,0 +1,212 @@
+version: "3.7"
+
+volumes:
+  local_postgres_data: {}
+  local_postgres_data_backups: {}
+  local_rocket_mongodb_data: { driver: local }
+  local_waautomate_data: {}
+  local_wppconnect_data: {}
+  local_wppconnect_tokens: {}
+  local_prometeus_data: {}
+  nodemodules: {}
+
+networks:
+  internal_network:
+    driver: bridge
+
+services:
+  django:
+    &django
+    build:
+      context: .
+      dockerfile: ./compose/local/django/Dockerfile
+    image: rocket_connect_local_django
+    container_name: django
+    networks:
+      - internal_network
+    depends_on:
+      - postgres
+      - mailhog
+      - redis
+      - celeryworker
+    volumes:
+      - .:/app:z
+    env_file:
+      - ./.envs/.local/.django
+      - ./.envs/.local/.postgres
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: curl --fail http://localhost:8000
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    command: /start
+
+  postgres:
+    build:
+      context: .
+      dockerfile: ./compose/production/postgres/Dockerfile
+    image: rocket_connect_production_postgres
+    container_name: postgres
+    networks:
+      - internal_network
+    ports:
+      - "5432:5432"
+    volumes:
+      - local_postgres_data:/var/lib/postgresql/data:Z
+      - local_postgres_data_backups:/backups:z
+    env_file:
+      - ./.envs/.local/.postgres
+
+  mailhog:
+    image: mailhog/mailhog:v1.0.1
+    ports:
+      - "8025:8025"
+    networks:
+      - internal_network
+
+  redis:
+    image: redis:5.0
+    container_name: redis
+    networks:
+      - internal_network
+
+  celeryworker:
+    <<: *django
+    image: rocket_connect_local_celeryworker
+    container_name: celeryworker
+    networks:
+      - internal_network
+    depends_on:
+      - redis
+      - postgres
+      - mailhog
+    ports: []
+    healthcheck:
+      disable: true
+    command: /start-celeryworker
+
+  celerybeat:
+    <<: *django
+    image: rocket_connect_local_celerybeat
+    container_name: celerybeat
+    networks:
+      - internal_network
+    depends_on:
+      - redis
+      - postgres
+      - mailhog
+    ports: []
+    healthcheck:
+      disable: true
+    command: /start-celerybeat
+
+  flower:
+    <<: *django
+    image: rocket_connect_local_flower
+    container_name: flower
+    networks:
+      - internal_network
+    ports:
+      - "5555:5555"
+    healthcheck:
+      test: curl --fail http://localhost:5555
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    command: /start-flower
+
+  rocketchat:
+    image: registry.rocket.chat/rocketchat/rocket.chat:${RELEASE:-5.4.10-alpine}
+    restart: on-failure
+    networks:
+      - internal_network
+    environment:
+      MONGO_URL: "${MONGO_URL:-\
+        mongodb://${MONGODB_ADVERTISED_HOSTNAME:-mongodb}:${MONGODB_INITIAL_PRIMARY_PORT_NUMBER:-27017}/\
+          ${MONGODB_DATABASE:-rocketchat}?replicaSet=${MONGODB_REPLICA_SET_NAME:-rs0}}"
+      MONGO_OPLOG_URL: "${MONGO_OPLOG_URL:\
+        -mongodb://${MONGODB_ADVERTISED_HOSTNAME:-mongodb}:${MONGODB_INITIAL_PRIMARY_PORT_NUMBER:-27017}/\
+          local?replicaSet=${MONGODB_REPLICA_SET_NAME:-rs0}}"
+      ROOT_URL: ${ROOT_URL:-http://localhost:${HOST_PORT:-3000}}
+      PORT: ${PORT:-3000}
+      ADMIN_USERNAME: adminrc
+      ADMIN_PASS: admin
+      ADMIN_EMAIL: admin@example.com
+      OVERWRITE_SETTING_Accounts_TwoFactorAuthentication_Enforce_Password_Fallback: "false"
+      OVERWRITE_SETTING_SMTP_Host: mailhog
+      OVERWRITE_SETTING_SMTP_Port: 1025
+      OVERWRITE_SETTING_From_Email: from@email.com
+      OVERWRITE_SETTING_API_Enable_Rate_Limiter: "false"
+      OVERWRITE_SETTING_Livechat_validate_offline_email: "false"
+      OVERWRITE_SETTING_CREATE_TOKENS_FOR_USERS: "true"
+      OVERWRITE_SETTING_Accounts_SystemBlockedUsernameList: administrator,system,user
+      OVERWRITE_SETTING_Apps_Framework_Development_Mode: "true"
+      OVERWRITE_SETTING_Prometheus_Enabled: "true"
+      OVERWRITE_SETTING_Accounts_ShowFormLogin: "true"
+      OVERWRITE_SETTING_Show_Setup_Wizard: "completed"
+    depends_on:
+      - mongodb
+    expose:
+      - ${PORT:-3000}
+    ports:
+      - host_ip: ${BIND_IP:-0.0.0.0}
+        target: ${PORT:-3000}
+        published: ${HOST_PORT:-3000}
+        protocol: tcp
+        mode: host
+
+  mongodb:
+    image: docker.io/bitnami/mongodb:${MONGODB_VERSION:-4.4}
+    restart: on-failure
+    volumes:
+      - local_rocket_mongodb_data:/bitnami/mongodb
+    networks:
+      - internal_network
+    environment:
+      MONGODB_REPLICA_SET_MODE: primary
+      MONGODB_REPLICA_SET_NAME: ${MONGODB_REPLICA_SET_NAME:-rs0}
+      MONGODB_PORT_NUMBER: ${MONGODB_PORT_NUMBER:-27017}
+      MONGODB_INITIAL_PRIMARY_HOST: ${MONGODB_INITIAL_PRIMARY_HOST:-mongodb}
+      MONGODB_INITIAL_PRIMARY_PORT_NUMBER: ${MONGODB_INITIAL_PRIMARY_PORT_NUMBER:-27017}
+      MONGODB_ADVERTISED_HOSTNAME: ${MONGODB_ADVERTISED_HOSTNAME:-mongodb}
+      MONGODB_ENABLE_JOURNAL: ${MONGODB_ENABLE_JOURNAL:-true}
+      ALLOW_EMPTY_PASSWORD: ${ALLOW_EMPTY_PASSWORD:-yes}
+    ports:
+      - 27017:27017
+
+  webdav:
+    image: bytemark/webdav
+    volumes:
+      - /tmp/web:/var/lib/dav
+    environment:
+      - AUTH_TYPE=Basic
+      - USERNAME=alice
+      - PASSWORD=secret1234
+      - LOCATION=/webdav
+    networks:
+      - internal_network
+    ports:
+      - 8011:80
+
+  wppconnect:
+    image: wppconnect/server-cli:main
+    command: wppserver --startAllSession
+    volumes:
+      - local_wppconnect_data:/usr/src/server-cli/userDataDir
+      - local_wppconnect_tokens:/usr/src/server-cli/tokens
+    networks:
+      - internal_network
+    ports:
+      - "21465:21465"
+
+  apache:
+    image: 'php:apache'
+    ports:
+      - "8081:80"
+    volumes:
+      - ./compose/local/apache/site:/var/www/html
+      - ./compose/local/apache/confs/additional.conf:/etc/apache2/conf-enabled/additional.conf
+    networks:
+      - internal_network
