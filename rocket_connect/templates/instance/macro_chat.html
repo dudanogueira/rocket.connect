@@ -68,17 +68,15 @@
 	
 // Verificar se há pelo menos 6 partes na URL
 
-	 if (partes.length > 7) {
+	 if (partes.length > 2) {
 		var dicionario = {
 			endereco_base: `${partes[0]}`,
 			endereco: `${partes[0]}/${partes[1]}/${partes[2]}/${partes[3]}/${partes[4]}`,
-			id_servidor: partes[5],            // Terceira parte
-			token_rocketchat: partes[6],     // Quinta parte
-			id_user_rocket_chat: partes[7],   // Sexta parte
-			conector_id: partes[8], //
+			id_servidor: partes[5],
+			connector_id: partes[6],
 		};
 		//
-		dicionario['endereco_conector'] = `${dicionario.endereco_base}/connector/${dicionario.conector_id}` 
+		dicionario['endereco_conector'] = `${dicionario.endereco_base}/connector/${dicionario.connector_id}` 
 		console.log(dicionario);
 	} else {
 		console.error("A URL não possui segmentos suficientes.");
@@ -120,7 +118,6 @@
 			const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 			if (message.trim() !== "" && destination !== null) {
 				// Adiciona a mensagem à div de exibição
-				const messagesDiv = document.querySelector('.messages-display');
 				const newMessage = document.createElement('div');
 				newMessage.classList.add('message', 'alert', 'alert-info', 'mt-3'); // Adicionado classes do Bootstrap
 				newMessage.innerHTML = `
@@ -129,10 +126,10 @@
 					<br>
 					<a class="btn btn-primary" href="${data.redirect}" >redirecionar</a>
 				`;
-				messagesDiv.appendChild(newMessage);
 
 				// Limpa os campos de entrada
 				document.getElementById('messageInput').value = '';
+				console.log(document.getElementById('messageInput').value);
 				$('#campoContato').val(null).trigger('change'); // Reseta o valor do Select2
 				let dados_retorno = data.redirect.split('/')
 
@@ -171,7 +168,6 @@
 
 	// Função para mostrar um modal de erro com Bootstrap
 	function showErrorModal(message) {
-		// Aqui, suponho que você tenha uma modal no seu HTML com a ID 'errorModal' e um elemento span dentro dela com a ID 'errorModalMessage'
 		const modalMessage = document.getElementById('errorModalMessage');
 		modalMessage.textContent = message;
 		$('#errorModal').modal('show');

@@ -40,9 +40,10 @@ urlpatterns = [
         view=new_server,
         name="new_server",
     ),
-     re_path(
-        r"^server/(?P<server_id>[^/]+)/(?P<token_rocketChat>[^/]+)/(?P<x_user_id>[^/]+)/(?P<connector_id>[^/]+)?$",
+    re_path(
+        r"^server/(?P<server_id>[^/]+)/(?P<connector_id>[^/]+)?$",
         view=macro_chat,
         name="mateus",
     ),
+    
 ]

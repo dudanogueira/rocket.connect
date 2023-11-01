@@ -23,6 +23,9 @@ def connector_endpoint(request, connector_id):
     connector = get_object_or_404(
         Connector, external_token=connector_id, enabled=True, server__enabled=True
     )
+    # print("\n\n")
+    # print(connector)
+    # print("\nCoonector_endpoint Connector\n")
     return_response = connector.intake(request)
     return return_response
 
@@ -163,6 +166,9 @@ def server_endpoint(request, server_id):
 def server_messages_endpoint(request, server_id):
     server = get_object_or_404(Server, external_token=server_id, enabled=True)
     messages = server.get_custom_messages(term=request.GET.get("term"))
+    # print("\n\n")
+    # print(list(messages))
+    # print("\n\n")
     return JsonResponse(list(messages), safe=False)
 
 
@@ -197,29 +203,29 @@ def server_active_chat_endpoint(request, server_id):
 #         return []
    
 @must_be_yours1
-def macro_chat(request, server_id, connector_id, token_rocketChat, x_user_id):
-    
+def macro_chat(request, server_id, connector_id):
     server = get_object_or_404(Server, external_token=server_id)
-    # Obter uma lista de usuários que não são bots
-        
+    # Obter uma lista de usuários que não são botsa
     rocket_client = server.get_rocket_client()
     users = rocket_client.users_list().json().get('users', [])
     non_bot_users = [user for user in users if 'bot' not in user.get("roles", [])]
-
+    
     # Configurar URLs e cabeçalhos para chamadas API
-    base_url = "http://rocketchat:3000/"
+    base_url = f"{(server.external_url or server.url)}/"
     user_list_url = f'{base_url}api/v1/users.list'
     visitor_search_url = f'{base_url}api/v1/livechat/visitors.search?term='
-    get_department_url = f'{base_url}/api/v1/livechat/department'
+    get_department_url = f'{base_url}api/v1/livechat/department'
     headers = {
-        "X-Auth-Token": token_rocketChat,
-        "X-User-Id": x_user_id,
+        "X-Auth-Token": server.admin_user_token,
+        "X-User-Id": server.admin_user_id,
     }
-    
+    if request.method == "POST":
+        # print(f'o meu Method é um {request.method}')
+        print(json.loads(request.body.decode('utf-8')))
+        # print("\n")
     if request.method == "POST":
         # Deserializar o corpo da requisição para transformá-lo em um dicionário Python
         body_data = json.loads(request.body.decode('utf-8'))
-        
         # Compor a URL de transferência
         transfer_url = f"{base_url}api/v1/livechat/room.transfer"
 
@@ -228,7 +234,6 @@ def macro_chat(request, server_id, connector_id, token_rocketChat, x_user_id):
             "token": body_data.get('token'),
             "department": body_data.get('department')
         }
-
         # Fazendo a requisição POST para transfer_url
         response_request = requests.post(transfer_url, headers=headers, json=data_to_send)
 
@@ -246,7 +251,7 @@ def macro_chat(request, server_id, connector_id, token_rocketChat, x_user_id):
     #termina coleta de departamento
     
     try:
-        user_response = requests.get(user_list_url, headers=headers)
+        # user_response = requests.get(user_list_url, headers=headers)
         visitor_response = requests.get(visitor_search_url, headers=headers)
 
         visitors = json.loads(visitor_response.content).get('visitors', [])
@@ -258,8 +263,8 @@ def macro_chat(request, server_id, connector_id, token_rocketChat, x_user_id):
     
     # Configurar contexto para renderização
     context = {
-        "token_rocketChat": token_rocketChat,
-        "x_user_id": x_user_id,
+        "token_rocketChat": server.admin_user_token,
+        "x_user_id": server.admin_user_id,
         "visitors_list": visitors,
         "departments": departments,
         "connector_id": connector_id,  # Adicionado do Connector
@@ -268,7 +273,6 @@ def macro_chat(request, server_id, connector_id, token_rocketChat, x_user_id):
     }
     
     return render(request, "instance/macro_chat.html", context)
-
 
 
 @login_required(login_url="/accounts/login/")

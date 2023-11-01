@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <title>Gerador de Link Rápido!</title>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1>Gerador de Link Rápido!</h1>
+        <form>
+            <div class="mb-3">
+                <label for="server_address" class="form-label">Endereço do Servidor</label>
+                <input type="text" class="form-control" id="server_address" name="server_address" placeholder="Digite o Endereço do Servidor">
+            </div>
+            <div class="mb-3">
+                <label for="server_id" class="form-label">Server ID</label>
+                <input type="text" class="form-control" id="server_id" name="server_id" placeholder="Digite o Server ID">
+            </div>
+            <div class="mb-3">
+                <label for="connector_id" class="form-label">Connector ID</label>
+                <input type="text" class="form-control" id="connector_id" name="connector_id" placeholder="Digite o Connector ID">
+            </div>
+        </form>
+
+        <button id="fill-link" class="btn btn-primary">Preencher com Link</button>
+
+        <p id="result-link" class="mt-4"><strong>Link Gerado:</strong> <a id="server-link" href="#" target="_blank"></a></p>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            // Função para preencher campos com link
+            $('#fill-link').click(function() {
+                var link = prompt("Insira o link:");
+                
+                if (link) {
+                    var parts = link.split('/');
+                    console.log(parts);
+                    // Verificar se há pelo menos 7 partes no link
+                    if (parts.length >= 7) {
+                        $('#server_address').val(`${parts[0]}//${parts[2]}`);
+                        $('#server_id').val(parts[5]);
+                        $('#connector_id').val(parts[6]);
+                        $('input').trigger('input');
+                    } else {
+                        alert("Link inválido. Certifique-se de incluir todas as partes necessárias.");
+                    }
+                }
+                
+            });
+
+            $('input').on('input', function() {
+                // Atualizar o link com base nos valores dos campos
+                var server_address = $('#server_address').val() || '';
+                var server_id = $('#server_id').val() || 'server_id';
+                var connector_id = $('#connector_id').val() || 'connector_id';
+
+                var link = `${server_address}/instance/server/${server_id}/${connector_id}`;
+                $('#server-link').attr('href', link).text(link);
+            });
+        });
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
