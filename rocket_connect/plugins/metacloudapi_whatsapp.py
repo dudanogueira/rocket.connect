@@ -204,7 +204,10 @@ class Connector(ConnectorBase):
 
     def get_visitor_token(self):
         return "whatsapp:" + self.message["from"] + "@c.us"
-
+        
+    def get_visitor_username(self):
+        return "whatsapp:" + self.message["from"]
+        
     def get_request_session(self):
         s = requests.Session()
         s.headers = {"content-type": "application/json"}
