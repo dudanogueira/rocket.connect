@@ -64,6 +64,7 @@ class Connector(ConnectorBase):
         # generate token
         status = {}
         if self.config.get("endpoint", None):
+            #verifica com api se esta conectado
             endpoint = "{}/api/{}/status-session".format(
                 self.config.get("endpoint"),
                 self.config.get("instance_name"),
@@ -76,6 +77,7 @@ class Connector(ConnectorBase):
                     # if connected, get battery and host device
                     if status.get("status") == "CONNECTED":
                         # host device
+                        #pega os dados do celular
                         endpoint = "{}/api/{}/host-device".format(
                             self.config.get("endpoint"),
                             self.config.get("instance_name"),
@@ -86,7 +88,6 @@ class Connector(ConnectorBase):
                     status = {"success": False, **status_req.json()}
             except urllib3.exceptions.ReadTimeoutError as e:
                 status = {"success": False, "message": str(e)}
-
         return status
 
     def close_session(self):
@@ -234,6 +235,7 @@ class Connector(ConnectorBase):
         except requests.ConnectionError:
             return {"success": False, "message": "Could not connect to wppconnect"}
 
+    #checar numero do celular (Acho que é para ver se o numero é do whats ou n)
     def check_number_info(self, number, augment_message=False):
         """
         this method will get infos from the contact api and insert
@@ -268,7 +270,9 @@ class Connector(ConnectorBase):
 
         return number_info_req.json()
 
+
     def active_chat(self):
+        #Abri um chat novo
         """
         this method will be triggered when an active_chat needs to be places
         it has to interpret the active chat text, and do the necessary check and
@@ -454,6 +458,7 @@ class Connector(ConnectorBase):
                             check_if_open=True,
                             force_transfer=department_id,
                         )
+                        
                         if room:
                             self.logger_info(f"ACTIVE CHAT GOT A ROOM {room}")
                             # send the message to the room, in order to be delivered to the
@@ -505,6 +510,7 @@ class Connector(ConnectorBase):
                 self.message["chatId"] = number
                 message = {"msg": message_raw}
                 sent = self.outgo_text_message(message)
+                # print("ESTOU ENVIANDO ESSA MENSAGEM ::::::::",message,"\n\n\n\n\n\n\n\n\n\n\n")
                 if sent and sent.ok:
                     # return {
                     #     "text": ":white_check_mark: SENT {0} \n{1}".format(
@@ -516,7 +522,7 @@ class Connector(ConnectorBase):
                         room_id=room_id,
                         msg_id=msg_id,
                         text=":white_check_mark: " + self.message.get("text"),
-                    )
+                    )    
                     return {"success": True, "message": "MESSAGE SENT"}
                 else:
                     self.rocket.chat_update(
@@ -577,6 +583,7 @@ class Connector(ConnectorBase):
         except requests.ConnectionError:
             return {"success": False, "message": "ConnectionError"}
         # start session
+        # print("NEMMMM FUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU","\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n")
         return self.start_session()
 
     def incoming(self):
@@ -585,6 +592,12 @@ class Connector(ConnectorBase):
         and ajust what necessary, to output to rocketchat
         """
         message = json.dumps(self.message)
+        # print("\n\n")
+        # print("\n\n")
+        # print(self.message.get("event"))
+        # print("\n\n")
+        # print("\n\n")
+        
         self.logger_info(f"INCOMING MESSAGE: {message}")
         # qr code
 
@@ -1020,6 +1033,7 @@ class Connector(ConnectorBase):
     def get_message_body(self):
         return self.message.get("body")
 
+    
     def get_request_session(self):
         s = requests.Session()
         s.headers = {"content-type": "application/json"}
@@ -1166,6 +1180,7 @@ class Connector(ConnectorBase):
     def handle_inbound(self, request):
         if request.GET.get("phone"):
             check = self.check_number_status(request.GET.get("phone"))
+            print(check)
             if check["response"]["numberExists"]:
                 serialized_id = check.get("response").get("id").get("_serialized")
                 # get proper number
@@ -1193,7 +1208,7 @@ class Connector(ConnectorBase):
                             text=request.GET.get("text"), room_id=room.room_id
                         )
                     external_url = room.get_room_url()
-                    return {"success": True, "redirect": external_url}
+                    return {"success": True, "redirect": external_url , "message": self.message}
             else:
                 return {
                     "success": False,
@@ -1201,7 +1216,7 @@ class Connector(ConnectorBase):
                 }
 
             self.logger_info(f"INBOUND MESSAGE. {request.GET}")
-
+            
         trigger_word = self.config.get("default_fromme_ack_department_trigger")
         if trigger_word:
             # here we will return the last message that has the trigger word
@@ -1311,6 +1326,7 @@ class Connector(ConnectorBase):
         endpoint = "{}/api/{}/message-by-id/{}".format(
             self.config.get("endpoint"), self.config.get("instance_name"), message_id
         )
+        # print("quero enviar uma mensagem com o Get_Message Linha 1319",endpoint,"\n\n\n\n\n\n\n\n\n")
         message = session.get(endpoint).json()
         return message
 

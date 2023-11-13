@@ -18,17 +18,22 @@
     {% if request.user.is_authenticated %}
         {% if request.user.servers.all %}
             {% for server in request.user.servers.all %}
-            <div class="card {% if server.enabled %}bg-success{% else %}bg-danger{% endif %} mb-3">
-                <div class="card-header">
-                    <h1>{{server}}</h1>
-                </div>
-                <div class="card-body">
-                    <p class="card-text">
-                        <a name="" id="" class="btn btn-primary" href="{% url 'instance:server_detail' server.external_token %}" role="button">
-                            {{server.connectors.count}} Connectors, {{server.tasks.count}} Tasks
-                        </a>
-                    </p>
-                </div>
+            <div class="card 
+                {% if server.enabled %}
+                    bg-success
+                {% else %}
+                    bg-danger
+                {% endif %} mb-3">
+                    <div class="card-header">
+                        <h1>{{server}}</h1>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-text">
+                            <a name="" id="" class="btn btn-primary" href="{% url 'instance:server_detail' server.external_token %}" role="button">
+                                {{server.connectors.count}} Connectors, {{server.tasks.count}} Tasks
+                            </a>
+                        </p>
+                    </div>
             </div>
             {% endfor %}
         {% else %}

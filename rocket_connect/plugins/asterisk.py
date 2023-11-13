@@ -120,7 +120,7 @@ class Connector(ConnectorBase):
             # wild card
             if self.config.get("queue_notify_map").get("*"):
                 notify_map.extend(
-                    self.config.get("queue_notify_map").get("*").split(",")
+                    se0lf.config.get("queue_notify_map").get("*").split(",")
                 )
             # queue map
             if self.config.get("queue_notify_map").get(queue):

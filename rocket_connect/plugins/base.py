@@ -42,7 +42,6 @@ class Connector:
         self.rocket = None
         self.room = None
         self.logger = logging.getLogger("teste")
-
     # if true, lists the connector on active chat forms and apis
     support_active_chat = False
 
@@ -53,10 +52,17 @@ class Connector:
         return True
 
     def logger_info(self, message):
+        # Constrói a mensagem de saída inicial com base no conector e no tipo, ambos formatados de maneira específica
         output = f"{self.connector} > {self.type.upper()} > {message}"
+        
+        # Verifica se existe um atributo de mensagem definido
         if self.message:
+            # Verifica se é possível obter um ID para a mensagem
             if self.get_message_id():
+                # Se houver um ID de mensagem, prepende-o à saída
                 output = f"MESSAGE ID {self.get_message_id()} > " + output
+        
+        # Registra a saída com o nível de informação (INFO) no logger
         self.logger.info(output)
 
     def logger_error(self, message):
@@ -396,7 +402,7 @@ class Connector:
         room = None
         room_created = False
         connector_token = self.get_visitor_token()
-
+    
         # ignore some tokens
         if self.config.get("ignore_visitors_token"):
             if connector_token in self.config.get("ignore_visitors_token").split(","):
@@ -432,7 +438,9 @@ class Connector:
                 .last()
             )
         except LiveChatRoom.DoesNotExist:
+            print(LiveChatRoom.DoesNotExist)
             if create:
+                print(self.get_visitor_json(department))
                 self.logger_info("get_room, didn't got room")
                 if self.config.get("open_room", True):
                     # room not available, let's create one.
@@ -461,6 +469,7 @@ class Connector:
                             )
                             room_created = True
                         else:
+                            #erros que podem ocorrer ou que estejá todos usuarios(agents) off
                             if rc_room_response["errorType"] == "no-agent-online":
                                 self.logger_info("NO AGENTS ONLINE")
                                 if self.config.get("no_agent_online_alert_admin"):
@@ -502,6 +511,7 @@ class Connector:
 
         # optionally allow welcome message
         if allow_welcome_message:
+            
             if self.config.get("welcome_message"):
                 # only send welcome message when
                 # 1 - open_room is False and there is a welcome_message
@@ -573,6 +583,8 @@ class Connector:
         # so now it can go to a new room
         self.incoming()
 
+# Não sei se é mensagem do rocket.chat para o wpp
+# Os unicos cantos que utiliza essa função é o waautomate e o proprio base
     def room_send_text(self, room_id, text, message_id=None):
         if settings.DEBUG:
             print(f"SENDING MESSAGE TO ROOM ID {room_id}: {text}")
@@ -705,6 +717,7 @@ class Connector:
         if settings.DEBUG:
             print("Do stuff after the room is closed")
 
+    #mensagens whats
     def ingoing(self):
         """
         this method will process the outcoming messages
@@ -727,8 +740,8 @@ class Connector:
                 print("LivechatSession")
         if self.message.get("type") == "LivechatSessionTaken":
             #
-            # This message is sent when the message if taken
-            # message, created = self.register_message()
+                # This message is sent when the message if taken
+                # message, created = self.register_message()
             self.handle_livechat_session_taken()
         if self.message.get("type") == "LivechatSessionForwarded":
             #
@@ -896,6 +909,7 @@ class Connector:
 
     def handle_livechat_session_taken(self):
         self.logger_info("HANDLING LIVECHATSESSION TAKEN")
+        # print("\n\nTeste\n")
         if self.config.get("session_taken_alert_template"):
             # get departments to ignore
             ignore_departments = self.config.get(
@@ -940,6 +954,7 @@ class Connector:
                     f"MESSAGE SENT: {message}",
                     message_id=self.get_message_id() + "SESSION_TAKEN",
                 )
+            
             outgo_text_obj = self.outgo_text_message(message_payload)
             self.logger_info(f"HANDLING LIVECHATSESSION TAKEN {outgo_text_obj}")
             return outgo_text_obj
@@ -958,125 +973,195 @@ class Connector:
 
 
 class BaseConnectorConfigForm(forms.Form):
+    """
+    Esta classe define o formulário base para configurar um conector.
+    Ela herda da classe forms.Form do Django e é usada para definir os campos 
+    e comportamentos para configurar um conector.
+    """
+
     def __init__(self, *args, **kwargs):
-        # get the instance connector
+        """
+        Método inicializador da classe.
+        """
+
+        # Obtendo a instância do conector dos argumentos keyword.
         self.connector = kwargs.pop("connector")
-        # pass the connector config as initial
+
+        # Inicializa o formulário com as configurações do conector fornecido.
         super().__init__(*args, **kwargs, initial=self.connector.config)
 
     def save(self):
+        """
+        Método para salvar as configurações do formulário na instância do conector.
+        """
+
+        # Itera sobre cada campo processado e validado do formulário.
         for field in self.cleaned_data.keys():
+
+            # Se o campo possuir algum valor, ele é adicionado ou atualizado no conector.
             if self.cleaned_data[field]:
                 self.connector.config[field] = self.cleaned_data[field]
             else:
+                # Se o campo estiver vazio e já existir na configuração do conector, ele é removido.
                 if self.connector.config.get(field):
-                    # if is a boolean field, mark as false
-                    # else, delete
+                    # Caso o campo seja booleano, ele é definido como False.
                     if type(self.fields[field]) == forms.fields.BooleanField:
                         self.connector.config[field] = False
                     else:
+                        # Se não, o campo é deletado da configuração.
                         del self.connector.config[field]
+
+            # Após atualizar as configurações, o conector é salvo.
             self.connector.save()
 
+    # Campos do formulário:
+
+    # Opção para decidir se uma sala de chat deve ser automaticamente criada.
     open_room = forms.BooleanField(
-        required=False, initial=True, help_text="Uncheck to avoid creating a room"
+        required=False, initial=True, help_text="Desmarque para evitar a criação de uma sala"
     )
+
+    # Lista de tokens de visitantes que devem ser ignorados pelo conector.
     ignore_visitors_token = forms.CharField(
-        help_text="Do not create/get rooms for this tokens", required=False
+        help_text="Não criar/obter salas para estes tokens", required=False
     )
-    timezone = forms.CharField(help_text="Timezone for this connector", required=False)
+
+    # Define o fuso horário associado ao conector.
+    timezone = forms.CharField(help_text="Fuso horário para este conector", required=False)
+
+    # Modelo para formatar mensagens enviadas pelo conector.
     message_template = forms.CharField(
         widget=forms.Textarea(attrs={"rows": 4, "cols": 15}),
-        help_text="Template to render message, (default): *[{{agent_name}}]*\n{{message}}",
+        help_text="Template para renderizar a mensagem, padrão: *[{{agent_name}}]*\n{{message}}",
         required=False,
         initial="*[{{agent_name}}]*\n{{message}}",
     )
+
+    # Mensagem específica para ser enviada quando uma conversa é encerrada pelo sistema.
     force_close_message = forms.CharField(
         widget=forms.Textarea(attrs={"rows": 4, "cols": 15}),
-        help_text="Force this message on close",
+        help_text="Forçar esta mensagem ao fechar",
         required=False,
     )
+       # Opção avançada para customizar a mensagem de fechamento por departamento.
     advanced_force_close_message = forms.JSONField(
         required=False,
-        help_text="configurable close message or supression per department.",
+        help_text="Mensagem de fechamento configurável ou supressão por departamento."
     )
+
+    # Tokens de visitantes que não devem receber a mensagem de fechamento.
     ignore_token_force_close_message = forms.CharField(
-        help_text="ignore those visitors when sending closing message."
-        + 'This can avoid "bot loop". Tokens separated with comma',
+        help_text="Ignorar esses visitantes ao enviar mensagem de fechamento. "
+        + 'Isso pode evitar "loop de bot". Tokens separados por vírgula',
         required=False,
     )
+
+    # Decide se a descrição de um anexo deve ser tratada como uma nova mensagem.
     outcome_attachment_description_as_new_message = forms.BooleanField(
         required=False,
-        help_text="This might be necessary for the bot to react accordingly",
+        help_text="Isso pode ser necessário para o bot reagir adequadamente"
     )
+
+    # Decide se o nome do agente deve ser adicionado na mensagem de fechamento.
     add_agent_name_at_close_message = forms.BooleanField(required=False)
+
+    # Lista de nomes de agentes que devem ter seus nomes suprimidos nas mensagens.
     supress_agent_name = forms.CharField(
         required=False,
-        help_text="* for all agents, or agent1,agent2 for specific ones",
+        help_text="* para todos os agentes, ou agent1,agent2 para específicos"
     )
+
+    # Decide se os campos customizados devem ser sobrescritos ao registrar um novo visitante.
     overwrite_custom_fields = forms.BooleanField(
-        required=False, help_text="overwrite custom fields on new visitor registration"
+        required=False, help_text="sobrescrever campos customizados no novo registro de visitante"
     )
+
+    # Decide se o nome do visitante no conector deve ser usado ao substituir o nome do visitante.
     supress_visitor_name = forms.BooleanField(
         required=False,
-        help_text="do not overwrite visitor name with connector visitor name",
+        help_text="não sobrescrever nome do visitante com nome do visitante do conector"
     )
+
+    # Decide se o status do conector deve ser incluído na carga útil do status.
     include_connector_status = forms.BooleanField(
         required=False,
-        help_text="Includes connector status in the status payload. Disable for better performance",
+        help_text="Inclui o status do conector na carga útil do status. Desative para melhor desempenho"
     )
+
+    # Alerta o agente sempre que uma mensagem automatizada é enviada.
     alert_agent_of_automated_message_sent = forms.BooleanField(
         required=False,
-        help_text="Alert the agent whenever you send an automated text."
-        + "WARNING: this option will cause a bot to react to those messages.",
+        help_text="Alerte o agente sempre que enviar um texto automatizado."
+        + "AVISO: essa opção fará com que um bot reaja a essas mensagens."
     )
+
+    # Mensagem de resposta automática para chamadas recebidas.
     auto_answer_incoming_call = forms.CharField(
         widget=forms.Textarea(attrs={"rows": 4, "cols": 15}),
-        help_text="Auto answer this message on incoming call",
+        help_text="Responder automaticamente esta mensagem em chamada recebida",
         required=False,
     )
+
+    # Converte chamada recebida em texto específico.
     convert_incoming_call_to_text = forms.CharField(
         widget=forms.Textarea(attrs={"rows": 4, "cols": 15}),
-        help_text="Convert an Incoming Call to this text (can be used to force a bot reaction)",
+        help_text="Converter uma Chamada Recebida para este texto (pode ser usado para forçar uma reação de bot)",
         required=False,
     )
+
+    # Resposta automática para mensagens de áudio enviadas pelo usuário.
     auto_answer_on_audio_message = forms.CharField(
         required=False,
         widget=forms.Textarea(attrs={"rows": 4, "cols": 15}),
-        help_text="Auto answer with this message when a user end audio (PTT)",
+        help_text="Responder automaticamente com esta mensagem quando um usuário enviar um áudio (PTT)"
     )
+
+    # Converte áudio recebido em texto específico.
     convert_incoming_audio_to_text = forms.CharField(
         required=False,
         widget=forms.Textarea(attrs={"rows": 4, "cols": 15}),
-        help_text="Convert a user audio to this message (can be used to force a bot reaction)",
+        help_text="Converter um áudio do usuário para esta mensagem (pode ser usado para forçar uma reação de bot)"
     )
+
+    # Mensagem de boas-vindas para enviar automaticamente ao usuário.
     welcome_message = forms.CharField(
         widget=forms.Textarea(attrs={"rows": 4, "cols": 15}),
-        help_text="Auto answer this message as Welcome Message",
+        help_text="Responder automaticamente esta mensagem como Mensagem de Boas-Vindas",
         required=False,
     )
+
+    # Payload para um VCard de boas-vindas.
     welcome_vcard = forms.JSONField(
-        required=False, initial={}, help_text="The Payload for a Welcome Vcard"
+        required=False, initial={}, help_text="O Payload para um VCard de Boas-Vindas"
     )
+
+    # Modelo para alerta quando uma sessão é assumida.
     session_taken_alert_template = forms.CharField(
         required=False,
         widget=forms.Textarea(attrs={"rows": 4, "cols": 15}),
-        help_text="Template to use for the alert session taken. eg. \
-        You are now talking with {{agent.name}} at department {{department.name}}",
+        help_text="Template para usar no alerta de sessão assumida. ex. "
+        + "Você está agora conversando com {{agent.name}} no departamento {{department.name}}"
     )
+
+    # Departamentos que devem ser ignorados para o alerta de sessão assumida.
     session_taken_alert_ignore_departments = forms.CharField(
         required=False,
-        help_text="Ignore this departments ID for the session taken alert."
-        + "multiple separated with comma. eg. departmentID1,departmentID2",
+        help_text="Ignorar estes IDs de departamentos para o alerta de sessão assumida. "
+        + "múltiplos separados por vírgula. ex. departmentID1,departmentID2"
     )
+
+    # Modelo para alertar o administrador quando nenhum agente estiver online.
     no_agent_online_alert_admin = forms.CharField(
         required=False,
         widget=forms.Textarea(attrs={"rows": 4, "cols": 15}),
-        help_text="""Template to alert admin when no agent is online.
-        Eg: No agent online!. **Message**: {{body}} **From**: {{from}}""",
+        help_text="Template para alertar o administrador quando nenhum agente estiver online. "
+        + "Exemplo: Nenhum agente online! **Mensagem**: {{body}} **De**: {{from}}"
     )
+
+    # Modelo para resposta automática ao visitante quando nenhum agente estiver online.
     no_agent_online_autoanswer_visitor = forms.CharField(
         required=False,
         widget=forms.Textarea(attrs={"rows": 4, "cols": 15}),
-        help_text="Template to auto answer visitor when no agent is online",
+        help_text="Template para responder automaticamente o visitante quando nenhum agente estiver online"
     )
+

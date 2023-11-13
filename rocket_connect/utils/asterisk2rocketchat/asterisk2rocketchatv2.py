@@ -102,9 +102,12 @@ def get_grouper_id(payload):
     return str(datetime.date.today()) + "_" + n + "_" + payload.get("Queue")
 
 
+
+#FUNÇÃO PARA ENVIAR MENSAGENS NOS GRUPOS OU THREADS DO ROCKET.CHAT
 def send_message_or_thread(payload, base_url="http://rocketchat:3000"):
     grouper_id = get_grouper_id(payload)
     # search message
+    #PROCURA A THREAD PARA ENVIAR ALGUM DADO
     url_search = base_url + f"/api/v1/chat.getThreadMessages?tmid={grouper_id}"
     response = requests.get(url_search, headers=headers)
     # discussion already open
@@ -116,6 +119,7 @@ def send_message_or_thread(payload, base_url="http://rocketchat:3000"):
         # no previous message
         payload["message"]["_id"] = grouper_id
 
+    #ENVIA MENSAGEM
     url_send_message = base_url + "/api/v1/chat.sendMessage"
     new_message = requests.post(url_send_message, json=payload, headers=headers)
     return new_message

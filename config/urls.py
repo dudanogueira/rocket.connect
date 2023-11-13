@@ -7,6 +7,8 @@ from django.views import defaults as default_views
 from django.views.generic import TemplateView
 from rest_framework.authtoken.views import obtain_auth_token
 
+
+
 from rocket_connect import __version__ as ROCKET_CONNECT_VERSION
 from rocket_connect.instance import views
 
@@ -27,6 +29,9 @@ urlpatterns = [
     # Your stuff: custom urls includes go here
     re_path(
         r"^connector/(?P<connector_id>\w+)/inbound/?$", views.connector_inbound_endpoint
+    ),
+    re_path(
+        r"^connector/(?P<connector_id>\w+)/inbound_custom/?$", views.connector_inbound_endpoint_custom
     ),
     re_path(r"^connector/(?P<connector_id>\w+)/?$", views.connector_endpoint),
     re_path(r"^server/(?P<server_id>\w+)/?$", views.server_endpoint),

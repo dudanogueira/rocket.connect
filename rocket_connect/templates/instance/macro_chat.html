@@ -1,0 +1,178 @@
+{% extends "base_vazia.html" %} {% load parse_date crispy_forms_tags %}
+
+
+{% block content %}
+{% csrf_token %}
+
+<div class="d-flex justify-content-around mt-5">
+	<h1>
+		Active Chat
+	</h1>
+</div>
+
+<div class="row justify-content-between">
+	<div class="col-4 mb-2">
+		<select class="form-control select2" id="departamento">
+		  <option value="" disabled selected>Selecione o Departamento</option>
+		  {% for departamento in departments %}
+			<option value="{{ departamento.id }}">
+			  {{ departamento.name }} 
+			</option>
+		  {% endfor %}
+		</select>
+	  </div>
+
+	  <div class="col-4 mb-2">
+		<select class="form-control select2" id="campoContato">
+		  <option value="" selected>Escolha um contato...</option>
+			{% for visitor in visitors_list %}
+			  <option value="{%if visitor.phone and visitor.phone.0.phoneNumber %}{{ visitor.phone.0.phoneNumber }}{% endif %}">
+				{{ visitor.name }}
+				{% if visitor.phone and visitor.phone.0.phoneNumber %}
+					- {{ visitor.phone.0.phoneNumber }}
+				{% endif %}
+			  </option>
+			{% endfor %}
+		</select>
+		<input type="text" class="form-control" id="entradaContatoManual" placeholder="Ou insira um contato manualmente">
+	  </div>
+</div>
+
+  
+
+
+<input class="d-none" id="headers_values" value="{{headers}}"/>
+<!-- Div de envio de mensagens -->
+<div class="message-sender">
+  <textarea class="form-control" id="messageInput" placeholder="Digite sua mensagem..."></textarea>
+</div>
+<div class="row justify-content-end">
+	<div class="col-2">
+		<button type="submit" class="form-control btn btn-success mt-3" onclick="sendMessage()">Enviar</button>
+	</div> 
+</div>
+
+
+<!-- Mensagens enviadas serão exibidas aqui -->
+{% comment %} <div class="messages-display">
+  <!-- As mensagens enviadas serão adicionadas aqui dinamicamente -->
+</div> {% endcomment %}
+{% comment %} {{rooms}} {% endcomment %}
+{% comment %} {{departments}} {% endcomment %}
+
+
+<script>
+// Pegar o pathname da URL atual e dividir usando o caractere "/"
+	var partes = window.location.href.split('/');
+	const headers = JSON.parse(document.getElementById('headers_values').value);
+	
+// Verificar se há pelo menos 6 partes na URL
+
+	 if (partes.length > 2) {
+		var dicionario = {
+			endereco_base: `${partes[0]}`,
+			endereco: `${partes[0]}/${partes[1]}/${partes[2]}/${partes[3]}/${partes[4]}`,
+			id_servidor: partes[5],
+			connector_id: partes[6],
+		};
+		//
+		dicionario['endereco_conector'] = `${dicionario.endereco_base}/connector/${dicionario.connector_id}` 
+		console.log(dicionario);
+	} else {
+		console.error("A URL não possui segmentos suficientes.");
+	}
+
+	$(document).ready(function() {
+	$('#campoContato').select2();
+	});
+	
+
+	///api/v1/livechat/rooms
+
+  	function sendMessage() {
+		// Pega a mensagem do usuário e o nome do usuário selecionado
+		var message = document.getElementById('messageInput').value;
+		var destination = $('#campoContato').val();
+		if(destination == null || destination == "") {
+			destination = $('#entradaContatoManual').val();
+		}
+
+		let url = `${dicionario.endereco_conector}/inbound_custom?phone=${destination}@adminrc&text=${message}`;
+		 
+		
+		
+		///api/v1/livechat/department
+		///api/v1/livechat/room.transfer
+
+
+		fetch(url)
+		.then(response => {
+			// Verifica se a resposta é bem-sucedida (status 200-299)
+			if (!response.ok) {
+				throw new Error('Erro na resposta da API'); // Lança um erro para ser capturado no .catch
+			}
+			return response.json();
+		})
+		.then(data => {
+			console.log(data);
+			const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+			if (message.trim() !== "" && destination !== null) {
+				// Adiciona a mensagem à div de exibição
+				const newMessage = document.createElement('div');
+				newMessage.classList.add('message', 'alert', 'alert-info', 'mt-3'); // Adicionado classes do Bootstrap
+				newMessage.innerHTML = `
+					<strong>Mensagem:</strong> ${message} <br> 
+					<strong>Enviado para:</strong> ${destination} 
+					<br>
+					<a class="btn btn-primary" href="${data.redirect}" >redirecionar</a>
+				`;
+
+				// Limpa os campos de entrada
+				document.getElementById('messageInput').value = '';
+				console.log(document.getElementById('messageInput').value);
+				$('#campoContato').val(null).trigger('change'); // Reseta o valor do Select2
+				let dados_retorno = data.redirect.split('/')
+
+				var myHeaders = new Headers();
+				myHeaders.append("X-User-Id", headers['X-User-Id']);
+				myHeaders.append("X-Auth-Token", headers['X-Auth-Token']);
+				myHeaders.append("Content-type", "application/json");
+				myHeaders.append("X-CSRFToken", csrftoken); // Adicionando o token CSRF
+
+				var raw = JSON.stringify({
+				"rid": dados_retorno[5], 
+				"token": `whatsapp:${destination}@c.us`,
+				"department": $("#departamento").val()			
+				});
+				var requestOptions = {
+				method: 'POST',
+				headers: myHeaders,
+				body: raw,
+				redirect: 'follow'
+				};
+				
+				
+                console.log(`http://${dados_retorno[2]}/api/v1/livechat/room.transfer`);
+				fetch(window.location.href, requestOptions)
+				.then(response => response.text())
+				.then(result => console.log(result))
+				.catch(error => console.log('error', error));
+
+			} else {
+				showErrorModal("Por favor, preencha ambos os campos: mensagem e destino."); // Mostra modal em vez de alerta
+				return;
+			}
+		})
+		
+	}
+
+	// Função para mostrar um modal de erro com Bootstrap
+	function showErrorModal(message) {
+		const modalMessage = document.getElementById('errorModalMessage');
+		modalMessage.textContent = message;
+		$('#errorModal').modal('show');
+	}
+</script>
+
+
+{% endblock content %}

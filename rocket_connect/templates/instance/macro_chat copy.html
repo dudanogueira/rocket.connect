@@ -1,0 +1,157 @@
+{% extends "base_vazia.html" %} {% load parse_date crispy_forms_tags %}
+
+
+{% block content %}
+
+<div>
+	<h1>
+		Active Chat
+	</h1>
+</div>
+<div class="modal fade" id="errorModal" tabindex="-1" aria-labelledby="errorModalLabel" aria-hidden="true">
+	<div class="modal-dialog">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title" id="errorModalLabel">Erro</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+			</div>
+			<div class="modal-body">
+				<span id="errorModalMessage"></span>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+
+
+<div class="row justify-content-between">
+  <div class="col-4">
+    <select class="form-control select2" id="usuario">
+      <option value="" disabled selected>Selecione seu Usuario</option>
+      {% for usuario in non_bot_users %}
+        <option value="{{ usuario.username }}">
+          {{ usuario.username }} 
+        </option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-4">
+    <select class="form-control select2" id="campoContato">
+      <option value="" disabled selected>Escolha um contato...</option>
+        {% for visitor in visitors_list %}
+          <option value="{%if visitor.phone and visitor.phone.0.phoneNumber %}{{ visitor.phone.0.phoneNumber }}{% endif %}">
+            {{ visitor.name }}
+            {% if visitor.phone and visitor.phone.0.phoneNumber %}
+                - {{ visitor.phone.0.phoneNumber }}
+            {% endif %}
+          </option>
+        {% endfor %}
+    </select>
+  </div>
+</div>
+{% comment %} para de ser burro muleke, pronto {% endcomment %}
+<!-- Div de envio de mensagens -->
+<div class="message-sender">
+  <textarea class="form-control" id="messageInput" placeholder="Digite sua mensagem..."></textarea>
+</div>
+<div class="row justify-content-end">
+	<div class="col-2">
+		<button type="submit" class="form-control btn btn-success mt-3" onclick="sendMessage()">Enviar</button>
+		<button id="redirecionar">Redirecionar</button>
+	</div>
+</div>
+<!-- Mensagens enviadas serão exibidas aqui -->
+<div class="messages-display">
+  <!-- As mensagens enviadas serão adicionadas aqui dinamicamente -->
+</div>
+<pre id="dataOutput">Teste:</pre>
+
+
+
+<script>
+// Pegar o pathname da URL atual e dividir usando o caractere "/"
+	var partes = window.location.href.split('/');
+
+// Verificar se há pelo menos 6 partes na URL
+	if (partes.length > 7) {
+		var dicionario = {
+			endereco_base: `${partes[0]}`,
+			endereco: `${partes[0]}/${partes[1]}/${partes[2]}/${partes[3]}/${partes[4]}`,
+			id_servidor: partes[5],            // Terceira parte
+			token_rocketchat: partes[6],     // Quinta parte
+			id_user_rocket_chat: partes[7],   // Sexta parte
+			conector_id: partes[8], //
+		};
+		//
+		dicionario['endereco_conector'] = `${dicionario.endereco_base}/connector/${dicionario.conector_id}` 
+		console.log(dicionario);
+	} else {
+		console.error("A URL não possui segmentos suficientes.");
+	}
+
+	$(document).ready(function() {
+	$('#campoContato').select2();
+	});
+  function sendMessage() {
+		// Pega a mensagem do usuário e o nome do usuário selecionado
+		const message = document.getElementById('messageInput').value;
+		const destination = $('#campoContato').val();
+		let url = `${dicionario.endereco_conector}/inbound?phone=${destination}@${$('#usuario').val()}&text=${message}`;
+
+		// Verifica se a mensagem e o destino não estão vazios
+		if (message.trim() !== "" && destination !== null) {
+			// Adiciona a mensagem à div de exibição
+			const messagesDiv = document.querySelector('.messages-display');
+			const newMessage = document.createElement('div');
+			newMessage.classList.add('message', 'alert', 'alert-info', 'mt-3'); // Adicionado classes do Bootstrap
+			newMessage.innerHTML = `<strong>Mensagem:</strong> ${message} <br> <strong>Enviado para:</strong> ${destination}`;
+			messagesDiv.appendChild(newMessage);
+
+			// Limpa os campos de entrada
+			document.getElementById('messageInput').value = '';
+			$('#campoContato').val(null).trigger('change'); // Reseta o valor do Select2
+		} else {
+			showErrorModal("Por favor, preencha ambos os campos: mensagem e destino."); // Mostra modal em vez de alerta
+			return;
+		}
+
+		fetch(url)
+		.then(response => {
+			// Verifica se a resposta é bem-sucedida (status 200-299)
+			if (!response.ok) {
+				throw new Error('Erro na resposta da API'); // Lança um erro para ser capturado no .catch
+			}
+			return response.json();
+		})
+		.then(data => {
+			console.log(data);
+			const btn = document.getElementById('redirecionar');
+	
+			const output = document.getElementById('dataOutput');
+        	output.textContent = JSON.stringify(data, null, 4); // "null e 4" são usados para formatar o JSON de forma legível
+			// Verifica se a propriedade da URL de redirecionamento existe no objeto retornado
+			if (data.newUrl) {
+				btn.onclick = function() {	
+					window.location.href = data.newUrl;
+				};
+				btn.disabled = false;  // Habilita o botão
+			} else {
+				btn.disabled = true;  // Desabilita o botão se não houver URL
+			}
+		})
+	}
+
+	// Função para mostrar um modal de erro com Bootstrap
+	function showErrorModal(message) {
+		// Aqui, suponho que você tenha uma modal no seu HTML com a ID 'errorModal' e um elemento span dentro dela com a ID 'errorModalMessage'
+		const modalMessage = document.getElementById('errorModalMessage');
+		modalMessage.textContent = message;
+		$('#errorModal').modal('show');
+	}
+</script>
+
+
+{% endblock content %}
