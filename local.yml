@@ -12,9 +12,7 @@ volumes:
   nodemodules: {}
 
 services:
-
-  django:
-    &django
+  django: &django
     build:
       context: .
       dockerfile: ./compose/local/django/Dockerfile
@@ -39,9 +37,9 @@ services:
       timeout: 10s
       retries: 3
     networks:
-       default:
-          aliases:
-            - django.local
+      default:
+        aliases:
+          - django.local
 
     command: /start
 
@@ -129,7 +127,6 @@ services:
     networks:
       - default
 
-
   webdav:
     image: bytemark/webdav
     volumes:
@@ -158,7 +155,7 @@ services:
       - 8083:8083
     volumes:
       - local_codechat_data:/codechat/instances
-    command: ['node', './dist/src/main.js']
+    command: ["node", "./src/main.js"]
     environment:
       - CORS_ORIGIN=* # Or separate by commas -  ex.: 'yourdomain1.com, yourdomain2.com'
       - CORS_METHODS=POST,GET,PUT,DELETE
@@ -250,9 +247,8 @@ services:
   #     - DEBUGJSONMESSAGES=false
   #     - HTTPLOGS=false
 
-
   apache:
-    image: 'php:apache'
+    image: "php:apache"
     ports:
       - "80:80"
     volumes:
