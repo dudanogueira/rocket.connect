@@ -17,9 +17,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
   # QR TOOLS
   && apt install -y libzbar0 libzbar-dev python3-zbar \
   # misc dependencies
-  && apt-get install -y curl \
-  # Install pydub dependencies
-  && apt install -y ffmpeg libavcodec-extra
+  && apt-get install -y curl
 
 # Requirements are installed here to ensure they will be cached.
 COPY ./requirements .
@@ -59,7 +57,7 @@ COPY --from=python-build-stage /usr/src/app/wheels  /wheels/
 
 # use wheels to install python dependencies
 RUN pip install --no-cache-dir --no-index --find-links=/wheels/ /wheels/* \
-  && rm -rf /wheels/
+	&& rm -rf /wheels/
 
 COPY ./compose/production/django/entrypoint /entrypoint
 RUN sed -i 's/\r$//g' /entrypoint
