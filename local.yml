@@ -4,12 +4,12 @@ volumes:
   local_postgres_data: {}
   local_postgres_data_backups: {}
   local_rocket_mongodb_data: { driver: local }
-  local_waautomate_data: {}
+  # local_waautomate_data: {}
   local_wppconnect_data: {}
   local_wppconnect_tokens: {}
   local_codechat_data: {}
-  local_prometeus_data: {}
-  nodemodules: {}
+  # local_prometeus_data: {}
+  # nodemodules: {}
 
 services:
   django: &django
@@ -127,17 +127,17 @@ services:
     networks:
       - default
 
-  webdav:
-    image: bytemark/webdav
-    volumes:
-      - /tmp/web:/var/lib/dav
-    environment:
-      - AUTH_TYPE=Basic
-      - USERNAME=alice
-      - PASSWORD=secret1234
-      - LOCATION=/webdav
-    ports:
-      - 8011:80
+  # webdav:
+  #   image: bytemark/webdav
+  #   volumes:
+  #     - /tmp/web:/var/lib/dav
+  #   environment:
+  #     - AUTH_TYPE=Basic
+  #     - USERNAME=alice
+  #     - PASSWORD=secret1234
+  #     - LOCATION=/webdav
+  #   ports:
+  #     - 8011:80
 
   wppconnect:
     image: wppconnect/server-cli:main
@@ -215,8 +215,8 @@ services:
       - WEBHOOK_EVENTS_GROUP_PARTICIPANTS_UPDATE=false
       # ## This event fires every time a new token is requested via the refresh route
       # - WEBHOOK_EVENTS_NEW_JWT_TOKEN=true
-      # - CONFIG_SESSION_PHONE_CLIENT='RocketConnect'
-      # - CONFIG_SESSION_PHONE_NAME='Chrome'
+      - CONFIG_SESSION_PHONE_CLIENT='Codechat'
+      - CONFIG_SESSION_PHONE_NAME='Chrome'
       # # Set qrcode display limit
       # - QRCODE_LIMIT=6
       # # Defines an authentication type for the api
@@ -248,10 +248,10 @@ services:
   #     - DEBUGJSONMESSAGES=false
   #     - HTTPLOGS=false
 
-  apache:
-    image: "php:apache"
-    ports:
-      - "80:80"
-    volumes:
-      - ./compose/local/apache/site:/var/www/html
-      - ./compose/local/apache/confs/additional.conf:/etc/apache2/conf-enabled/additional.conf
+  # apache:
+  #   image: "php:apache"
+  #   ports:
+  #     - "80:80"
+  #   volumes:
+  #     - ./compose/local/apache/site:/var/www/html
+  #     - ./compose/local/apache/confs/additional.conf:/etc/apache2/conf-enabled/additional.conf
