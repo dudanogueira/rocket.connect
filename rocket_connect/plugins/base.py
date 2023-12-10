@@ -9,6 +9,8 @@ import tempfile
 import time
 import urllib.parse
 from io import BytesIO
+from pydub import AudioSegment
+import os
 
 import qrcode
 import requests
@@ -186,6 +188,15 @@ class Connector:
                     extension = ".ogg"
                 if mime == "image/webp":
                     extension = ".webp"
+            # Convert ogg audio to mp3 (To play on iPhone)
+            if mime == "audio/ogg; codecs=opus":
+                ogg_io = BytesIO(filedata)
+                ogg_audio = AudioSegment.from_file(ogg_io, format='ogg')
+                mp3_data = ogg_audio.export(format="mp3").read()
+                mp3_b64 = base64.b64encode(mp3_data)
+                filedata = base64.b64decode(mp3_b64)
+                mime = "audio/mpeg"
+                extension = ".mp3"
 
             if not filename:
                 # random filename
