@@ -228,7 +228,6 @@ services:
       # ## Set the secret key to encrypt and decrypt your token and its expiration time
       # - AUTHENTICATION_JWT_EXPIRIN_IN=3600 # seconds - 3600s ===1h | zero (0) - never expires
       # - AUTHENTICATION_JWT_SECRET=L0YWtjb2w554WFqPG
-      - SESSION_SECRET=t8OOEeISKzpmc3jjcMqBWYSaJsafdefer=
 
   # quepasa:
   #   image: sufficit/quepasa
