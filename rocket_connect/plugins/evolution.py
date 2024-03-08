@@ -83,6 +83,7 @@ class Connector(ConnectorBase):
 
     def status_session(self):
         if self.config.get("endpoint", None):
+            output = {}
             # GET {{baseUrl}}/instance/connectionState/{{instance}}
             secret_key = self.config.get("secret_key")
             instance_name = self.config.get("instance_name")
@@ -101,10 +102,29 @@ class Connector(ConnectorBase):
             endpoint_webhook_response = requests.request(
                 "GET", endpoint_webhook_get_url, headers=headers
             )
+            # fetch instances and filter for only this one
+            endpoint_fetchinstances_get_url = "{}/instance/fetchInstances".format(
+                self.config.get("endpoint")
+            )       
+            endpoint_fetchinstances_response = requests.request(
+                "GET", endpoint_fetchinstances_get_url, headers=headers
+            )
+            if endpoint_fetchinstances_response.json():
+                instance = [
+                    i for i in endpoint_fetchinstances_response.json()
+                    if i.get("instance").get("instanceName") == "rocketchat_evolution_test"
+                ]
+                if instance:
+                    endpoint_fetchinstances_response = instance[0].get("instance")
+            else:
+                endpoint_fetchinstances_response = endpoint_fetchinstances_response.json()
+                
               
             if status_instance_response:
                 output = status_instance_response.json()
                 output["webhook"] = endpoint_webhook_response.json()
+            if endpoint_fetchinstances_response:
+                output["instance"] = endpoint_fetchinstances_response
                 return output
             return {"error": "no endpoint"}
         else:
@@ -121,7 +141,13 @@ class Connector(ConnectorBase):
         status_instance_response = requests.request(
             "DELETE", endpoint_status, headers=headers
         )
-        return status_instance_response.ok
+        endpoint_status = "{}/instance/delete/{}".format(
+            self.config.get("endpoint"), instance_name
+        )
+        status_instance_response = requests.request(
+            "DELETE", endpoint_status, headers=headers
+        )        
+        return {"success": status_instance_response.ok}
 
 
     #
@@ -157,6 +183,32 @@ class Connector(ConnectorBase):
     def incoming(self):
         message = json.dumps(self.message)
         self.logger_info(f"INCOMING MESSAGE: {message}")
+
+        if self.message.get("action"):
+            # check if session managemnt is active
+            if self.config.get("session_management_token"):
+                if self.message.get("session_management_token") != self.config.get(
+                    "session_management_token"
+                ):
+                    output = {"success": False, "message": "INVALID TOKEN"}
+                    return JsonResponse(output)
+                else:
+                    action = self.message.get("action")
+                    output = {"action": action}
+                    if action == "start":
+                        response = self.connector.initialize()
+                    if action == "status":
+                        response = self.connector.status_session()
+                    if action == "close":
+                        response = self.connector.close_session()
+                    if action == "livechat":
+                        response = self.livechat_manager(self.message)
+
+                    # return status
+                    output = {**output, **response}
+                    self.logger_info(f"RETURN OF ACTION MESSAGE: {output}")
+                    return JsonResponse(output)
+
         #
         # qrcode reading
         #
@@ -616,7 +668,8 @@ class ConnectorConfigForm(BaseConnectorConfigForm):
     enable_ack_receipt = forms.BooleanField(
         required=False,
         help_text="This will update the ingoing message to show it was delivered and received",
-    )    
+    )
+    session_management_token = forms.CharField(required=False)
 
     field_order = [
         "webhook",
@@ -624,5 +677,6 @@ class ConnectorConfigForm(BaseConnectorConfigForm):
         "secret_key",
         "instance_name",
         "send_message_delay",
-        "enable_ack_receipt"
+        "enable_ack_receipt",
+        "session_management_token"
     ]

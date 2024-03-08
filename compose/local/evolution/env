@@ -15,7 +15,7 @@ LOG_BAILEYS=error
 # Determine how long the instance should be deleted from memory in case of no connection.
 # Default time: 5 minutes
 # If you don't even want an expiration, enter the value false
-DEL_INSTANCE=false
+DEL_INSTANCE=1
 
 # Temporary data storage
 STORE_MESSAGES=true

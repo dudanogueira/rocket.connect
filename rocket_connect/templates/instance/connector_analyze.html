@@ -118,7 +118,7 @@ Endpoint: {{ base_uri }}/connector/{{ connector.external_token }}/
                    href="?connector=codechat&connector_action=status_session"
                    role="button">get
                 status</a>
-                {% if connector_action_response.status_session.status != "CONNECTED" %}
+                {% if connector_action_response.status_session.status != "CONNECTED" and connector_action_response.status_session.instance.status != "open" %}
                     <a name=""
                        id=""
                        class="btn btn-primary"
@@ -127,7 +127,7 @@ Endpoint: {{ base_uri }}/connector/{{ connector.external_token }}/
                         initialize
                     </a>
                 {% endif %}
-                {% if connector_action_response.status_session.state == "open" %}
+                {% if connector_action_response.status_session.state == "open" or connector_action_response.status_session.instance.status == "open" %}
                     <a name=""
                        id=""
                        class="btn btn-danger"
