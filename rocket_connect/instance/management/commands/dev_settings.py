@@ -110,6 +110,32 @@ class Command(BaseCommand):
             else:
                 print("CONNECTOR UPDATED: ", connector)
 
+
+            #
+            # create default evolution connector
+            #
+
+            connector, connector_created = server.connectors.get_or_create(
+                external_token="ROCKETCHAT_EVOLUTION_EXTERNAL_TOKEN"
+            )
+            connector.config = {
+                "webhook": "http://django.local:8000/connector/ROCKETCHAT_EVOLUTION_EXTERNAL_TOKEN/",
+                "endpoint": "http://evolution:8080",
+                "secret_key": "B6D711FCDE4D4FD5936544120E713976",
+                "instance_name": "rocketchat_evolution_test",
+                "include_connector_status": True,
+                "enable_ack_receipt": True,
+                "outcome_attachment_description_as_new_message": True,
+            }
+            connector.name = "EVOLUTION"
+            connector.connector_type = "evolution"
+            connector.save()
+            if connector_created:
+                print("CONNECTOR CREATED: ", connector)
+            else:
+                print("CONNECTOR UPDATED: ", connector)
+
+
             #
             # create default codechat connector
             #

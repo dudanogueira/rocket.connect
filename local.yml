@@ -261,7 +261,7 @@ services:
       - local_evolution_instances:/evolution/instances
       - local_evolution_store:/evolution/store
     env_file:
-      - ./compose/local/evolution/.env
+      - ./compose/local/evolution/env
     command: ['node', './dist/src/main.js']
 
   apache:

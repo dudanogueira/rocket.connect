@@ -27,7 +27,7 @@ REDIS_URL=redis://redis_chatwoot:6379
 # If you are using docker-compose, set this variable's value to be any string,
 # which will be the password for the redis service running inside the docker-compose
 # to make it secure
-REDIS_PASSWORD=pgpwd
+#REDIS_PASSWORD=pgpwd
 # Redis Sentinel can be used by passing list of sentinel host and ports e,g. sentinel_host1:port1,sentinel_host2:port2
 REDIS_SENTINELS=
 # Redis sentinel master name is required when using sentinel, default value is "mymaster".

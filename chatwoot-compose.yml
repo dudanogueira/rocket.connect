@@ -45,7 +45,7 @@ services:
     volumes:
       - postgres_storage:/var/lib/postgresql/data
     environment:
-      - POSTGRES_DB=chatwoot
+      - POSTGRES_DB=chatwoot_production
       - POSTGRES_USER=postgres
       # Please provide your own password.
       - POSTGRES_PASSWORD=pgpwd
@@ -53,7 +53,8 @@ services:
   redis_chatwoot:
     image: redis:alpine
     restart: always
-    command: ["sh", "-c", "redis-server --requirepass \"$REDIS_PASSWORD\""]
+    #command: ["sh", "-c", "redis-server --requirepass \"$REDIS_PASSWORD\""]
+    command: ["sh", "-c", "redis-server"]
     env_file: ./.envs/.local/.chatwoot
     volumes:
       - redis_storage:/data
