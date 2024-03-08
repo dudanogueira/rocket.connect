@@ -311,6 +311,12 @@ class Connector(ConnectorBase):
                     f"Message Object {message.id} Already delivered. Ignoring"
                 )
 
+        if self.message.get("event") == "call":
+            # handle incoming call
+            self.get_rocket_client()
+            message, created = self.register_message()
+            room = self.get_room()
+            self.handle_incoming_call()
         return JsonResponse({})
 
     #
@@ -335,9 +341,19 @@ class Connector(ConnectorBase):
             "Content-Type": "application/json",
         }
         sent = requests.post(url, headers=headers, json=payload)
+        sent_json = sent.json()
         self.logger_info(
-            f"OUTGO TEXT MESSAGE. URL: {url}. PAYLOAD {payload} RESULT: {sent.json()}"
+            f"OUTGO TEXT MESSAGE. URL: {url}. PAYLOAD {payload} RESULT: {sent_json}. {sent}"
         )
+        timestamp = int(time.time())
+        if self.message_object and sent.ok:
+            self.message_object.delivered = sent.ok
+            self.message_object.response[timestamp] = sent.json()
+            if not self.message_object.response.get("id"):
+                self.message_object.response["id"] = [
+                    sent.json()["key"]["id"]
+                ]
+            self.message_object.save()
         return sent
 
     def outgo_file_message(self, message, file_url=None, mime=None, agent_name=None):
