@@ -9,6 +9,8 @@ volumes:
   local_wppconnect_tokens: {}
   local_codechat_data: {}
   local_prometeus_data: {}
+  local_evolution_instances: {}
+  local_evolution_store: {}
   nodemodules: {}
 
 services:
@@ -250,6 +252,17 @@ services:
   #     - DEBUGJSONMESSAGES=false
   #     - HTTPLOGS=false
 
+  evolution:
+    image: davidsongomes/evolution-api
+    restart: always
+    ports:
+      - 8084:8080
+    volumes:
+      - local_evolution_instances:/evolution/instances
+      - local_evolution_store:/evolution/store
+    env_file:
+      - ./compose/local/evolution/.env
+    command: ['node', './dist/src/main.js']
 
   apache:
     image: 'php:apache'

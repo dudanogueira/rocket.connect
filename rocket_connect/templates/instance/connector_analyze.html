@@ -108,7 +108,7 @@ Endpoint: {{ base_uri }}/connector/{{ connector.external_token }}/
     </div>
 {% endif %}
 {% comment %} CODECHAT {% endcomment %}
-{% if connector.connector_type == "codechat" %}
+{% if connector.connector_type == "codechat" or connector.connector_type == "evolution" %}
     <div id="codechat">
         <div class="container">
             <p>
