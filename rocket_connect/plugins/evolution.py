@@ -315,8 +315,13 @@ class Connector(ConnectorBase):
             # handle incoming call
             self.get_rocket_client()
             message, created = self.register_message()
-            room = self.get_room()
-            self.handle_incoming_call()
+            if not message.delivered:
+                room = self.get_room()
+                # adapt message to have the phone
+                phone = self.message.get("data").get("from").split("@")[0]
+                message.raw_message["visitor"] = {"phone": [{"phoneNumber": phone}]}
+                message.save()
+                self.handle_incoming_call()
         return JsonResponse({})
 
     #
@@ -416,6 +421,8 @@ class Connector(ConnectorBase):
         id = None
         if self.message.get("event") == "messages.upsert":
             id = self.message.get("data", {}).get("key", {}).get("id")
+        if self.message.get("event") == "call":
+            id = self.message.get("data", {}).get("id")
         return id
 
     def get_visitor_name(self):
@@ -425,10 +432,13 @@ class Connector(ConnectorBase):
         return None
 
     def get_visitor_phone(self):
-        remoteJid = self.message.get("data", {}).get("key", {}).get("remoteJid")
+        # the phone can come both as remoteJid or chatId, for when it
+        if self.message.get("event") == "call":
+            remoteJid = self.message.get("data", {}).get("from")
+        else:
+            remoteJid = self.message.get("data", {}).get("key", {}).get("remoteJid")
         if remoteJid:
             return remoteJid.split("@")[0]
-
         return None
 
     def get_visitor_username(self):
