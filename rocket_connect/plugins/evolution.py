@@ -137,6 +137,7 @@ class Connector(ConnectorBase):
             base64 = self.message.get("data", {}).get("qrcode", {}).get("base64")
             if base64:
                 self.outcome_qrbase64(base64)
+            return JsonResponse({})
         #
         # connection update
         #
@@ -148,10 +149,11 @@ class Connector(ConnectorBase):
             if data.get("state") == "open":
                 text = text + "\n" + " ✅ " * 6
             self.outcome_admin_message(text)
+            return JsonResponse({})
         #
         # message upsert
         #
-        if self.message.get("event") == "messages.upsert":
+        if self.message.get("event") == "messages.upsert":                
             department = None
             message_obj, created = self.register_message()
             if not message_obj.delivered:
@@ -219,10 +221,6 @@ class Connector(ConnectorBase):
 
                     if message.get("audioMessage"):
                         message_type = "audioMessage"
-                        # adapt message to have the phone
-                        phone = self.get_visitor_phone()
-                        message_obj.raw_message["visitor"] = {"phone": [{"phoneNumber": phone}]}
-                        message_obj.save()
                         self.handle_ptt()
 
                     if message.get("videoMessage"):
@@ -315,19 +313,70 @@ class Connector(ConnectorBase):
                 self.logger_info(
                     f"Message Object {message.id} Already delivered. Ignoring"
                 )
-
+            return JsonResponse({})
+        #
+        # handle calls
+        #
         if self.message.get("event") == "call":
             # handle incoming call
             self.get_rocket_client()
             message, created = self.register_message()
             if not message.delivered:
                 room = self.get_room()
-                # adapt message to have the phone
-                phone = self.message.get("data").get("from").split("@")[0]
-                message.raw_message["visitor"] = {"phone": [{"phoneNumber": phone}]}
-                message.save()
                 self.handle_incoming_call()
+            return JsonResponse({})
+        #
+        # handle sent and acks confirmation
+        #
+        if self.message.get("event") in ["send.message"] and \
+                self.message.get("data", {}).get("key", {}).get("fromMe") == True:
+            self.logger_info("ACK MESSAGE SENT")
+            self.handle_ack_fromme_message()
+            return JsonResponse({})        
+        
+        if self.message.get("event") in ["messages.update"] and \
+                self.message.get("data", {}).get("fromMe") == True:
+            self.logger_info("ACK MESSAGE RECEIVED")
+            self.handle_ack_fromme_message()
+            return JsonResponse({})
+
+
         return JsonResponse({})
+
+    def handle_ack_fromme_message(self):
+        # ack receipt
+        print("AAAAAAA ", self.message.get("data", {}).get("status"), self.message.get("event"))
+        if (
+            self.config.get("enable_ack_receipt")
+            and self.connector.server.type == "rocketchat"
+        ):
+            # get the message id from whatsapp, find rocket.chat message and update
+            message_id = self.get_message_id()
+            self.logger_info("Handling ack from me for message id: " + message_id)
+            self.get_rocket_client()
+            for message in self.connector.messages.filter(
+                response__id__contains=message_id
+            ):
+                self.logger_info("Found message to handle ack: " + message.envelope_id)
+                # or add only the white check
+                original_message = self.rocket.chat_get_message(
+                    msg_id=message.envelope_id
+                )
+                body = original_message.json()["message"]["msg"]
+                # remove previous markers
+                body = body.replace(":ballot_box_with_check:", "")
+                body = body.replace(":white_check_mark:", "")
+                if self.message.get("data", {}).get("status") == "DELIVERY_ACK":
+                    mark = ":white_check_mark:"
+                else:
+                    mark = ":ballot_box_with_check:"
+                self.rocket.chat_update(
+                    room_id=message.room.room_id,
+                    msg_id=message.envelope_id,
+                    text=f"{mark} {body}",
+                )
+                message.ack = True
+                message.save()
 
     #
     # OUTGO
@@ -339,7 +388,7 @@ class Connector(ConnectorBase):
         else:
             content = message["msg"]
         payload = {
-            "number": self.get_ingoing_visitor_phone(),
+            "number": self.get_ingoing_visitor_phone() or self.get_visitor_phone(),
             "options": {"delay": self.connector.config.get("send_message_delay", 1200)},
             "textMessage": {"text": content},
         }
@@ -424,9 +473,9 @@ class Connector(ConnectorBase):
     #
     def get_incoming_message_id(self):
         id = None
-        if self.message.get("event") == "messages.upsert":
+        if self.message.get("event") in ["messages.upsert", "send.message"]:
             id = self.message.get("data", {}).get("key", {}).get("id")
-        if self.message.get("event") == "call":
+        elif self.message.get("event") in ["call", "messages.update"]:
             id = self.message.get("data", {}).get("id")
         return id
 
@@ -480,19 +529,24 @@ class ConnectorConfigForm(BaseConnectorConfigForm):
     endpoint = forms.CharField(
         help_text="Where your Evolution is installed",
         required=True,
-        initial="http://codechat:8083",
+        initial="http://evolution:8084",
     )
     secret_key = forms.CharField(
-        help_text="The secret ApiKey for your CodeChat instance",
+        help_text="The secret ApiKey for your Evolution instance",
         required=True,
     )
     instance_name = forms.CharField(
-        help_text="CodeChat instance name", validators=[validators.validate_slug]
-    )
+        help_text="Evolution instance name", validators=[validators.validate_slug]
+    ),
 
     send_message_delay = forms.IntegerField(
-        help_text="CodeChat delay to send message. Defaults to 1200", initial=1200
-    )
+        help_text="Evolution delay to send message. Defaults to 1200", initial=1200
+    ),
+
+    enable_ack_receipt = forms.BooleanField(
+        required=False,
+        help_text="This will update the ingoing message to show it was delivered and received",
+    )    
 
     field_order = [
         "webhook",
@@ -500,4 +554,5 @@ class ConnectorConfigForm(BaseConnectorConfigForm):
         "secret_key",
         "instance_name",
         "send_message_delay",
+        "enable_ack_receipt"
     ]
