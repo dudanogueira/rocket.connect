@@ -249,6 +249,11 @@ class Connector(ConnectorBase):
                     ref_message = self.message.get("data").get("message").get("reactionMessage")
                     ref_id = ref_message.get("key").get("id")
                     original_message = self.get_message(ref_id)
+                    if not original_message:
+                        # could not find message
+                        self.message_object.delivered = True
+                        self.message_object.save()
+                        return JsonResponse({})
                     if original_message.get("message").get("extendedTextMessage"):
                         msg = original_message.get("message").get("extendedTextMessage").get("text")
                     elif original_message.get("message").get("imageMessage"):
