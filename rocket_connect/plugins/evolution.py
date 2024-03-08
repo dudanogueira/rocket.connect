@@ -365,6 +365,25 @@ class Connector(ConnectorBase):
                 )
             return JsonResponse({})
         #
+        # messages deletion
+        #        
+        if self.message.get("event") == "messages.delete":
+            if self.connector.server.type == "rocketchat":
+                # TODO: move this code do base?
+                ref_id = self.message.get("data").get("id")
+                if ref_id:
+                    self.get_rocket_client()
+                    msg = self.rocket.chat_get_message(msg_id=ref_id)
+                    if msg:
+                        new_message = ":warning:  DELETED: ~{}~".format(
+                            msg.json()["message"]["msg"]
+                        )
+                        room = self.get_room()
+                        self.rocket.chat_update(
+                            room_id=room.room_id, msg_id=ref_id, text=new_message
+                        )
+
+        #
         # handle calls
         #
         if self.message.get("event") == "call":
@@ -538,6 +557,8 @@ class Connector(ConnectorBase):
         # the phone can come both as remoteJid or chatId, for when it
         if self.message.get("event") == "call":
             remoteJid = self.message.get("data", {}).get("from")
+        elif self.message.get("event") == "messages.delete":
+            remoteJid = self.message.get("data", {}).get("remoteJid")
         else:
             remoteJid = self.message.get("data", {}).get("key", {}).get("remoteJid")
         if remoteJid:
