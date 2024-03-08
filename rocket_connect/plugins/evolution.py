@@ -123,6 +123,33 @@ class Connector(ConnectorBase):
         )
         return status_instance_response.ok
 
+
+    #
+    # MESSAGE HELPERS
+    # 
+
+    def get_message(self, message_id):
+        
+        endpoint = "{}/chat/findMessages/{}".format(
+            self.config.get("endpoint"), self.config.get("instance_name")
+        )
+        
+        payload = {
+            "where": {
+                "key": {
+                    "id": message_id
+                    }
+            }
+        }
+        headers = {
+            "apiKey": self.config.get("secret_key"),
+            "Content-Type": "application/json",
+        }
+        response = requests.post(endpoint, headers=headers, json=payload)
+        response_json = response.json()
+        if len(response_json) >= 1:
+            return response_json[0]
+        return None
     #
     # INCOMING HANDLERS
     #
@@ -162,6 +189,29 @@ class Connector(ConnectorBase):
                 room = self.get_room(department)
                 if not room:
                     return JsonResponse({"message": "no room generated"})
+                #
+                # outcome if is a reaction
+                #
+                if self.message.get("data").get("messageType") == "reactionMessage":
+                    
+                    ref_message = self.message.get("data").get("message").get("reactionMessage")
+                    ref_id = ref_message.get("key").get("id")
+                    original_message = self.get_message(ref_id)
+                    if original_message.get("message").get("extendedTextMessage"):
+                        msg = original_message.get("message").get("extendedTextMessage").get("text")
+                    elif original_message.get("message").get("imageMessage"):
+                        msg = original_message.get("message").get("imageMessage").get("caption") + " Some Image"
+                    else:
+                        msg = "some message (audio, for example)"
+                    reaction = ref_message.get("text")
+                    new_message = "Reacted: {} to: {}".format(
+                        reaction, msg
+                    )
+                    room = self.get_room()
+                    self.outcome_text(
+                        room_id=room.room_id, text=new_message, message_id=self.get_message_id()
+                    ).json()
+                    return JsonResponse({})
                 #
                 # oucome if text
                 #
@@ -345,7 +395,6 @@ class Connector(ConnectorBase):
 
     def handle_ack_fromme_message(self):
         # ack receipt
-        print("AAAAAAA ", self.message.get("data", {}).get("status"), self.message.get("event"))
         if (
             self.config.get("enable_ack_receipt")
             and self.connector.server.type == "rocketchat"
