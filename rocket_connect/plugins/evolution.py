@@ -153,8 +153,8 @@ class Connector(ConnectorBase):
         #
         if self.message.get("event") == "messages.upsert":
             department = None
-            message, created = self.register_message()
-            if not message.delivered:
+            message_obj, created = self.register_message()
+            if not message_obj.delivered:
                 message = self.message.get("data", {}).get("message", {})
                 # get room
                 room = self.get_room(department)
@@ -219,6 +219,11 @@ class Connector(ConnectorBase):
 
                     if message.get("audioMessage"):
                         message_type = "audioMessage"
+                        # adapt message to have the phone
+                        phone = self.get_visitor_phone()
+                        message_obj.raw_message["visitor"] = {"phone": [{"phoneNumber": phone}]}
+                        message_obj.save()
+                        self.handle_ptt()
 
                     if message.get("videoMessage"):
                         message_type = "videoMessage"
