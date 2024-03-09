@@ -286,7 +286,7 @@ class Connector(ConnectorBase):
                             agent
                             for agent in agents["users"]
                             if agent["status"] == "online"
-                            and agent["statusLivechat"] == "available"
+                            and agent.get("statusLivechat") == "available"
                         ]
                         self.logger_info(
                             "NO DEPARTMENT FOUND. LOOKING INTO ONLINE AGENTS: {}".format(
@@ -358,23 +358,20 @@ class Connector(ConnectorBase):
                                 "message": "MESSAGE ALREADY SENT",
                             }
                         # create basic incoming new message, as payload
-                        self.type = "incoming"
+                        self.type = "incoming"                  
                         self.message = {
-                            "from": check_number.get("response")
-                            .get("id")
-                            .get("_serialized"),
-                            "chatId": check_number.get("response")
-                            .get("id")
-                            .get("_serialized"),
-                            "id": self.message.get("message_id"),
-                            "visitor": {
-                                "token": "whatsapp:"
-                                + check_number["response"]["id"]["_serialized"]
+                            "event": "messages.upsert",
+                            "from": check_number.get("jid"),
+                            "data": {
+                                "key": {
+                                    "id": self.message.get("message_id"),
+                                    "remoteJid": check_number.get("jid")
+                                }
                             },
                         }
-                        self.check_number_info(
-                            check_number["response"]["id"]["user"], augment_message=True
-                        )
+                        # self.check_number_info(
+                        #     check_number["response"]["id"]["user"], augment_message=True
+                        # )
                         self.logger_info(
                             f"ACTIVE MESSAGE PAYLOAD GENERATED: {self.message}"
                         )
@@ -913,6 +910,8 @@ class Connector(ConnectorBase):
             id = self.message.get("data", {}).get("key", {}).get("id")
         elif self.message.get("event") in ["call", "messages.update"]:
             id = self.message.get("data", {}).get("id")
+        if self.message.get("type") == "active_chat":
+            id = self.message.get("message_id")
         return id
 
     def get_visitor_name(self):
@@ -923,6 +922,7 @@ class Connector(ConnectorBase):
 
     def get_visitor_phone(self):
         # the phone can come both as remoteJid or chatId, for when it
+        message = self.message
         if self.message.get("event") == "call":
             remoteJid = self.message.get("data", {}).get("from")
         elif self.message.get("event") == "messages.delete":
@@ -931,6 +931,7 @@ class Connector(ConnectorBase):
             remoteJid = self.message.get("data", {}).get("key", {}).get("remoteJid")
         if remoteJid:
             return remoteJid.split("@")[0]
+        
         return None
 
     def get_visitor_username(self):
