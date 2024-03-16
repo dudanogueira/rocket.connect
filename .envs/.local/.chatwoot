@@ -61,19 +61,19 @@ RAILS_MAX_THREADS=5
 MAILER_SENDER_EMAIL=Chatwoot <accounts@chatwoot.com>
 
 #SMTP domain key is set up for HELO checking
-SMTP_DOMAIN=mailhog
+SMTP_DOMAIN=mailpit
 # Set the value to "mailhog" if using docker-compose for development environments,
 # Set the value as "localhost" or your SMTP address in other environments
 # If SMTP_ADDRESS is empty, Chatwoot would try to use sendmail(postfix)
-SMTP_ADDRESS=mailhog
+SMTP_ADDRESS=mailpit
 SMTP_PORT=1025
-SMTP_USERNAME=
-SMTP_PASSWORD=
+#SMTP_USERNAME=
+#SMTP_PASSWORD=
 # plain,login,cram_md5
-SMTP_AUTHENTICATION=
-SMTP_ENABLE_STARTTLS_AUTO=true
+SMTP_AUTHENTICATION=login
+SMTP_ENABLE_STARTTLS_AUTO=false
 # Can be: 'none', 'peer', 'client_once', 'fail_if_no_peer_cert', see http://api.rubyonrails.org/classes/ActionMailer/Base.html
-SMTP_OPENSSL_VERIFY_MODE=peer
+SMTP_OPENSSL_VERIFY_MODE=none
 # Comment out the following environment variables if required by your SMTP server
 # SMTP_TLS=
 # SMTP_SSL=

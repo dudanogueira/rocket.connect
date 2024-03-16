@@ -8,7 +8,6 @@
 
 {% if request.user.is_authenticated %}
 <div class="mb-5">
-    <a href="https://m.dudanogueira.com.br/rocket-connect-home">SUPPORT THIS PROJECT!</a>
     <a type="button" class="btn btn-primary btn-lg float-right" href="{% url 'instance:new_server' %}">Add Server</a>
 </div>
 {% endif %}

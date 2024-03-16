@@ -11,7 +11,7 @@ from django.templatetags.static import static
 from django.urls import reverse
 from django.utils import timezone
 from django_celery_beat.models import CrontabSchedule, PeriodicTask
-from envelope.models import Message
+from envelope.models import Message, LiveChatRoom
 from rocketchat_API.APIExceptions.RocketExceptions import RocketAuthenticationException
 from rocketchat_API.rocketchat import RocketChat
 
@@ -253,13 +253,16 @@ class Server(models.Model):
         if age and type(age) == int:
             now = timezone.now()
             target_date = now - datetime.timedelta(days=age)
+            livechats = LiveChatRoom.objects.filter(
+                connector__server=self, open=False, created__lte=target_date
+            )
             messages = Message.objects.filter(
                 room__connector__server=self, delivered=True, created__lte=target_date
             )
             if execute:
-                return messages.delete()
+                return {"livechats": livechats.delete(), "messages": messages.delete()}
             else:
-                return messages
+                return {"livechats": livechats, "messages": messages}
 
     def force_delivery(self):
         """
@@ -276,8 +279,8 @@ class Server(models.Model):
         for connector in self.connectors.filter(enabled=True):
             Connector = connector.get_connector_class()
             conncetor_cls = Connector(connector, message={}, type="outgoing")
-            text = f"{connector.name} > {text}"
-            message_sent = conncetor_cls.outcome_admin_message(text=text)
+            text_to_send = f"{connector.name} > {text}"
+            message_sent = conncetor_cls.outcome_admin_message(text=text_to_send)
             output.append(message_sent)
         if output and all(output):
             return True

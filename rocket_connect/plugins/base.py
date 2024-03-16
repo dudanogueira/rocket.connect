@@ -12,7 +12,7 @@ from io import BytesIO
 
 import qrcode
 import requests
-import zbarlight
+#import zbarlight
 from django import forms
 from django.conf import settings
 from django.db import IntegrityError
@@ -308,8 +308,8 @@ class Connector:
         except IndexError:
             data = qrbase64
         img = Image.open(BytesIO(base64.b64decode(data)))
-        code = zbarlight.scan_codes(["qrcode"], img)[0]
-        return code
+        #code = zbarlight.scan_codes(["qrcode"], img)[0]
+        return False
 
     def generate_qrcode(self, code):
         qr = qrcode.QRCode(
@@ -846,15 +846,20 @@ class Connector:
                 ):
                     # if we have room, send it using the room
                     if room_created:
+                        print("RUNNING HERE")
                         payload = {
                             "rid": self.room.room_id,
                             "msg": self.config.get("welcome_message"),
                         }
                         a = self.outgo_message_from_rocketchat(payload)
-                        print("AQUI! ", a)
                         self.logger_info(
                             "OUTWENT welcome message from Rocket.Chat " + str(payload)
                         )
+                        print(a.json())
+                        message = {"msg": self.config.get("welcome_message")}
+                        outgo_welcome = self.outgo_text_message(message)
+                        print("OUTGO WELCOME", outgo_welcome.json())
+
                     # no room, send directly
                     else:
                         message = {"msg": self.config.get("welcome_message")}

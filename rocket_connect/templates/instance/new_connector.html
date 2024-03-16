@@ -4,7 +4,7 @@
 {% block content %}
 <nav class="breadcrumb">
     <a class="breadcrumb-item" href="{% url 'home' %}">home</a>
-    <a class="breadcrumb-item" href="{% url 'instance:server_detail' server.external_token %}">{{server}}</a>
+    <a class="breadcrumb-item" href="{% url 'instance:server_detail' server.external_token %}"><img src="{{server.get_icon}}" width="20px"/>{{server}}</a>
     <span class="breadcrumb-item active">New Rocket.Chat Connector<span>
 </nav>
 <div class="container">
@@ -18,7 +18,6 @@
     </h1>
     <hr />
 </div>
-
 
 <div id="form" class="container">
     <form action="" method="post">

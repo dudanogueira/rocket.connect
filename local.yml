@@ -1,69 +1,49 @@
-version: "3.7"
+version: '3'
 
 volumes:
-  local_postgres_data: {}
-  local_postgres_data_backups: {}
-  local_rocket_mongodb_data: { driver: local }
-  local_waautomate_data: {}
-  local_wppconnect_data: {}
-  local_wppconnect_tokens: {}
-  local_codechat_data: {}
-  local_prometeus_data: {}
-  local_evolution_instances: {}
-  local_evolution_store: {}
-  nodemodules: {}
+  rocketconnect_local_postgres_data: {}
+  rocketconnect_local_postgres_data_backups: {}
+  evolution_local_store: {}
+  evolution_local_instances: {}
 
 services:
-
-  django:
-    &django
+  django: &django
     build:
       context: .
       dockerfile: ./compose/local/django/Dockerfile
-    image: rocket_connect_local_django
-    container_name: django
+    image: rocketconnect_local_django
+    container_name: rocketconnect_local_django
     depends_on:
       - postgres
-      - mailhog
       - redis
-      - celeryworker
+      - mailpit
     volumes:
       - .:/app:z
     env_file:
       - ./.envs/.local/.django
       - ./.envs/.local/.postgres
-      #- ./.env
     ports:
-      - "8000:8000"
-    healthcheck:
-      test: curl --fail http://localhost:8000
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      - '8000:8000'
+    command: /start
     networks:
        default:
           aliases:
             - django.local
-
-    command: /start
-
   postgres:
     build:
       context: .
       dockerfile: ./compose/production/postgres/Dockerfile
-    image: rocket_connect_production_postgres
-    container_name: postgres
-    ports:
-      - "5432:5432"
+    image: rocketconnect_production_postgres
+    container_name: rocketconnect_local_postgres
     volumes:
-      - local_postgres_data:/var/lib/postgresql/data:Z
-      - local_postgres_data_backups:/backups:z
+      - rocketconnect_local_postgres_data:/var/lib/postgresql/data
+      - rocketconnect_local_postgres_data_backups:/backups
     env_file:
       - ./.envs/.local/.postgres
 
   docs:
-    image: rocket_connect_local_docs
-    container_name: docs
+    image: rocketconnect_local_docs
+    container_name: rocketconnect_local_docs
     build:
       context: .
       dockerfile: ./compose/local/docs/Dockerfile
@@ -74,183 +54,48 @@ services:
       - ./config:/app/config:z
       - ./rocket_connect:/app/rocket_connect:z
     ports:
-      - "7000:7000"
+      - '9000:7000'
     command: /start-docs
 
-  mailhog:
-    image: mailhog/mailhog:v1.0.1
+  mailpit:
+    image: docker.io/axllent/mailpit:latest
+    container_name: rocketconnect_local_mailpit
     ports:
       - "8025:8025"
 
   redis:
-    image: redis:5.0
-    container_name: redis
+    image: docker.io/redis:6
+    container_name: rocketconnect_local_redis
 
   celeryworker:
     <<: *django
-    image: rocket_connect_local_celeryworker
-    container_name: celeryworker
+    image: rocketconnect_local_celeryworker
+    container_name: rocketconnect_local_celeryworker
     depends_on:
       - redis
       - postgres
-      - mailhog
+      - mailpit
     ports: []
-    networks:
-      - default
-    healthcheck:
-      disable: true
     command: /start-celeryworker
 
   celerybeat:
     <<: *django
-    image: rocket_connect_local_celerybeat
-    container_name: celerybeat
+    image: rocketconnect_local_celerybeat
+    container_name: rocketconnect_local_celerybeat
     depends_on:
       - redis
       - postgres
-      - mailhog
-    healthcheck:
-      disable: true
-    command: /start-celerybeat
+      - mailpit
     ports: []
-    networks:
-      - default
+    command: /start-celerybeat
 
   flower:
     <<: *django
-    image: rocket_connect_local_flower
-    container_name: flower
+    image: rocketconnect_local_flower
+    container_name: rocketconnect_local_flower
     ports:
-      - "5555:5555"
-    healthcheck:
-      test: curl --fail http://localhost:5555
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      - '5555:5555'
     command: /start-flower
-    networks:
-      - default
-
-
-  webdav:
-    image: bytemark/webdav
-    volumes:
-      - /tmp/web:/var/lib/dav
-    environment:
-      - AUTH_TYPE=Basic
-      - USERNAME=alice
-      - PASSWORD=secret1234
-      - LOCATION=/webdav
-    ports:
-      - 8011:80
-
-  wppconnect:
-    image: wppconnect/server-cli:main
-    # for command options: https://github.com/wppconnect-team/server-cli/blob/main/src/program.js
-    command: wppserver --startAllSession
-    volumes:
-      - local_wppconnect_data:/usr/src/server-cli/userDataDir
-      - local_wppconnect_tokens:/usr/src/server-cli/tokens
-    ports:
-      - "21465:21465"
-
-  codechat:
-    image: codechat/api:latest
-    ports:
-      - 8083:8083
-    volumes:
-      - local_codechat_data:/codechat/instances
-    command: ['node', './dist/src/main.js']
-    environment:
-      - CORS_ORIGIN=* # Or separate by commas -  ex.: 'yourdomain1.com, yourdomain2.com'
-      - CORS_METHODS=POST,GET,PUT,DELETE
-      - CORS_CREDENTIALS=true
-
-      # Determine the logs to be displayed
-      - LOG_LEVEL=ERROR,WARN,DEBUG,INFO,LOG,VERBOSE,DARK
-      - LOG_COLOR=true
-
-      # Determine how long the instance should be deleted from memory in case of no connection.
-      # Default time: 5 minutes
-      # If you don't even want an expiration, enter the value false
-      - DEL_INSTANCE=5
-
-      # Temporary data storage
-      - STORE_CLEANING_INTERVAL=7200 # seconds ===2h
-      - STORE_MESSAGE=true
-      - STORE_CONTACTS=false
-      - STORE_CHATS=false
-
-      # # Permanent data storage
-      # - DATABASE_ENABLED=false
-      # - DATABASE_CONNECTION_URI='<uri>'
-      # - DATABASE_CONNECTION_DB_PREFIX_NAME='codechat'
-      # - DATABASE_SAVE_DATA_INSTANCE=false
-      # - DATABASE_SAVE_DATA_OLD_MESSAGE=false
-      # - DATABASE_SAVE_DATA_NEW_MESSAGE=true
-      # - DATABASE_SAVE_MESSAGE_UPDATE=true
-      # - DATABASE_SAVE_DATA_CONTACTS=true
-      # - DATABASE_SAVE_DATA_CHATS=true
-
-      # - REDIS_ENABLED=false
-      # - REDIS_URI='<uri>'
-      # - REDIS_PREFIX_KEY='codechat'
-
-      # # Webhook Settings
-      # ## Define a global webhook that will listen for enabled events from all instances
-      # - WEBHOOK_GLOBAL_ENABLED=false
-      # - WEBHOOK_GLOBAL_URL='<url>'
-      # ## Set the events you want to hear
-      - WEBHOOK_EVENTS_STATUS_INSTANCE=true
-      - WEBHOOK_EVENTS_QRCODE_UPDATED=true
-      - WEBHOOK_EVENTS_MESSAGES_SET=true
-      - WEBHOOK_EVENTS_MESSAGES_UPDATE=true
-      - WEBHOOK_EVENTS_MESSAGES_UPSERT=true
-      - WEBHOOK_EVENTS_SEND_MESSAGE=true
-      - WEBHOOK_EVENTS_CONTACTS_SET=true
-      - WEBHOOK_EVENTS_CONTACTS_UPSERT=false
-      - WEBHOOK_EVENTS_CONTACTS_UPDATE=false
-      - WEBHOOK_EVENTS_PRESENCE_UPDATE=false
-      - WEBHOOK_EVENTS_CHATS_SET=true
-      - WEBHOOK_EVENTS_CHATS_UPSERT=false
-      - WEBHOOK_EVENTS_CHATS_UPDATE=false
-      - WEBHOOK_EVENTS_CONNECTION_UPDATE=true
-      - WEBHOOK_EVENTS_GROUPS_UPSERT=false
-      - WEBHOOK_EVENTS_GROUPS_UPDATE=false
-      - WEBHOOK_EVENTS_GROUP_PARTICIPANTS_UPDATE=false
-      # ## This event fires every time a new token is requested via the refresh route
-      # - WEBHOOK_EVENTS_NEW_JWT_TOKEN=true
-      # - CONFIG_SESSION_PHONE_CLIENT='RocketConnect'
-      # - CONFIG_SESSION_PHONE_NAME='Chrome'
-      # # Set qrcode display limit
-      # - QRCODE_LIMIT=6
-      # # Defines an authentication type for the api
-      # # TODO: if uncommend bellow line, it will not run on docker
-      # #- AUTHENTICATION_TYPE='jwt' # or 'apikey'
-      # ## Define a global apikey to access all instances.
-      # ### OBS: This key must be inserted in the request header to create an instance.
-      # - AUTHENTICATION_API_KEY=t8OOEeISKzpmc3jjcMqBWYSaJsafdefer
-      # ## Set the secret key to encrypt and decrypt your token and its expiration time
-      # - AUTHENTICATION_JWT_EXPIRIN_IN=3600 # seconds - 3600s ===1h | zero (0) - never expires
-      # - AUTHENTICATION_JWT_SECRET=L0YWtjb2w554WFqPG
-
-  # quepasa:
-  #   image: sufficit/quepasa
-  #   mem_limit: 4096M
-  #   ports:
-  #     - 31000:31000
-  #   extra_hosts:
-  #     - "host.docker.internal:host-gateway"
-  #   restart: always
-  #   stdin_open: true
-  #   tty: true
-  #   environment:
-  #     - WEBSOCKETSSL=false
-  #     - WEBAPIPORT=31000
-  #     - APP_ENV=production
-  #     - MIGRATIONS=/opt/quepasa/migrations
-  #     - DEBUGJSONMESSAGES=false
-  #     - HTTPLOGS=false
 
   evolution:
     image: davidsongomes/evolution-api
@@ -258,16 +103,8 @@ services:
     ports:
       - 8084:8080
     volumes:
-      - local_evolution_instances:/evolution/instances
-      - local_evolution_store:/evolution/store
+      - evolution_local_instances:/evolution/instances
+      - evolution_local_store:/evolution/store
     env_file:
       - ./compose/local/evolution/env
     command: ['node', './dist/src/main.js']
-
-  apache:
-    image: 'php:apache'
-    ports:
-      - "80:80"
-    volumes:
-      - ./compose/local/apache/site:/var/www/html
-      - ./compose/local/apache/confs/additional.conf:/etc/apache2/conf-enabled/additional.conf

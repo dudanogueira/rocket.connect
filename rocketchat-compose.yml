@@ -20,7 +20,7 @@ services:
       ADMIN_PASS: admin
       ADMIN_EMAIL: admin@example.com
       OVERWRITE_SETTING_Accounts_TwoFactorAuthentication_Enforce_Password_Fallback: "false"
-      OVERWRITE_SETTING_SMTP_Host: mailhog
+      OVERWRITE_SETTING_SMTP_Host: mailpit
       OVERWRITE_SETTING_SMTP_Port: 1025
       OVERWRITE_SETTING_From_Email: from@email.com
       OVERWRITE_SETTING_API_Enable_Rate_Limiter: "false"

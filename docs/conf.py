@@ -1,3 +1,4 @@
+# ruff: noqa
 # Configuration file for the Sphinx documentation builder.
 #
 # This file only contains a selection of the most common options. For a full
@@ -15,13 +16,13 @@ import sys
 import django
 
 if os.getenv("READTHEDOCS", default=False) == "True":
-    sys.path.append(os.path.abspath("../"))
-    sys.path.append(os.path.abspath("../rocket_connect"))
+    sys.path.insert(0, os.path.abspath(".."))
     os.environ["DJANGO_READ_DOT_ENV_FILE"] = "True"
     os.environ["USE_DOCKER"] = "no"
 else:
     sys.path.insert(0, os.path.abspath("/app"))
 
+sys.path.append(os.path.abspath("/app/rocket_connect"))
 os.environ["DATABASE_URL"] = "sqlite:///readthedocs.db"
 os.environ["CELERY_BROKER_URL"] = os.getenv("REDIS_URL", "redis://redis:6379")
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.local")
@@ -29,8 +30,8 @@ django.setup()
 
 # -- Project information -----------------------------------------------------
 
-project = "Rocket Connect"
-copyright = """2021, Duda Nogueira"""
+project = "Rocket.Connect"
+copyright = """2024, Duda Nogueira"""
 author = "Duda Nogueira"
 
 
@@ -57,7 +58,7 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = "default"
+html_theme = "alabaster"
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,

@@ -1,7 +1,41 @@
 Connectors
 ======================================================================
 
-ASTERISK
+
+WPPCONNECT
+----------------------------------------------------------------------
+
+https://wppconnect-team.github.io/
+
+Features:
+
+* Active Chat
+* One Instance, multiple sessions
+* Automatically mark as read
+* Automatically send unread messages on startup
+* Many more
+
+EVOLUTION
+----------------------------------------------------------------------
+
+https://github.com/EvolutionAPI/evolution-api
+
+Features:
+
+* Active Chat
+* One Instance, multiple sessions
+* Automatically mark as read
+* Automatically send unread messages on startup
+* Many more
+
+
+FACEBOOK
+----------------------------------------------------------------------
+
+https://developers.facebook.com/docs/messenger-platform/reference/send-api/
+
+
+ASTERISK (DEPRECATED)
 ----------------------------------------------------------------------
 
 The idea of the Asterisk Connector is, for now, to be able to alert Rocketchat users and channels whenever a Caller left a Queue unanswered, or a new voice mail is left. 
@@ -45,21 +79,3 @@ note that a few environment variables are necessary::
 If everything is configured properly, you should see the queue calls being registered at http://127.0.0.1:8000/admin/asterisk/call/
 
 Now, you can configure the connector do your environment, defining the queue_notify_map, that will send the messages as configured at notify_abandoned_queue_template.
-
-WPPCONNECT
-----------------------------------------------------------------------
-
-https://wppconnect-team.github.io/
-
-Features:
-
-* Active Chat
-* One Instance, multiple sessions
-* Automatically mark as read
-* Automatically send unread messages on startup
-
-
-FACEBOOK
-----------------------------------------------------------------------
-
-https://developers.facebook.com/docs/messenger-platform/reference/send-api/

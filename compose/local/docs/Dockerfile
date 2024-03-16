@@ -1,7 +1,5 @@
-ARG PYTHON_VERSION=3.9-slim-bullseye
-
-# define an alias for the specfic python version used in this file.
-FROM python:${PYTHON_VERSION} as python
+# define an alias for the specific python version used in this file.
+FROM docker.io/python:3.11.8-slim-bookworm as python
 
 
 # Python build stage
@@ -14,10 +12,6 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
   build-essential \
   # psycopg2 dependencies
   libpq-dev \
-  # QR TOOLS
-  && apt install -y libzbar0 libzbar-dev python3-zbar \
-  # misc dependencies
-  && apt-get install -y curl \
   # cleaning up unused files
   && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false \
   && rm -rf /var/lib/apt/lists/*
@@ -26,7 +20,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
 COPY ./requirements /requirements
 
 # create python dependency wheels
-RUN pip wheel --no-cache-dir --no-deps --wheel-dir /usr/src/app/wheels  \
+RUN pip wheel --no-cache-dir --wheel-dir /usr/src/app/wheels  \
   -r /requirements/local.txt -r /requirements/production.txt \
   && rm -rf /requirements
 
@@ -46,11 +40,10 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
   # Translations dependencies
   gettext \
   # Uncomment below lines to enable Sphinx output to latex and pdf
-  texlive-latex-recommended \
-  texlive-fonts-recommended \
-  texlive-latex-extra \
-  latexmk \
-  python3-zbar \
+  # texlive-latex-recommended \
+  # texlive-fonts-recommended \
+  # texlive-latex-extra \
+  # latexmk \
   # cleaning up unused files
   && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false \
   && rm -rf /var/lib/apt/lists/*

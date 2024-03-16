@@ -56,7 +56,7 @@ class NewConnectorForm(ModelForm):
         super().__init__(*args, **kwargs)
         connector_choices = [
             ("wppconnect", "WPPConnect"),
-            ("codechat", "CodeChat - IN DEVELOPMENT"),
+            ("evolution", "Evolution"),
             ("facebook", "Meta Cloud Facebook"),
             ("metacloudapi_whatsapp", "Meta Cloud WhatsApp"),
             ("instagram_direct", "Meta Cloud Instagram"),
@@ -89,7 +89,7 @@ class NewChatwootConnectorForm(ModelForm):
         super().__init__(*args, **kwargs)
         connector_choices = [
             ("wppconnect", "WPPConnect"),
-            ("codechat", "CodeChat - IN DEVELOPMENT"),
+            ("evolution", "Evolution - BETA"),
             ("facebook", "Meta Cloud Facebook"),
             ("metacloudapi_whatsapp", "Meta Cloud WhatsApp"),
             ("instagram_direct", "Meta Cloud Instagram"),

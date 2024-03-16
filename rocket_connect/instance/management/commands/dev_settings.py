@@ -4,6 +4,7 @@ from django_celery_beat.models import PeriodicTask
 from instance.models import Server
 
 wpp_admin_script = """// Check gist https://gist.github.com/dudanogueira/ae8e92c5071b750de405546980eba7dc"""
+evolution_admin_script = """// Check gist https://gist.github.com/dudanogueira/965e9e3e9a2c27cea66ddfa75e97c8ed"""
 
 
 class Command(BaseCommand):
@@ -21,7 +22,8 @@ class Command(BaseCommand):
             admin.email = "admin@admin.com"
             admin.save()
         # create email to avoid asking at first login
-        email, created = admin.emailaddress_set.get_or_create(email="admin@admin.com")
+        email, created = admin.emailaddress_set.get_or_create(
+            email="admin@admin.com")
         email.verified = True
         email.primary = True
         email.save()
@@ -110,7 +112,6 @@ class Command(BaseCommand):
             else:
                 print("CONNECTOR UPDATED: ", connector)
 
-
             #
             # create default evolution connector
             #
@@ -118,15 +119,24 @@ class Command(BaseCommand):
             connector, connector_created = server.connectors.get_or_create(
                 external_token="ROCKETCHAT_EVOLUTION_EXTERNAL_TOKEN"
             )
-            connector.config = {
-                "webhook": "http://django.local:8000/connector/ROCKETCHAT_EVOLUTION_EXTERNAL_TOKEN/",
-                "endpoint": "http://evolution:8080",
-                "secret_key": "B6D711FCDE4D4FD5936544120E713976",
-                "instance_name": "rocketchat_evolution_test",
-                "include_connector_status": True,
-                "enable_ack_receipt": True,
-                "outcome_attachment_description_as_new_message": True,
-            }
+            connector.config = {'webhook': 'http://django.local:8000/connector/ROCKETCHAT_EVOLUTION_EXTERNAL_TOKEN/',
+                                'endpoint': 'http://evolution:8080',
+                                'open_room': True,
+                                'secret_key': 'B6D711FCDE4D4FD5936544120E713976',
+                                'instance_name': 'rocketchat_evolution_test',
+                                'welcome_message': 'Welcome!',
+                                'message_template': '*[{{agent_name}}]*\r\n{{message}}',
+                                'enable_ack_receipt': True,
+                                'force_close_message': 'Force close message here',
+                                'include_connector_status': True,
+                                'auto_answer_incoming_call': 'you tried to call',
+                                'auto_answer_on_audio_message': 'you sent an audio',
+                                'session_taken_alert_template': 'You are now talking with {{agent.name}} at department {{department.name}}',
+                                'convert_incoming_call_to_text': 'user tried to call',
+                                'convert_incoming_audio_to_text': 'user sent an audio',
+                                'session_management_token': 'session_management_secret_token',
+                                'active_chat_webhook_integration_token': 'EVOLUTION_ZAPIT_TOKEN',
+                                'outcome_attachment_description_as_new_message': True}
             connector.name = "EVOLUTION"
             connector.connector_type = "evolution"
             connector.save()
@@ -134,7 +144,6 @@ class Command(BaseCommand):
                 print("CONNECTOR CREATED: ", connector)
             else:
                 print("CONNECTOR UPDATED: ", connector)
-
 
             #
             # create default codechat connector
@@ -273,7 +282,8 @@ class Command(BaseCommand):
         rocket = server.get_rocket_client()
         # lets make sure admin is user, agent and manager
         admin = rocket.users_info(username="adminrc").json()["user"]
-        updates = {"roles": ["admin", "user", "livechat-manager", "livechat-agent"]}
+        updates = {"roles": ["admin", "user",
+                             "livechat-manager", "livechat-agent"]}
         rocket.users_update(user_id=admin["_id"], **updates)
         # set admin as available
         data = {"status": "available", "agentId": admin["_id"]}
@@ -296,7 +306,8 @@ class Command(BaseCommand):
                 print("Agent created: ", user)
             # add agent1 as agent in omnichannel
             aa = {}
-            aa[user] = rocket.livechat_create_user(user_type="agent", username=user)
+            aa[user] = rocket.livechat_create_user(
+                user_type="agent", username=user)
             if aa[user] and aa[user].json()["success"]:
                 print("added as agent to livechat", user)
                 # add WA-DEPARTMENT
@@ -419,7 +430,8 @@ class Command(BaseCommand):
                 print("Manager created: ", user)
             # add user as Manager in omnichannel
             aa = {}
-            aa[user] = rocket.livechat_create_user(user_type="manager", username=user)
+            aa[user] = rocket.livechat_create_user(
+                user_type="manager", username=user)
 
         #
         # create bot
@@ -443,7 +455,8 @@ class Command(BaseCommand):
         if channel.ok:
             print("channel created: ", channel)
             # invite admin to channel
-            user_id = rocket.users_info(username="adminrc").json()["user"]["_id"]
+            user_id = rocket.users_info(username="adminrc").json()[
+                "user"]["_id"]
             channel_id = channel.json()["channel"]["_id"]
             rocket.channels_invite(room_id=channel_id, user_id=user_id)
         # add admin as manager
@@ -480,7 +493,8 @@ class Command(BaseCommand):
 
         # create if dont exist:
         integrations = rocket.call_api_get("integrations.list").json()
-        existing_integrations_name = [a["name"] for a in integrations["integrations"]]
+        existing_integrations_name = [a["name"]
+                                      for a in integrations["integrations"]]
         if "WPPCONNECT ACTIVE CHAT INTEGRATION" not in existing_integrations_name:
             print("CREATING WEBHOOK FOR ZAPIT  OUTGOING")
             payload = {
@@ -538,6 +552,68 @@ class Command(BaseCommand):
                 "runOnEdits": False,
                 "token": "session_management_secret_token",
             }
+            c = rocket.call_api_post("integrations.create", **payload)
+            print(c.json())
+        else:
+            print("WEBHOOK FOR ZAPIT OUTGOING ALREADY EXISTS")
+
+        # create webhook evolution manager:
+        if "EVOLUTION MANAGER INTEGRATION" not in existing_integrations_name:
+            print("CREATING WEBHOOK FOR EVOLUTION MANAGER OUTGOING")
+            payload = {
+                "type": "webhook-outgoing",
+                "enabled": True,
+                "impersonateUser": True,
+                "event": "sendMessage",
+                "urls": ["http://django:8000/connector/ROCKETCHAT_EVOLUTION_EXTERNAL_TOKEN/"],
+                "triggerWords": ["rcevo"],
+                "targetRoom": "",
+                "channel": "#manager_channel",
+                "username": "rocket.cat",
+                "name": "EVOLUTION MANAGER INTEGRATION",
+                "alias": "",
+                "avatar": "",
+                "emoji": "",
+                "scriptEnabled": True,
+                "script": evolution_admin_script,
+                "retryFailedCalls": True,
+                "retryCount": 6,
+                "retryDelay": "powers-of-ten",
+                "triggerWordAnywhere": False,
+                "runOnEdits": False,
+                "token": "session_management_secret_token",
+            }
+            c = rocket.call_api_post("integrations.create", **payload)
+            print(c.json())
+        else:
+            print("WEBHOOK FOR ZAPIT OUTGOING ALREADY EXISTS")
+
+        if "EVOLUTION ACTIVE CHAT INTEGRATION" not in existing_integrations_name:
+            print("CREATING WEBHOOK FOR ZAPIT  EVOLUTION OUTGOING")
+            payload = {
+                "type": "webhook-outgoing",
+                "enabled": True,
+                "impersonateUser": True,
+                "event": "sendMessage",
+                "urls": ["http://django:8000/connector/ROCKETCHAT_EVOLUTION_EXTERNAL_TOKEN/"],
+                "triggerWords": ["zapitevo"],
+                "targetRoom": "",
+                "channel": "#manager_channel",
+                "username": "rocket.cat",
+                "name": "EVOLUTION ACTIVE CHAT INTEGRATION",
+                "alias": "",
+                "avatar": "",
+                "emoji": "",
+                "scriptEnabled": False,
+                "script": "",
+                "retryFailedCalls": True,
+                "retryCount": 6,
+                "retryDelay": "powers-of-ten",
+                "triggerWordAnywhere": False,
+                "runOnEdits": False,
+                "token": "EVOLUTION_ZAPIT_TOKEN",
+            }
+
             c = rocket.call_api_post("integrations.create", **payload)
             print(c.json())
         else:

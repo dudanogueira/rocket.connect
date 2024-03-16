@@ -1421,7 +1421,8 @@ class ConnectorConfigForm(BaseConnectorConfigForm):
         required=True,
     )
     instance_name = forms.CharField(
-        help_text="WPPConnect instance name", validators=[validators.validate_slug]
+        help_text="WPPConnect instance name", validators=[validators.validate_slug],
+        required = False
     )
 
     name_extraction_order = forms.CharField(

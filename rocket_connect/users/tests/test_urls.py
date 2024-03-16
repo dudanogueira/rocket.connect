@@ -1,9 +1,7 @@
-import pytest
-from django.urls import resolve, reverse
+from django.urls import resolve
+from django.urls import reverse
 
 from rocket_connect.users.models import User
-
-pytestmark = pytest.mark.django_db
 
 
 def test_detail(user: User):

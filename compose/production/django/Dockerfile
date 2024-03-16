@@ -1,30 +1,61 @@
 
-FROM python:3.8-slim-buster
+# define an alias for the specific python version used in this file.
+FROM docker.io/python:3.11.8-slim-bookworm as python
+
+# Python build stage
+FROM python as python-build-stage
+
+ARG BUILD_ENVIRONMENT=production
+
+# Install apt packages
+RUN apt-get update && apt-get install --no-install-recommends -y \
+  # dependencies for building Python packages
+  build-essential \
+  # psycopg2 dependencies
+  libpq-dev
+
+# Requirements are installed here to ensure they will be cached.
+COPY ./requirements .
+
+# Create Python Dependency and Sub-Dependency Wheels.
+RUN pip wheel --wheel-dir /usr/src/app/wheels  \
+  -r ${BUILD_ENVIRONMENT}.txt
+
+
+# Python 'run' stage
+FROM python as python-run-stage
+
+ARG BUILD_ENVIRONMENT=production
+ARG APP_HOME=/app
 
 ENV PYTHONUNBUFFERED 1
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV BUILD_ENV ${BUILD_ENVIRONMENT}
 
-RUN apt-get update \
-  # dependencies for building Python packages
-  && apt-get install -y build-essential \
-  # psycopg2 dependencies
-  && apt-get install -y libpq-dev \
-  # QR TOOLS
-  && apt-get install -y libzbar0 libzbar-dev \
-  # misc dependencies
-  && apt-get install -y curl \
-  # Translations dependencies
-  && apt-get install -y gettext \
-  # cleaning up unused files
-  && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false \
-  && rm -rf /var/lib/apt/lists/*
+WORKDIR ${APP_HOME}
 
 RUN addgroup --system django \
     && adduser --system --ingroup django django
 
-# Requirements are installed here to ensure they will be cached.
-COPY ./requirements /requirements
-RUN pip install --no-cache-dir -r /requirements/production.txt \
-    && rm -rf /requirements
+
+# Install required system dependencies
+RUN apt-get update && apt-get install --no-install-recommends -y \
+  # psycopg2 dependencies
+  libpq-dev \
+  # Translations dependencies
+  gettext \
+  # cleaning up unused files
+  && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false \
+  && rm -rf /var/lib/apt/lists/*
+
+# All absolute dir copies ignore workdir instruction. All relative dir copies are wrt to the workdir instruction
+# copy python dependency wheels from python-build-stage
+COPY --from=python-build-stage /usr/src/app/wheels  /wheels/
+
+# use wheels to install python dependencies
+RUN pip install --no-cache-dir --no-index --find-links=/wheels/ /wheels/* \
+  && rm -rf /wheels/
+
 
 COPY --chown=django:django ./compose/production/django/entrypoint /entrypoint
 RUN sed -i 's/\r$//g' /entrypoint
@@ -44,13 +75,22 @@ RUN sed -i 's/\r$//g' /start-celerybeat
 RUN chmod +x /start-celerybeat
 
 
-COPY ./compose/production/django/celery/flower/start /start-flower
+COPY --chown=django:django ./compose/production/django/celery/flower/start /start-flower
 RUN sed -i 's/\r$//g' /start-flower
 RUN chmod +x /start-flower
-COPY --chown=django:django . /app
+
+
+# copy application code to WORKDIR
+COPY --chown=django:django . ${APP_HOME}
+
+# make django owner of the WORKDIR directory as well.
+RUN chown -R django:django ${APP_HOME}
 
 USER django
 
-WORKDIR /app
+RUN DATABASE_URL="" \
+  CELERY_BROKER_URL="" \
+  DJANGO_SETTINGS_MODULE="config.settings.test" \
+  python manage.py compilemessages
 
 ENTRYPOINT ["/entrypoint"]

@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% load crispy_forms_tags %}
 {% block content %}
+
     <nav class="breadcrumb">
         <a class="breadcrumb-item" href="{% url 'home' %}">home</a>
         <span class="breadcrumb-item">
@@ -13,7 +14,7 @@
         <span class="breadcrumb-item active">{{ connector }}</span>
     </nav>
     <h3>
-        <span class="badge bg-info float-right badge-lg">{{ connector.connector_type }}</span>
+        <span class="badge bg-info float-end badge-lg">{{ connector.connector_type }}</span>
     </h3>
     <h1>
         {% if request.user.is_staff %}
@@ -39,9 +40,7 @@
 Endpoint: {{ base_uri }}/connector/{{ connector.external_token }}/
 {% if room_sync %}
     <div class="alert alert-warning alert-dismissible fade show" role="alert">
-        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
-        </button>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         <strong>Unsync Rooms:</strong>
         {{ room_sync.total }}
         <small>(open here and closed in Rocket.Chat)</small>
@@ -175,7 +174,8 @@ Endpoint: {{ base_uri }}/connector/{{ connector.external_token }}/
     <li class="nav-item">
         <a class="nav-link active"
            id="undelivered-messages-tab"
-           data-toggle="tab"
+           data-bs-toggle="tab"
+           data-bs-target="#undelivered-messages"
            href="#undelivered-messages"
            role="tab"
            aria-controls="undelivered-messages"
@@ -185,7 +185,8 @@ Endpoint: {{ base_uri }}/connector/{{ connector.external_token }}/
         <li class="nav-item">
             <a class="nav-link"
                id="configuration-tab"
-               data-toggle="tab"
+               data-bs-toggle="tab"
+               data-bs-target="#configuration"
                href="#configuration"
                role="tab"
                aria-controls="configuration"
@@ -255,7 +256,7 @@ Endpoint: {{ base_uri }}/connector/{{ connector.external_token }}/
                 <hr />
                 {% regroup undelivered_messages by room as undelivered_messages_by_room %}
                 {% for rooms in undelivered_messages_by_room %}
-                    <div class="card">
+                    <div class="card mb-3">
                         <div class="card-body">
                             <h4 class="card-title">
                                 <h2>
@@ -273,15 +274,15 @@ Endpoint: {{ base_uri }}/connector/{{ connector.external_token }}/
                                     <p>
                                         <button class="btn btn-primary"
                                                 type="button"
-                                                data-toggle="collapse"
-                                                data-target="#collapse-{{ message.id }}"
+                                                data-bs-toggle="collapse"
+                                                href="#collapse-{{ message.id }}"
                                                 aria-expanded="false"
                                                 aria-controls="collapse-{{ message.id }}">
                                             {{ message.id }} {{ message.type }}
                                         </button>
                                     </p>
                                     <div class="collapse" id="collapse-{{ message.id }}">
-                                        <p class="text-center">
+                                        <p class="clearfix text-center">
                                             <a name=""
                                                id=""
                                                class="btn btn-danger"
@@ -316,13 +317,13 @@ Endpoint: {{ base_uri }}/connector/{{ connector.external_token }}/
                 </h1>
                 <form action="" method="post">
                     {% csrf_token %}
-                    <p class="text-right">
+                    <p class="float-end">
                         <button type="submit" class="btn btn-primary btn-lg btn-full">
                             Save Configuration
                         </button>
                     </p>
                     {{ config_form|crispy }}
-                    <p class="text-right">
+                    <p class="float-end">
                         <button type="submit" class="btn btn-primary btn-lg btn-full">
                             Save Configuration
                         </button>

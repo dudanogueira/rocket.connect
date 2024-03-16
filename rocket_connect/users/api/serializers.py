@@ -1,14 +1,13 @@
-from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
-User = get_user_model()
+from rocket_connect.users.models import User
 
 
-class UserSerializer(serializers.ModelSerializer):
+class UserSerializer(serializers.ModelSerializer[User]):
     class Meta:
         model = User
         fields = ["username", "name", "url"]
 
         extra_kwargs = {
-            "url": {"view_name": "api:user-detail", "lookup_field": "username"}
+            "url": {"view_name": "api:user-detail", "lookup_field": "username"},
         }

@@ -10,7 +10,7 @@ Welcome to Rocket Connect's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-   howto
+   test-locally
    howitworks
    connectors
    deploy

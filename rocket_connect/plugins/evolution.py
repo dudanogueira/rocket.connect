@@ -110,13 +110,15 @@ class Connector(ConnectorBase):
             endpoint_fetchinstances_response = requests.request(
                 "GET", endpoint_fetchinstances_get_url, headers=headers
             )
-            if endpoint_fetchinstances_response.json():
+            if endpoint_fetchinstances_response.ok:
                 instance = [
                     i for i in endpoint_fetchinstances_response.json()
-                    if i.get("instance").get("instanceName") == "rocketchat_evolution_test"
+                    if i.get("instance").get("instanceName") == instance_name
                 ]
                 if instance:
                     endpoint_fetchinstances_response = instance[0].get("instance")
+                else:
+                    endpoint_fetchinstances_response = False
             else:
                 endpoint_fetchinstances_response = endpoint_fetchinstances_response.json()
                 
@@ -127,7 +129,7 @@ class Connector(ConnectorBase):
             if endpoint_fetchinstances_response:
                 output["instance"] = endpoint_fetchinstances_response
                 return output
-            return {"error": "no endpoint"}
+            return {"error": "no instance found"}
         else:
             return {"error": "no endpoint"}
 
@@ -977,7 +979,10 @@ class ConnectorConfigForm(BaseConnectorConfigForm):
                 required=False,
                 initial=False,
             )
-
+            self.fields["enable_ack_receipt"] = forms.BooleanField(
+               required=False,
+                help_text="This will update the ingoing message to show it was delivered and received",
+            )
     webhook = forms.CharField(
         help_text="Where Evolution will send the events", required=True, initial=""
     )
@@ -986,22 +991,26 @@ class ConnectorConfigForm(BaseConnectorConfigForm):
         required=True,
         initial="http://evolution:8084",
     )
+    endpoint = forms.CharField(
+        help_text="Where your Evolution is installed",
+        required=True,
+        initial="http://evolution:8084",
+    )    
     secret_key = forms.CharField(
         help_text="The secret ApiKey for your Evolution instance",
         required=True,
     )
+    
     instance_name = forms.CharField(
-        help_text="Evolution instance name", validators=[validators.validate_slug]
-    ),
+        help_text="Evolution instance name", validators=[validators.validate_slug],
+        required = True,
+    )
 
     send_message_delay = forms.IntegerField(
-        help_text="Evolution delay to send message. Defaults to 1200", initial=1200
-    ),
-
-    enable_ack_receipt = forms.BooleanField(
-        required=False,
-        help_text="This will update the ingoing message to show it was delivered and received",
+        help_text="Evolution delay to send message. Defaults to 1200", initial=1200,
+        required = False
     )
+
     session_management_token = forms.CharField(required=False)
 
     field_order = [

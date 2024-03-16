@@ -1,20 +1,19 @@
-"""
-Base settings to build other settings files upon.
-"""
-from email.utils import parseaddr
+# ruff: noqa: ERA001, E501
+"""Base settings to build other settings files upon."""
+
 from pathlib import Path
 
 import environ
 
-ROOT_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
-# rocket_connect/
-APPS_DIR = ROOT_DIR / "rocket_connect"
+BASE_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
+# rocketconnect/
+APPS_DIR = BASE_DIR / "rocket_connect"
 env = environ.Env()
 
 READ_DOT_ENV_FILE = env.bool("DJANGO_READ_DOT_ENV_FILE", default=False)
 if READ_DOT_ENV_FILE:
     # OS environment variables take precedence over variables from .env
-    env.read_env(str(ROOT_DIR / ".env"))
+    env.read_env(str(BASE_DIR / ".env"))
 
 # GENERAL
 # ------------------------------------------------------------------------------
@@ -24,30 +23,32 @@ DEBUG = env.bool("DJANGO_DEBUG", False)
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
 # though not all of them may be available with every OS.
 # In Windows, this must be set to your system time zone.
-TIME_ZONE = env("DJANGO_TIME_ZONE", default="America/Sao_Paulo")
+TIME_ZONE = "UTC"
 # https://docs.djangoproject.com/en/dev/ref/settings/#language-code
-LANGUAGE_CODE = env("DJANGO_LANGUAGE_CODE", default="pt-br")
+LANGUAGE_CODE = "en-us"
+# https://docs.djangoproject.com/en/dev/ref/settings/#languages
+# from django.utils.translation import gettext_lazy as _
+# LANGUAGES = [
+#     ('en', _('English')),
+#     ('fr-fr', _('French')),
+#     ('pt-br', _('Portuguese')),
+# ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#site-id
 SITE_ID = 1
 # https://docs.djangoproject.com/en/dev/ref/settings/#use-i18n
 USE_I18N = True
-# https://docs.djangoproject.com/en/dev/ref/settings/#use-l10n
-USE_L10N = True
 # https://docs.djangoproject.com/en/dev/ref/settings/#use-tz
 USE_TZ = True
 # https://docs.djangoproject.com/en/dev/ref/settings/#locale-paths
-LOCALE_PATHS = [str(ROOT_DIR / "locale")]
-
-DATA_UPLOAD_MAX_MEMORY_SIZE = env(
-    "DJANGO_DATA_UPLOAD_MAX_MEMORY_SIZE", default=31457280
-)
-
+LOCALE_PATHS = [str(BASE_DIR / "locale")]
 
 # DATABASES
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#databases
 DATABASES = {"default": env.db("DATABASE_URL")}
-DATABASES["default"]["ATOMIC_REQUESTS"] = False
+DATABASES["default"]["ATOMIC_REQUESTS"] = True
+# https://docs.djangoproject.com/en/stable/ref/settings/#std:setting-DEFAULT_AUTO_FIELD
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # URLS
 # ------------------------------------------------------------------------------
@@ -71,27 +72,26 @@ DJANGO_APPS = [
 ]
 THIRD_PARTY_APPS = [
     "crispy_forms",
+    "crispy_bootstrap5",
     "allauth",
     "allauth.account",
+    "allauth.mfa",
     "allauth.socialaccount",
     "django_celery_beat",
     "rest_framework",
     "rest_framework.authtoken",
     "corsheaders",
-    # "fontawesomefree",
+    "drf_spectacular",
 ]
 
 LOCAL_APPS = [
-    "rocket_connect.users.apps.UsersConfig",
-    # custom apps
-    "instance",
-    "envelope",
-    "asterisk",
+    "rocket_connect.users",
+    # Your stuff: custom apps go here
+    "rocket_connect.instance",
+    "rocket_connect.envelope",
 ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
-
-DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 
 # MIGRATIONS
 # ------------------------------------------------------------------------------
@@ -108,7 +108,7 @@ AUTHENTICATION_BACKENDS = [
 # https://docs.djangoproject.com/en/dev/ref/settings/#auth-user-model
 AUTH_USER_MODEL = "users.User"
 # https://docs.djangoproject.com/en/dev/ref/settings/#login-redirect-url
-LOGIN_REDIRECT_URL = env("DJANGO_LOGIN_REDIRECT_URL", default="home")
+LOGIN_REDIRECT_URL = "users:redirect"
 # https://docs.djangoproject.com/en/dev/ref/settings/#login-url
 LOGIN_URL = "account_login"
 
@@ -125,7 +125,7 @@ PASSWORD_HASHERS = [
 # https://docs.djangoproject.com/en/dev/ref/settings/#auth-password-validators
 AUTH_PASSWORD_VALIDATORS = [
     {
-        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
     },
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
@@ -145,14 +145,14 @@ MIDDLEWARE = [
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
-    "django.middleware.common.BrokenLinkEmailsMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "allauth.account.middleware.AccountMiddleware",
 ]
 
 # STATIC
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#static-root
-STATIC_ROOT = str(ROOT_DIR / "staticfiles")
+STATIC_ROOT = str(BASE_DIR / "staticfiles")
 # https://docs.djangoproject.com/en/dev/ref/settings/#static-url
 STATIC_URL = "/static/"
 # https://docs.djangoproject.com/en/dev/ref/contrib/staticfiles/#std:setting-STATICFILES_DIRS
@@ -177,15 +177,11 @@ TEMPLATES = [
     {
         # https://docs.djangoproject.com/en/dev/ref/settings/#std:setting-TEMPLATES-BACKEND
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        # https://docs.djangoproject.com/en/dev/ref/settings/#template-dirs
+        # https://docs.djangoproject.com/en/dev/ref/settings/#dirs
         "DIRS": [str(APPS_DIR / "templates")],
+        # https://docs.djangoproject.com/en/dev/ref/settings/#app-dirs
+        "APP_DIRS": True,
         "OPTIONS": {
-            # https://docs.djangoproject.com/en/dev/ref/settings/#template-loaders
-            # https://docs.djangoproject.com/en/dev/ref/templates/api/#loader-types
-            "loaders": [
-                "django.template.loaders.filesystem.Loader",
-                "django.template.loaders.app_directories.Loader",
-            ],
             # https://docs.djangoproject.com/en/dev/ref/settings/#template-context-processors
             "context_processors": [
                 "django.template.context_processors.debug",
@@ -196,17 +192,19 @@ TEMPLATES = [
                 "django.template.context_processors.static",
                 "django.template.context_processors.tz",
                 "django.contrib.messages.context_processors.messages",
+                "rocket_connect.users.context_processors.allauth_settings",
                 "rocket_connect.utils.context_processors.settings_context",
             ],
         },
-    }
+    },
 ]
 
 # https://docs.djangoproject.com/en/dev/ref/settings/#form-renderer
 FORM_RENDERER = "django.forms.renderers.TemplatesSetting"
 
 # http://django-crispy-forms.readthedocs.io/en/latest/install.html#template-packs
-CRISPY_TEMPLATE_PACK = "bootstrap4"
+CRISPY_TEMPLATE_PACK = "bootstrap5"
+CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
 
 # FIXTURES
 # ------------------------------------------------------------------------------
@@ -218,9 +216,7 @@ FIXTURE_DIRS = (str(APPS_DIR / "fixtures"),)
 # https://docs.djangoproject.com/en/dev/ref/settings/#session-cookie-httponly
 SESSION_COOKIE_HTTPONLY = True
 # https://docs.djangoproject.com/en/dev/ref/settings/#csrf-cookie-httponly
-CSRF_COOKIE_HTTPONLY = env.bool("DJANGO_CSRF_COOKIE_HTTPONLY", default=True)
-# https://docs.djangoproject.com/en/dev/ref/settings/#secure-browser-xss-filter
-SECURE_BROWSER_XSS_FILTER = True
+CSRF_COOKIE_HTTPONLY = True
 # https://docs.djangoproject.com/en/dev/ref/settings/#x-frame-options
 X_FRAME_OPTIONS = "DENY"
 
@@ -228,7 +224,8 @@ X_FRAME_OPTIONS = "DENY"
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#email-backend
 EMAIL_BACKEND = env(
-    "DJANGO_EMAIL_BACKEND", default="django.core.mail.backends.smtp.EmailBackend"
+    "DJANGO_EMAIL_BACKEND",
+    default="django.core.mail.backends.smtp.EmailBackend",
 )
 # https://docs.djangoproject.com/en/dev/ref/settings/#email-timeout
 EMAIL_TIMEOUT = 5
@@ -238,16 +235,12 @@ EMAIL_TIMEOUT = 5
 # Django Admin URL.
 ADMIN_URL = "admin/"
 # https://docs.djangoproject.com/en/dev/ref/settings/#admins
-
-MANAGERS_ENV = env("DJANGO_ADMINS", default=None)
-if MANAGERS_ENV:
-    ADMINS = list(parseaddr(email) for email in MANAGERS_ENV.split(","))
-else:
-    ADMINS = None
-
-
+ADMINS = [("""You Admin""", "admin@example.com")]
 # https://docs.djangoproject.com/en/dev/ref/settings/#managers
 MANAGERS = ADMINS
+# https://cookiecutter-django.readthedocs.io/en/latest/settings.html#other-environment-settings
+# Force the `admin` sign in process to go through the `django-allauth` workflow
+DJANGO_ADMIN_FORCE_ALLAUTH = env.bool("DJANGO_ADMIN_FORCE_ALLAUTH", default=False)
 
 # LOGGING
 # ------------------------------------------------------------------------------
@@ -259,16 +252,15 @@ LOGGING = {
     "disable_existing_loggers": False,
     "formatters": {
         "verbose": {
-            "format": "%(levelname)s %(asctime)s %(module)s "
-            "%(process)d %(thread)d %(message)s"
-        }
+            "format": "%(levelname)s %(asctime)s %(module)s %(process)d %(thread)d %(message)s",
+        },
     },
     "handlers": {
         "console": {
             "level": "DEBUG",
             "class": "logging.StreamHandler",
             "formatter": "verbose",
-        }
+        },
     },
     "root": {"level": "INFO", "handlers": ["console"]},
 }
@@ -276,40 +268,59 @@ LOGGING = {
 # Celery
 # ------------------------------------------------------------------------------
 if USE_TZ:
-    # http://docs.celeryproject.org/en/latest/userguide/configuration.html#std:setting-timezone
+    # https://docs.celeryq.dev/en/stable/userguide/configuration.html#std:setting-timezone
     CELERY_TIMEZONE = TIME_ZONE
-# http://docs.celeryproject.org/en/latest/userguide/configuration.html#std:setting-broker_url
+# https://docs.celeryq.dev/en/stable/userguide/configuration.html#std:setting-broker_url
 CELERY_BROKER_URL = env("CELERY_BROKER_URL")
-# http://docs.celeryproject.org/en/latest/userguide/configuration.html#std:setting-result_backend
+# https://docs.celeryq.dev/en/stable/userguide/configuration.html#std:setting-result_backend
 CELERY_RESULT_BACKEND = CELERY_BROKER_URL
-# http://docs.celeryproject.org/en/latest/userguide/configuration.html#std:setting-accept_content
+# https://docs.celeryq.dev/en/stable/userguide/configuration.html#result-extended
+CELERY_RESULT_EXTENDED = True
+# https://docs.celeryq.dev/en/stable/userguide/configuration.html#result-backend-always-retry
+# https://github.com/celery/celery/pull/6122
+CELERY_RESULT_BACKEND_ALWAYS_RETRY = True
+# https://docs.celeryq.dev/en/stable/userguide/configuration.html#result-backend-max-retries
+CELERY_RESULT_BACKEND_MAX_RETRIES = 10
+# https://docs.celeryq.dev/en/stable/userguide/configuration.html#std:setting-accept_content
 CELERY_ACCEPT_CONTENT = ["json"]
-# http://docs.celeryproject.org/en/latest/userguide/configuration.html#std:setting-task_serializer
+# https://docs.celeryq.dev/en/stable/userguide/configuration.html#std:setting-task_serializer
 CELERY_TASK_SERIALIZER = "json"
-# http://docs.celeryproject.org/en/latest/userguide/configuration.html#std:setting-result_serializer
+# https://docs.celeryq.dev/en/stable/userguide/configuration.html#std:setting-result_serializer
 CELERY_RESULT_SERIALIZER = "json"
-# http://docs.celeryproject.org/en/latest/userguide/configuration.html#task-time-limit
-# set to whatever value is adequate in your circumstances
+# https://docs.celeryq.dev/en/stable/userguide/configuration.html#task-time-limit
+# TODO: set to whatever value is adequate in your circumstances
 CELERY_TASK_TIME_LIMIT = 5 * 60
-# http://docs.celeryproject.org/en/latest/userguide/configuration.html#task-soft-time-limit
-# set to whatever value is adequate in your circumstances
+# https://docs.celeryq.dev/en/stable/userguide/configuration.html#task-soft-time-limit
+# TODO: set to whatever value is adequate in your circumstances
 CELERY_TASK_SOFT_TIME_LIMIT = 60
-# http://docs.celeryproject.org/en/latest/userguide/configuration.html#beat-scheduler
+# https://docs.celeryq.dev/en/stable/userguide/configuration.html#beat-scheduler
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
+# https://docs.celeryq.dev/en/stable/userguide/configuration.html#worker-send-task-events
+CELERY_WORKER_SEND_TASK_EVENTS = True
+# https://docs.celeryq.dev/en/stable/userguide/configuration.html#std-setting-task_send_sent_event
+CELERY_TASK_SEND_SENT_EVENT = True
 # django-allauth
 # ------------------------------------------------------------------------------
 ACCOUNT_ALLOW_REGISTRATION = env.bool("DJANGO_ACCOUNT_ALLOW_REGISTRATION", True)
-# https://django-allauth.readthedocs.io/en/latest/configuration.html
+# https://docs.allauth.org/en/latest/account/configuration.html
 ACCOUNT_AUTHENTICATION_METHOD = "username"
-# https://django-allauth.readthedocs.io/en/latest/configuration.html
-ACCOUNT_EMAIL_REQUIRED = env.bool("DJANGO_ACCOUNT_EMAIL_REQUIRED", True)
-# https://django-allauth.readthedocs.io/en/latest/configuration.html
-ACCOUNT_EMAIL_VERIFICATION = env.str("DJANGO_ACCOUNT_EMAIL_VERIFICATION", "mandatory")
-# https://django-allauth.readthedocs.io/en/latest/configuration.html
+# https://docs.allauth.org/en/latest/account/configuration.html
+ACCOUNT_EMAIL_REQUIRED = True
+# https://docs.allauth.org/en/latest/account/configuration.html
+ACCOUNT_EMAIL_VERIFICATION = "mandatory"
+# https://docs.allauth.org/en/latest/account/configuration.html
 ACCOUNT_ADAPTER = "rocket_connect.users.adapters.AccountAdapter"
-# https://django-allauth.readthedocs.io/en/latest/configuration.html
+# https://docs.allauth.org/en/latest/account/forms.html
+ACCOUNT_FORMS = {"signup": "rocket_connect.users.forms.UserSignupForm"}
+# https://docs.allauth.org/en/latest/socialaccount/configuration.html
 SOCIALACCOUNT_ADAPTER = "rocket_connect.users.adapters.SocialAccountAdapter"
-
+# https://docs.allauth.org/en/latest/socialaccount/configuration.html
+SOCIALACCOUNT_FORMS = {"signup": "rocket_connect.users.forms.UserSocialSignupForm"}
+# django-compressor
+# ------------------------------------------------------------------------------
+# https://django-compressor.readthedocs.io/en/latest/quickstart/#installation
+INSTALLED_APPS += ["compressor"]
+STATICFILES_FINDERS += ["compressor.finders.CompressorFinder"]
 # django-rest-framework
 # -------------------------------------------------------------------------------
 # django-rest-framework - https://www.django-rest-framework.org/api-guide/settings/
@@ -319,9 +330,20 @@ REST_FRAMEWORK = {
         "rest_framework.authentication.TokenAuthentication",
     ),
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 
 # django-cors-headers - https://github.com/adamchainz/django-cors-headers#setup
 CORS_URLS_REGEX = r"^/api/.*$"
+
+# By Default swagger ui is available only to admin user(s). You can change permission classes to change that
+# See more configuration options at https://drf-spectacular.readthedocs.io/en/latest/settings.html#settings
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Rocket.Connect API",
+    "DESCRIPTION": "Documentation of API endpoints of Rocket.Connect",
+    "VERSION": "1.0.0",
+    "SERVE_PERMISSIONS": ["rest_framework.permissions.IsAdminUser"],
+}
 # Your stuff...
 # ------------------------------------------------------------------------------
+CSRF_COOKIE_HTTPONLY = env.bool("DJANGO_CSRF_COOKIE_HTTPONLY", default=True)
