@@ -7,48 +7,50 @@ env:
 
 on:
   pull_request:
-    branches: ['master', 'main']
-    paths-ignore: ['docs/**']
+    branches: [ "master", "main", "dev" ]
+    paths-ignore: [ "docs/**" ]
 
   push:
-    branches: ['master', 'main']
-    paths-ignore: ['docs/**']
+    branches: [ "master", "main", "dev" ]
+    paths-ignore: [ "docs/**" ]
 
-concurrency:
-  group: ${{ github.head_ref || github.run_id }}
-  cancel-in-progress: true
 
 jobs:
   linter:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code Repository
-        uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Checkout Code Repository
+        uses: actions/checkout@v3.5.3
+
+      - name: Set up Python 3.8
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
-      # Consider using pre-commit.ci for open source project
-      - name: Run pre-commit
+          python-version: 3.8
+
+      # Run all pre-commit hooks on all the files.
+      # Getting only staged files can be tricky in case a new PR is opened
+      # since the action is run on a branch in detached head state
+      - name: Install and Run Pre-commit
         uses: pre-commit/action@v3.0.0
 
-  # With no caching at all the entire ci process takes 3m to complete!
+  # With no caching at all the entire ci process takes 4m 30s to complete!
   pytest:
     runs-on: ubuntu-latest
 
     steps:
+
       - name: Checkout Code Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3.5.3
 
       - name: Build the Stack
-        run: docker compose -f local.yml build django
+        run:  docker compose -f local.yml build
 
       - name: Run DB Migrations
-        run: docker compose -f local.yml run --rm django python manage.py migrate
+        run:  docker compose -f local.yml run --rm django python manage.py migrate
 
       - name: Run Django Tests
-        run: docker compose -f local.yml run django pytest
+        run:  docker compose -f local.yml run django pytest
 
       - name: Tear down the Stack
-        run: docker compose -f local.yml down
+        run:  docker compose -f local.yml down
