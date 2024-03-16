@@ -1,7 +1,8 @@
 import dateutil.parser
 import requests
 from django.apps import apps
-from django.template import Context, Template
+from django.template import Context
+from django.template import Template
 from django.utils import timezone
 from instance.models import Server
 
@@ -37,7 +38,8 @@ def server_maintenance(server_token, delete_delivered_messages_age=None):
     # delete delivered messages
     if delete_delivered_messages_age:
         response["delete_delivered_messages"] = server.delete_delivered_messages(
-            age=delete_delivered_messages_age, execute=True
+            age=delete_delivered_messages_age,
+            execute=True,
         )
     # return results
 
@@ -50,7 +52,10 @@ def server_maintenance(server_token, delete_delivered_messages_age=None):
     autoretry_for=(requests.ConnectionError,),
 )
 def alert_last_message_open_chat(
-    server_token, seconds_last_message, notification_target, notification_template
+    server_token,
+    seconds_last_message,
+    notification_target,
+    notification_template,
 ):
     """alert open messages"""
 
@@ -91,7 +96,8 @@ def alert_last_message_open_chat(
                     if target.startswith("#"):
                         rendered_targets.append(target)
                         sent = rocket.chat_post_message(
-                            text=message, channel=target.replace("#", "")
+                            text=message,
+                            channel=target.replace("#", ""),
                         )
                     else:
                         # target may contain variables
@@ -102,7 +108,8 @@ def alert_last_message_open_chat(
                         if dm.ok:
                             room_id = dm.json()["room"]["rid"]
                             sent = rocket.chat_post_message(
-                                text=message, room_id=room_id
+                                text=message,
+                                room_id=room_id,
                             )
                             print("SENT! ", sent)
 
@@ -152,7 +159,7 @@ def change_user_status(server_token, users, status, message=""):
     for user in users:
         r = rocket.users_set_status(username=user, status=status, message=message)
         responses.append(
-            {"user": user, "status": status, "message": message, "return": r.json()}
+            {"user": user, "status": status, "message": message, "return": r.json()},
         )
     return responses
 
@@ -163,7 +170,10 @@ def change_user_status(server_token, users, status, message=""):
     autoretry_for=(requests.ConnectionError,),
 )
 def close_abandoned_chats(
-    server_token, last_message_users, last_message_seconds, closing_message=None
+    server_token,
+    last_message_users,
+    last_message_seconds,
+    closing_message=None,
 ):
     """close all open rooms that the last message from last_message_users
     with more then last_message_seconds. before, send a closing_message.
@@ -193,7 +203,8 @@ def close_abandoned_chats(
                     if delta.total_seconds() >= last_message_seconds:
                         if closing_message:
                             rocket.chat_post_message(
-                                room_id=room["_id"], text=closing_message
+                                room_id=room["_id"],
+                                text=closing_message,
                             ).json()
                         # close messages on this situation
                         room_close_options = {
@@ -201,7 +212,8 @@ def close_abandoned_chats(
                             "token": room["v"]["token"],
                         }
                         close = rocket.call_api_post(
-                            "livechat/room.close", **room_close_options
+                            "livechat/room.close",
+                            **room_close_options,
                         )
                         closed_rooms.append(close.json())
 
@@ -221,7 +233,9 @@ def close_abandoned_chats(
     autoretry_for=(requests.ConnectionError,),
 )
 def alert_undelivered_messages(
-    server_token, notification_target, notification_template
+    server_token,
+    notification_target,
+    notification_template,
 ):
     """
     Alert about Undelivered messages
@@ -241,7 +255,8 @@ def alert_undelivered_messages(
         if target.startswith("#"):
             targets.append(target)
             sent = rocket.chat_post_message(
-                text=message, channel=target.replace("#", "")
+                text=message,
+                channel=target.replace("#", ""),
             )
         else:
             # target may contain variables
@@ -295,7 +310,8 @@ def manage_abandoned_chats(
                         if delta.total_seconds() >= last_message_seconds:
                             if message_template:
                                 rocket.chat_post_message(
-                                    room_id=room["_id"], text=message_template
+                                    room_id=room["_id"],
+                                    text=message_template,
                                 ).json()
                             if action == "close":
                                 # close messages on this situation
@@ -304,7 +320,8 @@ def manage_abandoned_chats(
                                     "token": room["v"]["token"],
                                 }
                                 close = rocket.call_api_post(
-                                    "livechat/room.close", **room_close_options
+                                    "livechat/room.close",
+                                    **room_close_options,
                                 )
                                 output["rooms"].append(close.json())
                             elif action == "transfer":
@@ -317,7 +334,7 @@ def manage_abandoned_chats(
                                     }
                                     transfer = rocket.call_api_post(
                                         "livechat/room.transfer",
-                                        **room_transfer_options
+                                        **room_transfer_options,
                                     )
                                     output["rooms"].append(transfer.json())
                                 if target_agent_user_id and not target_department_id:
@@ -327,13 +344,14 @@ def manage_abandoned_chats(
                                         "userId": target_agent_user_id,
                                     }
                                     transfer = rocket.call_api_post(
-                                        "livechat/room.forward", **room_transfer_options
+                                        "livechat/room.forward",
+                                        **room_transfer_options,
                                     )
                                     output["rooms"].append(
                                         {
                                             "room_id": room["_id"],
                                             "response": transfer.json(),
-                                        }
+                                        },
                                     )
 
     return output
@@ -360,7 +378,8 @@ def reset_department_count(server_token, department_ids=[]):
         del department_payload["success"]
         # update department
         output[department_id] = rocket.call_api_put(
-            "livechat/department/" + department_id, **department_payload
+            "livechat/department/" + department_id,
+            **department_payload,
         ).json()
 
     # clear all selected deparments

@@ -6,7 +6,8 @@ import urllib.parse as urlparse
 
 import requests
 from django.conf import settings
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse
+from django.http import JsonResponse
 from instance import tasks
 
 from .base import Connector as ConnectorBase
@@ -77,7 +78,8 @@ class Connector(ConnectorBase):
                                 room.room_id,
                                 mime,
                                 description=self.message.get("data", {}).get(
-                                    "caption", None
+                                    "caption",
+                                    None,
                                 ),
                             )
                             if file_sent.ok:
@@ -97,7 +99,8 @@ class Connector(ConnectorBase):
                             if settings.DEBUG:
                                 print("STICKER! ")
                                 send_sticker_message = self.room_send_text(
-                                    room.room_id, "User sent sticker"
+                                    room.room_id,
+                                    "User sent sticker",
                                 )
                                 if send_sticker_message.ok:
                                     self.message_object.delivered = True
@@ -106,21 +109,22 @@ class Connector(ConnectorBase):
                             mime = self.message.get("data", {}).get("mimetype")
                             if "audio/ogg" in mime:
                                 if self.connector.config.get(
-                                    "auto_answer_on_audio_message", False
+                                    "auto_answer_on_audio_message",
+                                    False,
                                 ):
                                     message = {
                                         "msg": self.connector.config.get(
-                                            "auto_answer_on_audio_message"
-                                        )
+                                            "auto_answer_on_audio_message",
+                                        ),
                                     }
                                     deliver = self.outgo_text_message(message)
                                 if self.connector.config.get(
-                                    "convert_incoming_audio_to_text"
+                                    "convert_incoming_audio_to_text",
                                 ):
                                     deliver = self.outcome_text(
                                         room.room_id,
                                         self.connector.config.get(
-                                            "convert_incoming_audio_to_text"
+                                            "convert_incoming_audio_to_text",
                                         ),
                                     )
                             # decrypt media
@@ -143,9 +147,7 @@ class Connector(ConnectorBase):
                     ):
                         lat = self.message.get("data", {}).get("lat")
                         lng = self.message.get("data", {}).get("lng")
-                        link = "https://www.google.com/maps/search/?api=1&query={}+{}".format(
-                            lat, lng
-                        )
+                        link = f"https://www.google.com/maps/search/?api=1&query={lat}+{lng}"
                         text = f"Lat:{lat}, Long:{lng}: Link: {link}"
                         self.outcome_text(room.room_id, text)
                     #
@@ -168,7 +170,8 @@ class Connector(ConnectorBase):
                                     .get("body")
                                 )
                                 if self.connector.config.get(
-                                    "outcome_message_with_quoted_message", True
+                                    "outcome_message_with_quoted_message",
+                                    True,
                                 ):
                                     message = ":arrow_forward:  IN RESPONSE TO: {0} \n:envelope: {1}"
                                     message = message.format(
@@ -178,14 +181,14 @@ class Connector(ConnectorBase):
                                 else:
                                     message = self.get_message_body()
                             elif quote_type in ["document", "image", "ptt"]:
-                                message = "DOCUMENT RESENT:\n {}".format(
-                                    self.get_message_body()
+                                message = (
+                                    f"DOCUMENT RESENT:\n {self.get_message_body()}"
                                 )
                                 quoted_id = self.message.get("data", {}).get(
-                                    "quotedMsg"
+                                    "quotedMsg",
                                 )["id"]
                                 quoted_mime = self.message.get("data", {}).get(
-                                    "quotedMsg"
+                                    "quotedMsg",
                                 )["mimetype"]
                                 data = self.decrypt_media(quoted_id)
                                 # we  got data
@@ -193,7 +196,9 @@ class Connector(ConnectorBase):
                                 #
                                 if data:
                                     file_sent = self.outcome_file(
-                                        data, room.room_id, quoted_mime
+                                        data,
+                                        room.room_id,
+                                        quoted_mime,
                                     )
                                 else:
                                     file_sent = False
@@ -211,7 +216,7 @@ class Connector(ConnectorBase):
             # this prevent some bogus request from wa after logout on this event
             if self.message.get("data") and int(self.message.get("data")):
                 text_message = ":battery:\n:satellite:  Battery level: {}%".format(
-                    self.message.get("data")
+                    self.message.get("data"),
                 )
                 self.outcome_admin_message(text_message)
 
@@ -267,7 +272,7 @@ class Connector(ConnectorBase):
             self.get_room()
             if self.connector.config.get("auto_answer_incoming_call"):
                 message = {
-                    "msg": self.connector.config.get("auto_answer_incoming_call")
+                    "msg": self.connector.config.get("auto_answer_incoming_call"),
                 }
                 self.outgo_text_message(message)
             if self.connector.config.get("convert_incoming_call_to_text"):
@@ -286,7 +291,7 @@ class Connector(ConnectorBase):
                     "event": "onMessage",
                     "data": {
                         "body": self.connector.config.get(
-                            "convert_incoming_call_to_text"
+                            "convert_incoming_call_to_text",
                         ),
                         "from": visitor_id,
                         "isGroup": False,
@@ -376,7 +381,9 @@ class Connector(ConnectorBase):
                     "data": message,
                 }
                 new_connector = Connector(
-                    self.connector, json.dumps(formated_message), type=self.type
+                    self.connector,
+                    json.dumps(formated_message),
+                    type=self.type,
                 )
                 # for each connector instance, income message
                 new_connector.incoming()
@@ -427,7 +434,7 @@ class Connector(ConnectorBase):
                     "content": content,
                     "sendSeen": True,
                     "quotedMsgId": quoted_message_id,
-                }
+                },
             }
         else:
             payload = {"args": {"to": self.get_visitor_id(), "content": content}}
@@ -482,7 +489,7 @@ class Connector(ConnectorBase):
                 "waitForId": True,
                 "withoutPreview": False,
                 "ptt": ppt,
-            }
+            },
         }
         if settings.DEBUG:
             print("PAYLOAD OUTGOING FILE: ", payload)

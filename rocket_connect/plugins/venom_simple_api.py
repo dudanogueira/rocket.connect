@@ -3,7 +3,8 @@ import time
 
 import requests
 from django.conf import settings
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse
+from django.http import JsonResponse
 
 from .base import Connector as ConnectorBase
 
@@ -65,7 +66,7 @@ class Connector(ConnectorBase):
                 return HttpResponse("Rocket Down!", status=503)
             self.outcome_qrbase64(self.message["data"]["base64Qrimg"])
             self.outcome_admin_message(
-                "Attempt: {}".format(self.message["data"]["attempts"])
+                "Attempt: {}".format(self.message["data"]["attempts"]),
             )
 
         if self.message.get("event") == "onStateChanged":

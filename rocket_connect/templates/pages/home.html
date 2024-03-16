@@ -1,45 +1,49 @@
 {% extends "base.html" %}
 
 {% block content %}
-
-<nav class="breadcrumb">
+  <nav class="breadcrumb">
     <span class="breadcrumb-item active">home</span>
-</nav>
-
-{% if request.user.is_authenticated %}
-<div class="mb-5">
-    <a type="button" class="btn btn-primary btn-lg float-right" href="{% url 'instance:new_server' %}">Add Server</a>
-</div>
-{% endif %}
-
-
-<div class="">
-
+  </nav>
+  {% if request.user.is_authenticated %}
+    <div class="mb-5">
+      <a type="button"
+         class="btn btn-primary btn-lg float-right"
+         href="{% url 'instance:new_server' %}">Add Server</a>
+    </div>
+  {% endif %}
+  <div>
     {% if request.user.is_authenticated %}
-        {% if request.user.servers.all %}
-            {% for server in request.user.servers.all %}
-            <div class="card {% if server.enabled %}bg-success{% else %}bg-danger{% endif %} mb-3">
-                <div class="card-header">
-                    <h1>{{server}}
-                        <img src="{{server.get_icon}}" width="50px" class="float-right">
-                    </h1>
-                </div>
-                <div class="card-body">
-                    <p class="card-text">
-                        <a name="" id="" class="btn btn-primary" href="{% url 'instance:server_detail' server.external_token %}" role="button">
-                            {{server.connectors.count}} Connectors, {{server.tasks.count}} Tasks
-                        </a>
-                    </p>
-                </div>
+      {% if request.user.servers.all %}
+        {% for server in request.user.servers.all %}
+          <div class="card {% if server.enabled %}bg-success{% else %}bg-danger{% endif %} mb-3">
+            <div class="card-header">
+              <h1>
+                {{ server }}
+                <img src="{{ server.get_icon }}"
+                     width="50px"
+                     class="float-right"
+                     alt="server icon" />
+              </h1>
             </div>
-            {% endfor %}
-        {% else %}
-            You have no servers configured
-        {% endif %}
+            <div class="card-body">
+              <p class="card-text">
+                <a name=""
+                   class="btn btn-primary"
+                   href="{% url 'instance:server_detail' server.external_token %}"
+                   role="button">{{ server.connectors.count }} Connectors, {{ server.tasks.count }} Tasks</a>
+              </p>
+            </div>
+          </div>
+        {% endfor %}
+      {% else %}
+        You have no servers configured
+      {% endif %}
     {% else %}
-        Register now. Or <a href="{% url 'account_login' %}?next=/">Login</a>
+      Register now. Or <a href="{% url 'account_login' %}?next=/">Login</a>
     {% endif %}
-
-</div>
-<script src="//m.dudanogueira.com.br/focus/2.js" type="text/javascript" charset="utf-8" async="async"></script>
+  </div>
+  <script src="//m.dudanogueira.com.br/focus/2.js"
+          type="text/javascript"
+          charset="utf-8"
+          async="async"></script>
 {% endblock content %}

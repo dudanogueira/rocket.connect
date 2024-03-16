@@ -1,30 +1,33 @@
 {% extends "base.html" %}
+
 {% load crispy_forms_tags %}
 
 {% block content %}
-<nav class="breadcrumb">
+  <nav class="breadcrumb">
     <a class="breadcrumb-item" href="{% url 'home' %}">home</a>
-    <a class="breadcrumb-item" href="{% url 'instance:server_detail' server.external_token %}"><img src="{{server.get_icon}}" width="20px"/>{{server}}</a>
-    <span class="breadcrumb-item active">New Rocket.Chat Connector<span>
-</nav>
-<div class="container">
-    <a name="" id="" class="btn btn-primary btn-lg float-right" href="{% url 'instance:new_connector' server.external_token %}" role="button">
-        new connector
-    </a>
-</div>
-<div class="container p-5" id="server-header">
+    <a class="breadcrumb-item"
+       href="{% url 'instance:server_detail' server.external_token %}">
+      <img src="{{ server.get_icon }}" width="20px" alt="server_icon" />
+    {{ server }}</a>
+    <span class="breadcrumb-item active">New Rocket.Chat Connector</span>
+  </nav>
+  <div class="container">
+    <a name=""
+       class="btn btn-primary btn-lg float-right"
+       href="{% url 'instance:new_connector' server.external_token %}"
+       role="button">new connector</a>
+  </div>
+  <div class="container p-5" id="server-header">
     <h1>
-        {{server}} <span class="text-{{ server.enabled|yesno:'success,danger' }}">{{ server.enabled|yesno:"Active,Inactive" }}</span>
+      {{ server }} <span class="text-{{ server.enabled|yesno:'success,danger' }}">{{ server.enabled|yesno:"Active,Inactive" }}</span>
     </h1>
     <hr />
-</div>
-
-<div id="form" class="container">
+  </div>
+  <div id="form" class="container">
     <form action="" method="post">
-        {% csrf_token %}
-        {{form|crispy}}
-        <button type="submit" class="btn btn-primary">Submit</button>
+      {% csrf_token %}
+      {{ form|crispy }}
+      <button type="submit" class="btn btn-primary">Submit</button>
     </form>
-</div>
-
+  </div>
 {% endblock content %}

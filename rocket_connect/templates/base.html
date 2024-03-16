@@ -1,5 +1,6 @@
+{% load static i18n compress %}
 
-{% load static i18n compress%}<!DOCTYPE html>
+<!DOCTYPE html>
 {% get_current_language as LANGUAGE_CODE %}
 <html lang="{{ LANGUAGE_CODE }}">
   <head>
@@ -7,137 +8,124 @@
     <meta http-equiv="x-ua-compatible" content="ie=edge" />
     <title>
       {% block title %}
-      Rocket.Connect
-    {% endblock title %}
-  </title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description"
-        content="Rocket.Connect" />
-  <meta name="author"
-        content="Duda Nogueira" />
-  <link rel="icon" href="{% static 'images/favicons/favicon.ico' %}" />
-  {% block css %}
-    <!-- Latest compiled and minified Bootstrap CSS -->
-    <link rel="stylesheet"
-          href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/css/bootstrap.min.css"
-          integrity="sha512-SbiR/eusphKoMVVXysTKG/7VseWii+Y3FdHrt0EpKgpToZeemhqHeZeLWLhJutz/2ut2Vw1uQEj2MbRF+TVBUA=="
-          crossorigin="anonymous"
-          referrerpolicy="no-referrer" />
-<!-- Your stuff: Third-party CSS libraries go here -->
-<!-- This file stores project-specific CSS -->
-
-
-{% compress css %}
-  <link href="{% static 'css/project.css' %}" rel="stylesheet" />
-{% endcompress %}
-
-
-{% endblock css %}
-<!-- Le javascript
+        Rocket.Connect
+      {% endblock title %}
+    </title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Rocket.Connect" />
+    <meta name="author" content="Duda Nogueira" />
+    <link rel="icon" href="{% static 'images/favicons/favicon.ico' %}" />
+    {% block css %}
+      <!-- Latest compiled and minified Bootstrap CSS -->
+      <link rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/css/bootstrap.min.css"
+            integrity="sha512-SbiR/eusphKoMVVXysTKG/7VseWii+Y3FdHrt0EpKgpToZeemhqHeZeLWLhJutz/2ut2Vw1uQEj2MbRF+TVBUA=="
+            crossorigin="anonymous"
+            referrerpolicy="no-referrer" />
+      <!-- Your stuff: Third-party CSS libraries go here -->
+      <!-- This file stores project-specific CSS -->
+      {% compress css %}
+        <link href="{% static 'css/project.css' %}" rel="stylesheet" />
+      {% endcompress %}
+    {% endblock css %}
+    <!-- Le javascript
     ================================================== -->
-{# Placed at the top of the document so pages load faster with defer #}
-{% block javascript %}
-
-
-<!-- Bootstrap JS -->
-<script defer
-        src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/js/bootstrap.min.js"
-        integrity="sha512-1/RvZTcCDEUjY/CypiMz+iqqtaoQfAITmNSJY17Myp4Ms5mdxPS5UV7iOfdZoxcGhzFbOm6sntTKJppjvuhg4g=="
-        crossorigin="anonymous"
-        referrerpolicy="no-referrer"></script>
-<!-- Your stuff: Third-party javascript libraries go here -->
-
-
-<!-- place project specific Javascript in this file -->
-
-
-{% compress js %}
-  <script defer src="{% static 'js/project.js' %}"></script>
-{% endcompress %}
-
-
-{% endblock javascript %}
-</head>
-<body class="{% block bodyclass %}{% endblock bodyclass %}">
-  {% block body %}
-  <div class="mb-1">
-    <nav class="navbar navbar-expand-md navbar-light bg-light">
-      <div class="container-fluid">
-        <button class="navbar-toggler navbar-toggler-right"
-                type="button"
-                data-bs-toggle="collapse"
-                data-bs-target="#navbarSupportedContent"
-                aria-controls="navbarSupportedContent"
-                aria-expanded="false"
-                aria-label="Toggle navigation">
-          <span class="navbar-toggler-icon"></span>
-        </button>
-        <a class="navbar-brand" href="{% url 'home' %}">Rocket Connect {% if request.user.is_authenticated %}<small>v{{ROCKET_CONNECT_VERSION}}</small>{%endif%}</a>
-        <div class="collapse navbar-collapse" id="navbarSupportedContent">
-          <ul class="navbar-nav mr-auto">
-            <li class="nav-item active">
-              <a class="nav-link" href="{% url 'home' %}">Home <span class="visually-hidden">(current)</span></a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="{% url 'about' %}">About</a>
-            </li>
-            {% if request.user.is_authenticated %}
-              <li class="nav-item">
-                <a class="nav-link"
-                   href="{% url 'users:detail' request.user.username %}">{% translate "My Profile" %}</a>
-              </li>
-              <li class="nav-item">
-                {# URL provided by django-allauth/account/urls.py #}
-                <a class="nav-link" href="{% url 'account_logout' %}">{% translate "Sign Out" %}</a>
-              </li>
-              {% if request.user.is_staff %}
-              <li class="nav-item">
-                {# URL provided by django-allauth/account/urls.py #}
-                <a class="nav-link" href="{% url 'admin:index' %}">{% trans "Admin" %}</a>
-              </li>
-              {% endif %}              
-            {% else %}
-              {% if ACCOUNT_ALLOW_REGISTRATION %}
-                <li class="nav-item">
-                  {# URL provided by django-allauth/account/urls.py #}
-                  <a id="sign-up-link" class="nav-link" href="{% url 'account_signup' %}">{% translate "Sign Up" %}</a>
+    {# Placed at the top of the document so pages load faster with defer #}
+    {% block javascript %}
+      <!-- Bootstrap JS -->
+      <script defer
+              src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/js/bootstrap.min.js"
+              integrity="sha512-1/RvZTcCDEUjY/CypiMz+iqqtaoQfAITmNSJY17Myp4Ms5mdxPS5UV7iOfdZoxcGhzFbOm6sntTKJppjvuhg4g=="
+              crossorigin="anonymous"
+              referrerpolicy="no-referrer"></script>
+      <!-- Your stuff: Third-party javascript libraries go here -->
+      <!-- place project specific Javascript in this file -->
+      {% compress js %}
+        <script defer src="{% static 'js/project.js' %}"></script>
+      {% endcompress %}
+    {% endblock javascript %}
+  </head>
+  <body class="{% block bodyclass %}{% endblock bodyclass %}">
+    {% block body %}
+      <div class="mb-1">
+        <nav class="navbar navbar-expand-md navbar-light bg-light">
+          <div class="container-fluid">
+            <button class="navbar-toggler navbar-toggler-right"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#navbarSupportedContent"
+                    aria-controls="navbarSupportedContent"
+                    aria-expanded="false"
+                    aria-label="Toggle navigation">
+              <span class="navbar-toggler-icon"></span>
+            </button>
+            <a class="navbar-brand" href="{% url 'home' %}">Rocket Connect
+              {% if request.user.is_authenticated %}<small>v{{ ROCKET_CONNECT_VERSION }}</small>{% endif %}
+            </a>
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+              <ul class="navbar-nav mr-auto">
+                <li class="nav-item active">
+                  <a class="nav-link" href="{% url 'home' %}">Home <span class="visually-hidden">(current)</span></a>
                 </li>
-              {% endif %}
-              <li class="nav-item">
-                {# URL provided by django-allauth/account/urls.py #}
-                <a id="log-in-link" class="nav-link" href="{% url 'account_login' %}">{% translate "Sign In" %}</a>
-              </li>
-            {% endif %}
-          </ul>
-        </div>
+                <li class="nav-item">
+                  <a class="nav-link" href="{% url 'about' %}">About</a>
+                </li>
+                {% if request.user.is_authenticated %}
+                  <li class="nav-item">
+                    <a class="nav-link"
+                       href="{% url 'users:detail' request.user.username %}">{% translate "My Profile" %}</a>
+                  </li>
+                  <li class="nav-item">
+                    {# URL provided by django-allauth/account/urls.py #}
+                    <a class="nav-link" href="{% url 'account_logout' %}">{% translate "Sign Out" %}</a>
+                  </li>
+                  {% if request.user.is_staff %}
+                    <li class="nav-item">
+                      {# URL provided by django-allauth/account/urls.py #}
+                      <a class="nav-link" href="{% url 'admin:index' %}">{% trans "Admin" %}</a>
+                    </li>
+                  {% endif %}
+                {% else %}
+                  {% if ACCOUNT_ALLOW_REGISTRATION %}
+                    <li class="nav-item">
+                      {# URL provided by django-allauth/account/urls.py #}
+                      <a id="sign-up-link" class="nav-link" href="{% url 'account_signup' %}">{% translate "Sign Up" %}</a>
+                    </li>
+                  {% endif %}
+                  <li class="nav-item">
+                    {# URL provided by django-allauth/account/urls.py #}
+                    <a id="log-in-link" class="nav-link" href="{% url 'account_login' %}">{% translate "Sign In" %}</a>
+                  </li>
+                {% endif %}
+              </ul>
+            </div>
+          </div>
+        </nav>
       </div>
-    </nav>
-  </div>
-  <div class="container">
-    {% if messages %}
-      {% for message in messages %}
-        <div class="alert alert-dismissible {% if message.tags %}alert-{{ message.tags }}{% endif %}">
-          {{ message }}
-          <button type="button"
-                  class="btn-close"
-                  data-bs-dismiss="alert"
-                  aria-label="Close"></button>
-        </div>
-      {% endfor %}
-    {% endif %}
-    {% block main %}
-      {% block content %}
-        <p>Use this document as a way to quick start any new project.</p>
-      {% endblock content %}
-    {% endblock main %}
-
-  </div>
-  {% endblock body %}
-  <!-- /container -->
-  {% block modal %}
-  {% endblock modal %}
-  {% block inline_javascript %}
-    {% comment %}
+      <div class="container">
+        {% if messages %}
+          {% for message in messages %}
+            <div class="alert alert-dismissible {% if message.tags %}alert-{{ message.tags }}{% endif %}">
+              {{ message }}
+              <button type="button"
+                      class="btn-close"
+                      data-bs-dismiss="alert"
+                      aria-label="Close"></button>
+            </div>
+          {% endfor %}
+        {% endif %}
+        {% block main %}
+          {% block content %}
+            <p>Use this document as a way to quick start any new project.</p>
+          {% endblock content %}
+        {% endblock main %}
+      </div>
+    {% endblock body %}
+    <!-- /container -->
+    {% block modal %}
+    {% endblock modal %}
+    {% block inline_javascript %}
+      {% comment %}
     Script tags with only code, no src (defer by default). To run
     with a "defer" so that you run inline code:
     <script>
@@ -145,7 +133,7 @@
         /* Run whatever you want */
       });
     </script>
-    {% endcomment %}
-  {% endblock inline_javascript %}
-</body>
+      {% endcomment %}
+    {% endblock inline_javascript %}
+  </body>
 </html>

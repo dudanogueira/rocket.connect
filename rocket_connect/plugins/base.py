@@ -12,12 +12,14 @@ from io import BytesIO
 
 import qrcode
 import requests
-#import zbarlight
+
+# import zbarlight
 from django import forms
 from django.conf import settings
 from django.db import IntegrityError
 from django.http import JsonResponse
-from django.template import Context, Template
+from django.template import Context
+from django.template import Template
 from envelope.models import LiveChatRoom
 from PIL import Image
 from requests_toolbelt import MultipartEncoder
@@ -77,7 +79,7 @@ class Connector:
         return JsonResponse(
             {
                 "connector": self.connector.name,
-            }
+            },
         )
 
     def outcome_qrbase64(self, qrbase64):
@@ -105,9 +107,7 @@ class Connector:
                     rocket.rooms_upload(
                         rid=im_room_created["room"]["rid"],
                         file=tmp.name,
-                        msg=":rocket: Connect > *Connector Name*: {}".format(
-                            self.connector.name
-                        ),
+                        msg=f":rocket: Connect > *Connector Name*: {self.connector.name}",
                         description="Scan this QR Code at your Whatsapp Phone:",
                     )
                 # out come qr to room
@@ -121,28 +121,22 @@ class Connector:
                             send_qr_code = rocket.rooms_upload(
                                 rid=rid,
                                 file=tmp.name,
-                                msg=":rocket: Connect > *Connector Name*: {}".format(
-                                    self.connector.name
-                                ),
+                                msg=f":rocket: Connect > *Connector Name*: {self.connector.name}",
                                 description="Scan this QR Code at your Whatsapp Phone:",
                             )
                             self.logger_info(
-                                "SENDING QRCODE TO ROOM... {}: {}".format(
-                                    channel, send_qr_code.json()
-                                )
+                                f"SENDING QRCODE TO ROOM... {channel}: {send_qr_code.json()}",
                             )
                     else:
                         self.logger_error(
-                            "FAILED TO SEND QRCODE TO ROOM... {}: {}".format(
-                                channel, room_infos.json()
-                            )
+                            f"FAILED TO SEND QRCODE TO ROOM... {channel}: {room_infos.json()}",
                         )
 
         if self.connector.server.type == "chatwoot":
             # output qrcode
             headers = {
                 # "Content-Type": 'multipart/form-data; boundary=----WebKitFormBoundary',
-                "api_access_token": self.connector.server.secret_token
+                "api_access_token": self.connector.server.secret_token,
             }
             with tempfile.NamedTemporaryFile(suffix=".png") as tmp:
                 tmp.write(imgdata)
@@ -153,16 +147,14 @@ class Connector:
                     self.config.get("connector_conversation_id"),
                 )
 
-                msg = "🚀 Connect > *Connector Name*: {}\nScan this QR Code at your Whatsapp Phone:".format(
-                    self.connector.name
-                )
+                msg = f"🚀 Connect > *Connector Name*: {self.connector.name}\nScan this QR Code at your Whatsapp Phone:"
 
                 fields = {
                     "attachments[]": (tmp.name, open(tmp.name, "rb"), "image/png"),
                     "content": msg,
                 }
                 boundary = "----WebKitFormBoundary" + "".join(
-                    random.sample(string.ascii_letters + string.digits, 16)
+                    random.sample(string.ascii_letters + string.digits, 16),
                 )
 
                 m = MultipartEncoder(fields=fields, boundary=boundary)
@@ -171,8 +163,6 @@ class Connector:
                 if response.ok:
                     return True
                 return False
-
-            pass
 
     def outcome_file(self, base64_data, room_id, mime, filename=None, description=None):
         if self.connector.server.type == "rocketchat":
@@ -203,15 +193,13 @@ class Connector:
                 data = {}
                 if description:
                     data["description"] = description
-                url = "{}/api/v1/livechat/upload/{}".format(
-                    self.connector.server.url, room_id
-                )
+                url = f"{self.connector.server.url}/api/v1/livechat/upload/{room_id}"
                 deliver = requests.post(url, headers=headers, files=files, data=data)
                 self.logger_info(f"RESPONSE OF FILE OUTCOME: {deliver.json()}")
                 timestamp = int(time.time())
                 if self.message_object:
                     self.message_object.payload[timestamp] = {
-                        "data": "sent attached file to rocketchat"
+                        "data": "sent attached file to rocketchat",
                     }
                 if deliver.ok:
                     if settings.DEBUG and deliver.ok:
@@ -222,19 +210,22 @@ class Connector:
                     self.message_object.save()
 
                 if self.connector.config.get(
-                    "outcome_attachment_description_as_new_message", True
+                    "outcome_attachment_description_as_new_message",
+                    True,
                 ):
                     if description:
                         description_message_id = self.get_message_id() + "_description"
                         self.outcome_text(
-                            room_id, description, message_id=description_message_id
+                            room_id,
+                            description,
+                            message_id=description_message_id,
                         )
 
                 return deliver
         elif self.connector.server.type == "chatwoot":
             headers = {
                 # "Content-Type": 'multipart/form-data; boundary=----WebKitFormBoundary',
-                "api_access_token": self.connector.server.secret_token
+                "api_access_token": self.connector.server.secret_token,
             }
             # DISCOVER THE EXTENSION
             extension = mimetypes.guess_extension(mime)
@@ -258,13 +249,14 @@ class Connector:
                 }
 
                 if msg and self.connector.config.get(
-                    "outcome_attachment_description_as_new_message", True
+                    "outcome_attachment_description_as_new_message",
+                    True,
                 ):
                     description_message_id = self.get_message_id() + "_description"
                     self.outcome_text(self.room.room_id, msg)
 
                 boundary = "----WebKitFormBoundary" + "".join(
-                    random.sample(string.ascii_letters + string.digits, 16)
+                    random.sample(string.ascii_letters + string.digits, 16),
                 )
 
                 m = MultipartEncoder(fields=fields, boundary=boundary)
@@ -308,7 +300,7 @@ class Connector:
         except IndexError:
             data = qrbase64
         img = Image.open(BytesIO(base64.b64decode(data)))
-        #code = zbarlight.scan_codes(["qrcode"], img)[0]
+        # code = zbarlight.scan_codes(["qrcode"], img)[0]
         return False
 
     def generate_qrcode(self, code):
@@ -357,20 +349,17 @@ class Connector:
                 for manager_channel in managers_channel:
                     self.logger_info("OUTCOME ADMIN MESSAGE FOR " + manager_channel)
                     manager_channel_message = self.rocket.chat_post_message(
-                        text=text_message, channel=manager_channel.replace("#", "")
+                        text=text_message,
+                        channel=manager_channel.replace("#", ""),
                     )
                     output.append(manager_channel_message.ok)
                     if manager_channel_message.ok:
                         self.logger_info(
-                            "OK! manager_channel_message payload received: {}".format(
-                                manager_channel_message.json()
-                            )
+                            f"OK! manager_channel_message payload received: {manager_channel_message.json()}",
                         )
                     else:
                         self.logger_info(
-                            "ERROR! manager_channel_message: {}".format(
-                                manager_channel_message.json()
-                            )
+                            f"ERROR! manager_channel_message: {manager_channel_message.json()}",
                         )
                 if output and all(output):
                     return True
@@ -408,7 +397,7 @@ class Connector:
         try:
             visitor_username = "whatsapp:{}".format(
                 # works for wa-automate
-                self.message.get("data", {}).get("from")
+                self.message.get("data", {}).get("from"),
             )
         except IndexError:
             visitor_username = "channel:visitor-username"
@@ -452,7 +441,7 @@ class Connector:
                     "key": "whatsapp_name",
                     "value": visitor_name,
                     "overwrite": self.config.get("overwrite_custom_fields", True),
-                }
+                },
             )
 
         if visitor_phone:
@@ -461,7 +450,7 @@ class Connector:
                     "key": "whatsapp_number",
                     "value": visitor_phone,
                     "overwrite": self.config.get("overwrite_custom_fields", True),
-                }
+                },
             )
 
         if visitor_name and not self.config.get("supress_visitor_name", False):
@@ -522,10 +511,18 @@ class Connector:
     ):
         if self.connector.server.type == "chatwoot":
             return self.get_room_chatwoot(
-                department, create, allow_welcome_message, check_if_open, force_transfer
+                department,
+                create,
+                allow_welcome_message,
+                check_if_open,
+                force_transfer,
             )
         return self.get_room_rocketchat(
-            department, create, allow_welcome_message, check_if_open, force_transfer
+            department,
+            create,
+            allow_welcome_message,
+            check_if_open,
+            force_transfer,
         )
 
     def get_room_chatwoot(
@@ -554,7 +551,9 @@ class Connector:
                 )
             else:
                 room = LiveChatRoom.objects.get(
-                    connector=self.connector, token=connector_token, open=True
+                    connector=self.connector,
+                    token=connector_token,
+                    open=True,
                 )
             self.logger_info(f"get_room, got {room} - {room.id}")
             # if check_if_open:
@@ -576,7 +575,9 @@ class Connector:
 
             return (
                 LiveChatRoom.objects.filter(
-                    connector=self.connector, token=connector_token, open=True
+                    connector=self.connector,
+                    token=connector_token,
+                    open=True,
                 )
                 .order_by("-created")
                 .last()
@@ -591,12 +592,13 @@ class Connector:
                     # get the visitor object
                     visitor_object = (
                         self.connector.server.chatwoot_get_or_create_contact(
-                            visitor_json, self.get_visitor_avatar_url()
+                            visitor_json,
+                            self.get_visitor_avatar_url(),
                         )
                     )
 
                     self.logger_info(
-                        f"VISITOR REGISTERING: {json.dumps(visitor_object)}"
+                        f"VISITOR REGISTERING: {json.dumps(visitor_object)}",
                     )
 
                     # we registered the visitor
@@ -616,7 +618,8 @@ class Connector:
                         # get or create the conversation
                         chatwoot_room = (
                             self.connector.server.chatwoot_get_or_create_conversation(
-                                contact_id, self.config.get("connector_inbox_id")
+                                contact_id,
+                                self.config.get("connector_inbox_id"),
                             )
                         )
                         if settings.DEBUG:
@@ -629,7 +632,7 @@ class Connector:
                                 open=True,
                             )
                             self.logger_info(
-                                f"CREATED ROCKETCONNECT CONVERSATION: {room.id}"
+                                f"CREATED ROCKETCONNECT CONVERSATION: {room.id}",
                             )
 
         self.room = room
@@ -735,7 +738,9 @@ class Connector:
 
         try:
             room = LiveChatRoom.objects.get(
-                connector=self.connector, token=connector_token, open=True
+                connector=self.connector,
+                token=connector_token,
+                open=True,
             )
             self.logger_info(f"get_room, got {room}")
             if check_if_open:
@@ -744,7 +749,7 @@ class Connector:
                 open_rooms_id = [r["_id"] for r in open_rooms["rooms"]]
                 if room.room_id not in open_rooms_id:
                     self.logger_info(
-                        "room was open in Rocket.Connect, but not in Rocket.Chat"
+                        "room was open in Rocket.Connect, but not in Rocket.Chat",
                     )
                     # close room
                     room.open = False
@@ -756,7 +761,9 @@ class Connector:
             # TODO: replicate error at development
             return (
                 LiveChatRoom.objects.filter(
-                    connector=self.connector, token=connector_token, open=True
+                    connector=self.connector,
+                    token=connector_token,
+                    open=True,
                 )
                 .order_by("-created")
                 .last()
@@ -770,7 +777,8 @@ class Connector:
                     visitor_json = self.get_visitor_json(department)
                     # get the visitor object
                     visitor_object = self.rocket.livechat_register_visitor(
-                        visitor=visitor_json, token=connector_token
+                        visitor=visitor_json,
+                        token=connector_token,
                     )
                     response = visitor_object.json()
                     self.logger_info(f"VISITOR REGISTERING: {json.dumps(response)}")
@@ -780,7 +788,7 @@ class Connector:
                         rc_room = self.rocket.livechat_room(token=connector_token)
                         rc_room_response = rc_room.json()
                         self.logger_info(
-                            f"REGISTERING ROOM with token {connector_token}: {rc_room_response}"
+                            f"REGISTERING ROOM with token {connector_token}: {rc_room_response}",
                         )
                         if rc_room_response["success"]:
                             room = LiveChatRoom.objects.create(
@@ -790,30 +798,29 @@ class Connector:
                                 open=True,
                             )
                             room_created = True
-                        else:
-                            if rc_room_response.get("errorType") == "no-agent-online":
-                                self.logger_info("NO AGENTS ONLINE")
-                                if self.config.get("no_agent_online_alert_admin"):
-                                    # add message as template
-                                    template = Template(
-                                        self.config.get("no_agent_online_alert_admin")
-                                    )
-                                    context = Context(self.message)
-                                    message = template.render(context)
-                                    self.outcome_admin_message(message)
-                                if self.config.get(
-                                    "no_agent_online_autoanswer_visitor"
-                                ):
-                                    template = Template(
-                                        self.config.get(
-                                            "no_agent_online_autoanswer_visitor"
-                                        )
-                                    )
-                                    context = Context(self.message)
-                                    message = {"msg": template.render(context)}
-                                    self.outgo_text_message(message)
-                                if settings.DEBUG:
-                                    print("Erro! No Agents Online")
+                        elif rc_room_response.get("errorType") == "no-agent-online":
+                            self.logger_info("NO AGENTS ONLINE")
+                            if self.config.get("no_agent_online_alert_admin"):
+                                # add message as template
+                                template = Template(
+                                    self.config.get("no_agent_online_alert_admin"),
+                                )
+                                context = Context(self.message)
+                                message = template.render(context)
+                                self.outcome_admin_message(message)
+                            if self.config.get(
+                                "no_agent_online_autoanswer_visitor",
+                            ):
+                                template = Template(
+                                    self.config.get(
+                                        "no_agent_online_autoanswer_visitor",
+                                    ),
+                                )
+                                context = Context(self.message)
+                                message = {"msg": template.render(context)}
+                                self.outgo_text_message(message)
+                            if settings.DEBUG:
+                                print("Erro! No Agents Online")
         self.room = room
         # optionally force transfer to department
         if force_transfer:
@@ -823,7 +830,8 @@ class Connector:
                 "department": force_transfer,
             }
             force_transfer_response = self.rocket.call_api_post(
-                "livechat/room.transfer", **payload
+                "livechat/room.transfer",
+                **payload,
             )
             if force_transfer_response.ok:
                 self.logger_info(f"Force Transfer Response: {force_transfer_response}")
@@ -853,7 +861,7 @@ class Connector:
                         }
                         a = self.outgo_message_from_rocketchat(payload)
                         self.logger_info(
-                            "OUTWENT welcome message from Rocket.Chat " + str(payload)
+                            "OUTWENT welcome message from Rocket.Chat " + str(payload),
                         )
                         print(a.json())
                         message = {"msg": self.config.get("welcome_message")}
@@ -882,13 +890,14 @@ class Connector:
                     self.outgo_vcard(payload)
                     # if room was created
                     if room and self.config.get(
-                        "alert_agent_of_automated_message_sent", False
+                        "alert_agent_of_automated_message_sent",
+                        False,
                     ):
                         # let the agent know
                         self.outcome_text(
                             room_id=room.room_id,
                             text="VCARD SENT: {}".format(
-                                self.config.get("welcome_vcard")
+                                self.config.get("welcome_vcard"),
                             ),
                             message_id=self.get_message_id() + "VCARD",
                         )
@@ -942,7 +951,8 @@ class Connector:
             if not type:
                 type = self.type
             self.message_object, created = self.connector.messages.get_or_create(
-                envelope_id=self.get_message_id(), type=type
+                envelope_id=self.get_message_id(),
+                type=type,
             )
             self.message_object.raw_message = self.message
             if not self.message_object.room:
@@ -952,12 +962,12 @@ class Connector:
                 self.logger_info(f"NEW MESSAGE REGISTERED: {self.message_object.id}")
             else:
                 self.logger_info(
-                    f"EXISTING MESSAGE REGISTERED: {self.message_object.id}"
+                    f"EXISTING MESSAGE REGISTERED: {self.message_object.id}",
                 )
             return self.message_object, created
         except IntegrityError:
             self.logger_info(
-                f"CANNOT CREATE THIS MESSAGE AGAIN: {self.get_message_id()}"
+                f"CANNOT CREATE THIS MESSAGE AGAIN: {self.get_message_id()}",
             )
             return "", False
 
@@ -996,7 +1006,7 @@ class Connector:
             message_body = self.message.get("data", {}).get("body")
         except IndexError:
             message_body = "New Message: {}".format(
-                "".join(random.choice(string.ascii_letters) for i in range(10))
+                "".join(random.choice(string.ascii_letters) for i in range(10)),
             )
         return message_body
 
@@ -1045,7 +1055,8 @@ class Connector:
         if self.room:
             # close all room from this server with same room_id
             LiveChatRoom.objects.filter(
-                connector__server=self.connector.server, room_id=self.room.room_id
+                connector__server=self.connector.server,
+                room_id=self.room.room_id,
             ).update(open=False)
             self.post_close_room()
 
@@ -1099,7 +1110,7 @@ class Connector:
                 ignore_close_message = (
                     self.message_object.room.token
                     in self.config.get("ignore_token_force_close_message", "").split(
-                        ","
+                        ",",
                     )
                 )
                 if not message.delivered:
@@ -1112,11 +1123,11 @@ class Connector:
                             # seems fixed in Six
                             self.get_rocket_client()
                             room_info = self.rocket.rooms_info(
-                                room_id=self.message_object.room.room_id
+                                room_id=self.message_object.room.room_id,
                             ).json()
                             department = room_info.get("room", {}).get("departmentId")
                             message["msg"] = self.get_close_message(
-                                department=department
+                                department=department,
                             )
                             print("SHOULD GET: ", message.get("msg"))
                             print("DEPARTMENT CLOSING: ", department)
@@ -1124,10 +1135,11 @@ class Connector:
                             if message.get("msg") and not ignore_close_message:
                                 print("GOT IN!!!!")
                                 if self.connector.config.get(
-                                    "add_agent_name_at_close_message"
+                                    "add_agent_name_at_close_message",
                                 ):
                                     self.outgo_text_message(
-                                        message, agent_name=agent_name
+                                        message,
+                                        agent_name=agent_name,
                                     )
                                 else:
                                     self.outgo_text_message(message)
@@ -1138,13 +1150,11 @@ class Connector:
                                 self.message_object.save()
                             # close room, after all
                             self.close_room()
+                        elif message.get("attachments", {}):
+                            # send file
+                            (self.outgo_file_message(message, agent_name=agent_name),)
                         else:
-                            # regular message, maybe with attach
-                            if message.get("attachments", {}):
-                                # send file
-                                self.outgo_file_message(message, agent_name=agent_name),
-                            else:
-                                self.outgo_text_message(message, agent_name=agent_name)
+                            self.outgo_text_message(message, agent_name=agent_name)
                 else:
                     self.logger_info("MESSAGE ALREADY SENT. IGNORING.")
         if self.connector.server.type == "chatwoot":
@@ -1163,7 +1173,9 @@ class Connector:
                         # format to make chatwoot markup compatible to whatsapp
                         text = self.message.get("content")
                         text = re.sub(
-                            r"(\*{1,2})(.*?)(\1)", self.chatwoot_replace_tags, text
+                            r"(\*{1,2})(.*?)(\1)",
+                            self.chatwoot_replace_tags,
+                            text,
                         )
                         self.outgo_text_message(
                             text,
@@ -1178,7 +1190,7 @@ class Connector:
                             data_url = attachment.get("data_url")
                             data_url_parsed = urllib.parse.urlparse(data_url)
                             server_url_parsed = urllib.parse.urlparse(
-                                self.connector.server.url
+                                self.connector.server.url,
                             )
                             replaced = data_url_parsed._replace(
                                 scheme=server_url_parsed.scheme,
@@ -1195,7 +1207,9 @@ class Connector:
                                 file_url = replaced.geturl()
                                 mime = mimetypes.guess_type(file_url)[0]
                                 self.outgo_file_message(
-                                    message={}, file_url=file_url, mime=mime
+                                    message={},
+                                    file_url=file_url,
+                                    mime=mime,
                                 )
 
             if self.message.get("event") == "conversation_status_changed":
@@ -1217,7 +1231,7 @@ class Connector:
             return JsonResponse(
                 {
                     "connector": self.connector.name,
-                }
+                },
             )
 
     def get_ingoing_visitor_phone(self):
@@ -1264,7 +1278,8 @@ class Connector:
         close_message = None
         force_close_message = self.config.get("force_close_message", None)
         advanced_force_close_message = self.config.get(
-            "advanced_force_close_message", None
+            "advanced_force_close_message",
+            None,
         )
         if force_close_message:
             close_message = force_close_message
@@ -1275,7 +1290,8 @@ class Connector:
             else:
                 try:
                     close_message = self.config.get(
-                        "advanced_force_close_message", None
+                        "advanced_force_close_message",
+                        None,
                     ).get(department, None)
                 except KeyError:
                     close_message = None
@@ -1308,8 +1324,8 @@ class Connector:
         if self.config.get("auto_answer_incoming_call"):
             self.logger_info(
                 "auto_answer_incoming_call: {}".format(
-                    self.config.get("auto_answer_incoming_call")
-                )
+                    self.config.get("auto_answer_incoming_call"),
+                ),
             )
             message = {"msg": self.config.get("auto_answer_incoming_call")}
             self.outgo_text_message(message)
@@ -1325,17 +1341,15 @@ class Connector:
         m.save()
         self.message_object = m
         self.logger_info(
-            "handle_incoming_call marked message {} as read".format(
-                self.message_object.id
-            )
+            f"handle_incoming_call marked message {self.message_object.id} as read",
         )
 
     def handle_ptt(self):
         if self.config.get("auto_answer_on_audio_message"):
             self.logger_info(
                 "auto_answer_on_audio_message: {}".format(
-                    self.config.get("auto_answer_on_audio_message")
-                )
+                    self.config.get("auto_answer_on_audio_message"),
+                ),
             )
             message = {"msg": self.connector.config.get("auto_answer_on_audio_message")}
             self.outgo_text_message(message)
@@ -1354,31 +1368,31 @@ class Connector:
         if self.config.get("session_taken_alert_template"):
             # get departments to ignore
             ignore_departments = self.config.get(
-                "session_taken_alert_ignore_departments"
+                "session_taken_alert_ignore_departments",
             )
             if ignore_departments:
                 transferred_department = self.message.get("visitor", {}).get(
-                    "department"
+                    "department",
                 )
                 departments_list = ignore_departments.split(",")
                 ignore_departments = [i for i in departments_list]
                 if transferred_department in ignore_departments:
                     self.logger_info(
                         "IGNORING LIVECHATSESSION Alert for DEPARTMENT {}".format(
-                            self.message.get("department")
-                        )
+                            self.message.get("department"),
+                        ),
                     )
                     # ignore this message
                     return {
                         "success": False,
                         "message": "Ignoring department {}".format(
-                            self.message.get("department")
+                            self.message.get("department"),
                         ),
                     }
             self.get_rocket_client()
             # enrich context with department data
             department = self.rocket.call_api_get(
-                "livechat/department/{}".format(self.message.get("departmentId"))
+                "livechat/department/{}".format(self.message.get("departmentId")),
             ).json()
             self.message["department"] = department["department"]
             template = Template(self.config.get("session_taken_alert_template"))
@@ -1459,21 +1473,23 @@ class BaseConnectorConfigForm(forms.Form):
         for field in self.cleaned_data.keys():
             if self.cleaned_data[field]:
                 self.connector.config[field] = self.cleaned_data[field]
-            else:
-                if self.connector.config.get(field):
-                    # if is a boolean field, mark as false
-                    # else, delete
-                    if type(self.fields[field]) == forms.fields.BooleanField:
-                        self.connector.config[field] = False
-                    else:
-                        del self.connector.config[field]
+            elif self.connector.config.get(field):
+                # if is a boolean field, mark as false
+                # else, delete
+                if type(self.fields[field]) == forms.fields.BooleanField:
+                    self.connector.config[field] = False
+                else:
+                    del self.connector.config[field]
             self.connector.save()
 
     open_room = forms.BooleanField(
-        required=False, initial=True, help_text="Uncheck to avoid creating a room"
+        required=False,
+        initial=True,
+        help_text="Uncheck to avoid creating a room",
     )
     ignore_visitors_token = forms.CharField(
-        help_text="Do not create/get rooms for this tokens", required=False
+        help_text="Do not create/get rooms for this tokens",
+        required=False,
     )
     timezone = forms.CharField(help_text="Timezone for this connector", required=False)
     message_template = forms.CharField(
@@ -1507,7 +1523,8 @@ class BaseConnectorConfigForm(forms.Form):
         help_text="* for all agents, or agent1,agent2 for specific ones",
     )
     overwrite_custom_fields = forms.BooleanField(
-        required=False, help_text="overwrite custom fields on new visitor registration"
+        required=False,
+        help_text="overwrite custom fields on new visitor registration",
     )
     supress_visitor_name = forms.BooleanField(
         required=False,
@@ -1550,7 +1567,9 @@ class BaseConnectorConfigForm(forms.Form):
         required=False,
     )
     welcome_vcard = forms.JSONField(
-        required=False, initial={}, help_text="The Payload for a Welcome Vcard"
+        required=False,
+        initial={},
+        help_text="The Payload for a Welcome Vcard",
     )
     session_taken_alert_template = forms.CharField(
         required=False,

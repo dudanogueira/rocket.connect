@@ -1,16 +1,14 @@
 from django.urls import re_path
 
-from rocket_connect.instance.views import (
-    active_chat,
-    connector_analyze,
-    new_chatwoot_connector,
-    new_rocketchat_connector,
-    new_server,
-    new_server_chatwoot,
-    new_server_rocket_chat,
-    server_detail_view,
-    server_monitor_view,
-)
+from rocket_connect.instance.views import active_chat
+from rocket_connect.instance.views import connector_analyze
+from rocket_connect.instance.views import new_chatwoot_connector
+from rocket_connect.instance.views import new_rocketchat_connector
+from rocket_connect.instance.views import new_server
+from rocket_connect.instance.views import new_server_chatwoot
+from rocket_connect.instance.views import new_server_rocket_chat
+from rocket_connect.instance.views import server_detail_view
+from rocket_connect.instance.views import server_monitor_view
 
 app_name = "instance"
 urlpatterns = [
@@ -20,7 +18,9 @@ urlpatterns = [
         name="server_monitor",
     ),
     re_path(
-        r"^server/(?P<server_id>\w+)/?$", view=server_detail_view, name="server_detail"
+        r"^server/(?P<server_id>\w+)/?$",
+        view=server_detail_view,
+        name="server_detail",
     ),
     re_path(
         r"^server/(?P<server_id>\w+)/active-chat/?$",

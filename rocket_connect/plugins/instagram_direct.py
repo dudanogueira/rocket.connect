@@ -1,5 +1,7 @@
 from django import forms
-from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
+from django.http import HttpResponse
+from django.http import HttpResponseForbidden
+from django.http import JsonResponse
 
 from .base import BaseConnectorConfigForm
 from .base import Connector as ConnectorBase
@@ -17,13 +19,13 @@ class Connector(ConnectorBase):
     def handle_challenge(self):
         self.logger_info(
             "VERIFYING INSTAGRAM DIRECT ENDPOINT against with path: "
-            + str(self.request.get_full_path)
+            + str(self.request.get_full_path),
         )
         verify_token = self.request.GET.get("hub.verify_token")
         if verify_token == self.connector.config.get("verify_token"):
             self.logger_info(
                 "VERIFYING INSTAGRAM DIRECT ENDPOINT against: "
-                + str(self.request.GET.get("hub.challenge"))
+                + str(self.request.GET.get("hub.challenge")),
             )
             challenge = self.request.GET.get("hub.challenge")
             text = "Connector {} Status: {}".format(

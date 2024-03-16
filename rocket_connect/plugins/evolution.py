@@ -1,9 +1,9 @@
 import base64
+import datetime
 import json
 import os
 import time
 import urllib.parse as urlparse
-import datetime
 
 import requests
 from django import forms
@@ -32,7 +32,10 @@ class Connector(ConnectorBase):
         headers = {"Content-Type": "application/json", "apikey": secret_key}
 
         create_instance_response = requests.request(
-            "POST", endpoint_create, json=payload, headers=headers
+            "POST",
+            endpoint_create,
+            json=payload,
+            headers=headers,
         )
         output = {}
         output["instance_create"] = {
@@ -42,10 +45,14 @@ class Connector(ConnectorBase):
         # GET {{baseUrl}}/instance/connect/{{instance}}
 
         endpoint_connect = "{}/instance/connect/{}".format(
-            self.config.get("endpoint"), instance_name
+            self.config.get("endpoint"),
+            instance_name,
         )
         connect_instance_response = requests.request(
-            "GET", endpoint_connect, json=payload, headers=headers
+            "GET",
+            endpoint_connect,
+            json=payload,
+            headers=headers,
         )
         output["instance_connect"] = {
             "endpoint": endpoint_connect,
@@ -53,28 +60,36 @@ class Connector(ConnectorBase):
         }
         # POST {{baseUrl}}/webhook/set/{{instance}}
         endpoint_webhook_set = "{}/webhook/set/{}".format(
-            self.config.get("endpoint"), instance_name
+            self.config.get("endpoint"),
+            instance_name,
         )
-        
-        #payload = {"enabled": True, "url": webhook_url}
-        payload = {'enabled': True,
-                                'events': ['APPLICATION_STARTUP',
-                                           'QRCODE_UPDATED',
-                                           'MESSAGES_SET',
-                                           'MESSAGES_UPSERT',
-                                           'MESSAGES_UPDATE',
-                                           'MESSAGES_DELETE',
-                                           'SEND_MESSAGE',
-                                           'CHATS_SET',
-                                           'CHATS_UPSERT',
-                                           'CHATS_UPDATE',
-                                           'CONNECTION_UPDATE',
-                                           'CALL',
-                                           'NEW_JWT_TOKEN'],
-                                'url': webhook_url,
-                                'webhook_base64': True}
+
+        # payload = {"enabled": True, "url": webhook_url}
+        payload = {
+            "enabled": True,
+            "events": [
+                "APPLICATION_STARTUP",
+                "QRCODE_UPDATED",
+                "MESSAGES_SET",
+                "MESSAGES_UPSERT",
+                "MESSAGES_UPDATE",
+                "MESSAGES_DELETE",
+                "SEND_MESSAGE",
+                "CHATS_SET",
+                "CHATS_UPSERT",
+                "CHATS_UPDATE",
+                "CONNECTION_UPDATE",
+                "CALL",
+                "NEW_JWT_TOKEN",
+            ],
+            "url": webhook_url,
+            "webhook_base64": True,
+        }
         connect_instance_response = requests.request(
-            "POST", endpoint_webhook_set, json=payload, headers=headers
+            "POST",
+            endpoint_webhook_set,
+            json=payload,
+            headers=headers,
         )
         output["instance_webhook"] = {
             "endpoint": endpoint_webhook_set,
@@ -91,28 +106,37 @@ class Connector(ConnectorBase):
             headers = {"apiKey": secret_key, "Content-Type": "application/json"}
 
             endpoint_status = "{}/instance/connect/{}".format(
-                self.config.get("endpoint"), instance_name
+                self.config.get("endpoint"),
+                instance_name,
             )
             status_instance_response = requests.request(
-                "GET", endpoint_status, headers=headers
+                "GET",
+                endpoint_status,
+                headers=headers,
             )
             # get webhook info
             endpoint_webhook_get_url = "{}/webhook/find/{}".format(
-                self.config.get("endpoint"), instance_name
-            )       
+                self.config.get("endpoint"),
+                instance_name,
+            )
             endpoint_webhook_response = requests.request(
-                "GET", endpoint_webhook_get_url, headers=headers
+                "GET",
+                endpoint_webhook_get_url,
+                headers=headers,
             )
             # fetch instances and filter for only this one
             endpoint_fetchinstances_get_url = "{}/instance/fetchInstances".format(
-                self.config.get("endpoint")
-            )       
+                self.config.get("endpoint"),
+            )
             endpoint_fetchinstances_response = requests.request(
-                "GET", endpoint_fetchinstances_get_url, headers=headers
+                "GET",
+                endpoint_fetchinstances_get_url,
+                headers=headers,
             )
             if endpoint_fetchinstances_response.ok:
                 instance = [
-                    i for i in endpoint_fetchinstances_response.json()
+                    i
+                    for i in endpoint_fetchinstances_response.json()
                     if i.get("instance").get("instanceName") == instance_name
                 ]
                 if instance:
@@ -120,9 +144,10 @@ class Connector(ConnectorBase):
                 else:
                     endpoint_fetchinstances_response = False
             else:
-                endpoint_fetchinstances_response = endpoint_fetchinstances_response.json()
-                
-              
+                endpoint_fetchinstances_response = (
+                    endpoint_fetchinstances_response.json()
+                )
+
             if status_instance_response:
                 output = status_instance_response.json()
                 output["webhook"] = endpoint_webhook_response.json()
@@ -139,36 +164,41 @@ class Connector(ConnectorBase):
         instance_name = self.config.get("instance_name")
         headers = {"apiKey": secret_key, "Content-Type": "application/json"}
         endpoint_status = "{}/instance/logout/{}".format(
-            self.config.get("endpoint"), instance_name
+            self.config.get("endpoint"),
+            instance_name,
         )
         status_instance_response = requests.request(
-            "DELETE", endpoint_status, headers=headers
+            "DELETE",
+            endpoint_status,
+            headers=headers,
         )
         endpoint_status = "{}/instance/delete/{}".format(
-            self.config.get("endpoint"), instance_name
+            self.config.get("endpoint"),
+            instance_name,
         )
         status_instance_response = requests.request(
-            "DELETE", endpoint_status, headers=headers
-        )        
+            "DELETE",
+            endpoint_status,
+            headers=headers,
+        )
         return {"success": status_instance_response.ok}
-
 
     #
     # MESSAGE HELPERS
-    # 
+    #
 
     def get_message(self, message_id):
-        
         endpoint = "{}/chat/findMessages/{}".format(
-            self.config.get("endpoint"), self.config.get("instance_name")
+            self.config.get("endpoint"),
+            self.config.get("instance_name"),
         )
-        
+
         payload = {
             "where": {
                 "key": {
-                    "id": message_id
-                    }
-            }
+                    "id": message_id,
+                },
+            },
         }
         headers = {
             "apiKey": self.config.get("secret_key"),
@@ -179,18 +209,17 @@ class Connector(ConnectorBase):
         if len(response_json) >= 1:
             return response_json[0]
         return None
-
 
     def check_number_status(self, phone):
-        
         endpoint = "{}/chat/whatsappNumbers/{}".format(
-            self.config.get("endpoint"), self.config.get("instance_name")
+            self.config.get("endpoint"),
+            self.config.get("instance_name"),
         )
-        
+
         payload = {
             "numbers": [
-                phone
-            ]
+                phone,
+            ],
         }
         headers = {
             "apiKey": self.config.get("secret_key"),
@@ -201,7 +230,6 @@ class Connector(ConnectorBase):
         if len(response_json) >= 1:
             return response_json[0]
         return None
-
 
     def active_chat(self):
         """
@@ -253,7 +281,9 @@ class Connector(ConnectorBase):
                 msg_id=msg_id,
                 text=self.message.get("text")
                 + "\n:warning: {} NO MESSAGE TO SEND. *SYNTAX: {} {} <TEXT HERE>*".format(
-                    now_str, self.message.get("trigger_word"), reference
+                    now_str,
+                    self.message.get("trigger_word"),
+                    reference,
                 ),
             )
             # return nothing
@@ -282,7 +312,7 @@ class Connector(ConnectorBase):
                     if not departments:
                         # maybe department is an online agent. let's check if
                         agents = self.rocket.livechat_get_users(
-                            user_type="agent"
+                            user_type="agent",
                         ).json()
                         available_agents = [
                             agent
@@ -291,9 +321,7 @@ class Connector(ConnectorBase):
                             and agent.get("statusLivechat") == "available"
                         ]
                         self.logger_info(
-                            "NO DEPARTMENT FOUND. LOOKING INTO ONLINE AGENTS: {}".format(
-                                available_agents
-                            )
+                            f"NO DEPARTMENT FOUND. LOOKING INTO ONLINE AGENTS: {available_agents}",
                         )
                         for agent in available_agents:
                             if agent.get("username").lower() == department.lower():
@@ -318,13 +346,12 @@ class Connector(ConnectorBase):
                             }
                     # > 1 departments found
                     if len(departments) > 1:
-                        alert_message = "\n:warning: {} More than one department found. Try one of the below:".format(
-                            now_str
-                        )
+                        alert_message = f"\n:warning: {now_str} More than one department found. Try one of the below:"
                         for dpto in departments:
                             alert_message = alert_message + "\n*{}*".format(
                                 self.message.get("text").replace(
-                                    "@" + department, "@" + dpto["name"]
+                                    "@" + department,
+                                    "@" + dpto["name"],
                                 ),
                             )
                         self.rocket.chat_update(
@@ -360,22 +387,22 @@ class Connector(ConnectorBase):
                                 "message": "MESSAGE ALREADY SENT",
                             }
                         # create basic incoming new message, as payload
-                        self.type = "incoming"                  
+                        self.type = "incoming"
                         self.message = {
                             "event": "messages.upsert",
                             "from": check_number.get("jid"),
                             "data": {
                                 "key": {
                                     "id": self.message.get("message_id"),
-                                    "remoteJid": check_number.get("jid")
-                                }
+                                    "remoteJid": check_number.get("jid"),
+                                },
                             },
                         }
                         # self.check_number_info(
                         #     check_number["response"]["id"]["user"], augment_message=True
                         # )
                         self.logger_info(
-                            f"ACTIVE MESSAGE PAYLOAD GENERATED: {self.message}"
+                            f"ACTIVE MESSAGE PAYLOAD GENERATED: {self.message}",
                         )
                         # if force transfer for active chat, for it.
 
@@ -393,7 +420,8 @@ class Connector(ConnectorBase):
                             # send message_raw to the room
                             self.get_rocket_client(bot=True)
                             post_message = self.rocket.chat_post_message(
-                                text=message_raw, room_id=room.room_id
+                                text=message_raw,
+                                room_id=room.room_id,
                             )
                             # change the message with checkmark
                             if post_message.ok:
@@ -403,7 +431,8 @@ class Connector(ConnectorBase):
                                         "userId": agent_id,
                                     }
                                     self.rocket.call_api_post(
-                                        "livechat/room.forward", **payload
+                                        "livechat/room.forward",
+                                        **payload,
                                     )
                                 self.rocket.chat_update(
                                     room_id=room_id,
@@ -450,7 +479,11 @@ class Connector(ConnectorBase):
                         msg_id=msg_id,
                         text=":white_check_mark: " + self.message.get("text"),
                     )
-                    return {"success": True, "message": "MESSAGE SENT", "data": sent.json()}
+                    return {
+                        "success": True,
+                        "message": "MESSAGE SENT",
+                        "data": sent.json(),
+                    }
                 else:
                     self.rocket.chat_update(
                         room_id=room_id,
@@ -473,8 +506,6 @@ class Connector(ConnectorBase):
             )
             return {"success": True, "message": "INVALID NUMBER"}
 
-
-
     #
     # INCOMING HANDLERS
     #
@@ -488,7 +519,7 @@ class Connector(ConnectorBase):
             # check if session managemnt is active
             if self.config.get("session_management_token"):
                 if self.message.get("session_management_token") != self.config.get(
-                    "session_management_token"
+                    "session_management_token",
                 ):
                     output = {"success": False, "message": "INVALID TOKEN"}
                     return JsonResponse(output)
@@ -512,12 +543,12 @@ class Connector(ConnectorBase):
         # webhook active chat integration
         if self.config.get("active_chat_webhook_integration_token"):
             if self.message.get("token") == self.config.get(
-                "active_chat_webhook_integration_token"
+                "active_chat_webhook_integration_token",
             ):
                 self.logger_info("active_chat_webhook_integration_token triggered")
                 message, created = self.register_message()
                 req = self.active_chat()
-                return JsonResponse(req)    
+                return JsonResponse(req)
 
         #
         # qrcode reading
@@ -532,9 +563,7 @@ class Connector(ConnectorBase):
         #
         if self.message.get("event") == "connection.update":
             data = self.message.get("data", {})
-            text = "*CONNECTOR NAME:* {} > {}".format(
-                self.connector.name, json.dumps(data)
-            )
+            text = f"*CONNECTOR NAME:* {self.connector.name} > {json.dumps(data)}"
             if data.get("state") == "open":
                 text = text + "\n" + " ✅ " * 6
             self.outcome_admin_message(text)
@@ -542,7 +571,7 @@ class Connector(ConnectorBase):
         #
         # message upsert
         #
-        if self.message.get("event") == "messages.upsert":                
+        if self.message.get("event") == "messages.upsert":
             department = None
             message_obj, created = self.register_message()
             if not message_obj.delivered:
@@ -555,8 +584,9 @@ class Connector(ConnectorBase):
                 # outcome if is a reaction
                 #
                 if self.message.get("data").get("messageType") == "reactionMessage":
-                    
-                    ref_message = self.message.get("data").get("message").get("reactionMessage")
+                    ref_message = (
+                        self.message.get("data").get("message").get("reactionMessage")
+                    )
                     ref_id = ref_message.get("key").get("id")
                     original_message = self.get_message(ref_id)
                     if not original_message:
@@ -565,18 +595,27 @@ class Connector(ConnectorBase):
                         self.message_object.save()
                         return JsonResponse({})
                     if original_message.get("message").get("extendedTextMessage"):
-                        msg = original_message.get("message").get("extendedTextMessage").get("text")
+                        msg = (
+                            original_message.get("message")
+                            .get("extendedTextMessage")
+                            .get("text")
+                        )
                     elif original_message.get("message").get("imageMessage"):
-                        msg = original_message.get("message").get("imageMessage").get("caption") + " Some Image"
+                        msg = (
+                            original_message.get("message")
+                            .get("imageMessage")
+                            .get("caption")
+                            + " Some Image"
+                        )
                     else:
                         msg = "some message (audio, for example)"
                     reaction = ref_message.get("text")
-                    new_message = "Reacted: {} to: {}".format(
-                        reaction, msg
-                    )
+                    new_message = f"Reacted: {reaction} to: {msg}"
                     room = self.get_room()
                     self.outcome_text(
-                        room_id=room.room_id, text=new_message, message_id=self.get_message_id()
+                        room_id=room.room_id,
+                        text=new_message,
+                        message_id=self.get_message_id(),
                     ).json()
                     return JsonResponse({})
                 #
@@ -612,7 +651,7 @@ class Connector(ConnectorBase):
                     # files that are actually text
                     if message.get("contactsArrayMessage"):
                         for contact in message.get("contactsArrayMessage").get(
-                            "contacts"
+                            "contacts",
                         ):
                             sent = self.outcome_text(
                                 room_id=room.room_id,
@@ -688,22 +727,24 @@ class Connector(ConnectorBase):
                     payload = {
                         "message": {
                             "key": {
-                                "id": self.message.get("data", {}).get("key", {}).get("id")
-                            }
+                                "id": self.message.get("data", {})
+                                .get("key", {})
+                                .get("id"),
+                            },
                         },
-                        "convertToMp4": False
-                    }                        
+                        "convertToMp4": False,
+                    }
                     url = self.connector.config[
                         "endpoint"
                     ] + "/chat/getBase64FromMediaMessage/{}".format(
-                        self.connector.config["instance_name"]
+                        self.connector.config["instance_name"],
                     )
                     headers = {
                         "apiKey": self.config.get("secret_key"),
                         "Content-Type": "application/json",
                     }
                     media_body = requests.post(url, headers=headers, json=payload)
-                    
+
                     if media_body.ok:
                         body = media_body.json().get("base64")
                         filename = filename
@@ -716,24 +757,24 @@ class Connector(ConnectorBase):
                             filename=filename,
                         )
                         self.logger_info(
-                            f"Outcoming message. url {url}, file sent: {file_sent.json()}"
+                            f"Outcoming message. url {url}, file sent: {file_sent.json()}",
                         )
                         if file_sent.ok:
                             self.message_object.delivered = True
                             self.message_object.save()
                     else:
                         self.logger_info(
-                            f"GETTOMG message MEDIA ERROR. url {url}, file sent: {media_body.json()} media_body"
+                            f"GETTOMG message MEDIA ERROR. url {url}, file sent: {media_body.json()} media_body",
                         )
 
             else:
                 self.logger_info(
-                    f"Message Object {message.id} Already delivered. Ignoring"
+                    f"Message Object {message.id} Already delivered. Ignoring",
                 )
             return JsonResponse({})
         #
         # messages deletion
-        #        
+        #
         if self.message.get("event") == "messages.delete":
             if self.connector.server.type == "rocketchat":
                 # TODO: move this code do base?
@@ -743,11 +784,13 @@ class Connector(ConnectorBase):
                     msg = self.rocket.chat_get_message(msg_id=ref_id)
                     if msg:
                         new_message = ":warning:  DELETED: ~{}~".format(
-                            msg.json()["message"]["msg"]
+                            msg.json()["message"]["msg"],
                         )
                         room = self.get_room()
                         self.rocket.chat_update(
-                            room_id=room.room_id, msg_id=ref_id, text=new_message
+                            room_id=room.room_id,
+                            msg_id=ref_id,
+                            text=new_message,
                         )
 
         #
@@ -764,18 +807,21 @@ class Connector(ConnectorBase):
         #
         # handle sent and acks confirmation
         #
-        if self.message.get("event") in ["send.message"] and \
-                self.message.get("data", {}).get("key", {}).get("fromMe") == True:
+        if (
+            self.message.get("event") in ["send.message"]
+            and self.message.get("data", {}).get("key", {}).get("fromMe") == True
+        ):
             self.logger_info("ACK MESSAGE SENT")
-            self.handle_ack_fromme_message()
-            return JsonResponse({})        
-        
-        if self.message.get("event") in ["messages.update"] and \
-                self.message.get("data", {}).get("fromMe") == True:
-            self.logger_info("ACK MESSAGE RECEIVED")
             self.handle_ack_fromme_message()
             return JsonResponse({})
 
+        if (
+            self.message.get("event") in ["messages.update"]
+            and self.message.get("data", {}).get("fromMe") == True
+        ):
+            self.logger_info("ACK MESSAGE RECEIVED")
+            self.handle_ack_fromme_message()
+            return JsonResponse({})
 
         return JsonResponse({})
 
@@ -790,12 +836,12 @@ class Connector(ConnectorBase):
             self.logger_info("Handling ack from me for message id: " + message_id)
             self.get_rocket_client()
             for message in self.connector.messages.filter(
-                response__id__contains=message_id
+                response__id__contains=message_id,
             ):
                 self.logger_info("Found message to handle ack: " + message.envelope_id)
                 # or add only the white check
                 original_message = self.rocket.chat_get_message(
-                    msg_id=message.envelope_id
+                    msg_id=message.envelope_id,
                 )
                 body = original_message.json()["message"]["msg"]
                 # remove previous markers
@@ -828,7 +874,7 @@ class Connector(ConnectorBase):
             "textMessage": {"text": content},
         }
         url = self.connector.config["endpoint"] + "/message/SendText/{}".format(
-            self.connector.config["instance_name"]
+            self.connector.config["instance_name"],
         )
         headers = {
             "apiKey": self.config.get("secret_key"),
@@ -837,7 +883,7 @@ class Connector(ConnectorBase):
         sent = requests.post(url, headers=headers, json=payload)
         sent_json = sent.json()
         self.logger_info(
-            f"OUTGO TEXT MESSAGE. URL: {url}. PAYLOAD {payload} RESULT: {sent_json}. {sent}"
+            f"OUTGO TEXT MESSAGE. URL: {url}. PAYLOAD {payload} RESULT: {sent_json}. {sent}",
         )
         timestamp = int(time.time())
         if self.message_object and sent.ok:
@@ -845,7 +891,7 @@ class Connector(ConnectorBase):
             self.message_object.response[timestamp] = sent.json()
             if not self.message_object.response.get("id"):
                 self.message_object.response["id"] = [
-                    sent.json()["key"]["id"]
+                    sent.json()["key"]["id"],
                 ]
             self.message_object.save()
         return sent
@@ -879,7 +925,7 @@ class Connector(ConnectorBase):
         if caption:
             payload["mediaMessage"]["caption"] = str(caption)
         url = self.connector.config["endpoint"] + "/message/SendMedia/{}".format(
-            self.connector.config["instance_name"]
+            self.connector.config["instance_name"],
         )
         headers = {
             "apiKey": self.config.get("secret_key"),
@@ -887,7 +933,7 @@ class Connector(ConnectorBase):
         }
         sent = requests.post(url, headers=headers, json=payload)
         self.logger_info(
-            f"OUTGOING FILE. URL: {url}. PAYLOAD {payload} response: {sent.json()}"
+            f"OUTGOING FILE. URL: {url}. PAYLOAD {payload} response: {sent.json()}",
         )
         if sent.ok:
             # Audio doesnt have caption, so outgo as message
@@ -933,7 +979,7 @@ class Connector(ConnectorBase):
             remoteJid = self.message.get("data", {}).get("key", {}).get("remoteJid")
         if remoteJid:
             return remoteJid.split("@")[0]
-        
+
         return None
 
     def get_visitor_username(self):
@@ -964,7 +1010,6 @@ class Connector(ConnectorBase):
 
 
 class ConnectorConfigForm(BaseConnectorConfigForm):
-
     def __init__(self, *args, **kwargs):
         self.connector = kwargs.get("connector")
         super().__init__(*args, **kwargs)
@@ -980,11 +1025,14 @@ class ConnectorConfigForm(BaseConnectorConfigForm):
                 initial=False,
             )
             self.fields["enable_ack_receipt"] = forms.BooleanField(
-               required=False,
+                required=False,
                 help_text="This will update the ingoing message to show it was delivered and received",
             )
+
     webhook = forms.CharField(
-        help_text="Where Evolution will send the events", required=True, initial=""
+        help_text="Where Evolution will send the events",
+        required=True,
+        initial="",
     )
     endpoint = forms.CharField(
         help_text="Where your Evolution is installed",
@@ -995,20 +1043,22 @@ class ConnectorConfigForm(BaseConnectorConfigForm):
         help_text="Where your Evolution is installed",
         required=True,
         initial="http://evolution:8084",
-    )    
+    )
     secret_key = forms.CharField(
         help_text="The secret ApiKey for your Evolution instance",
         required=True,
     )
-    
+
     instance_name = forms.CharField(
-        help_text="Evolution instance name", validators=[validators.validate_slug],
-        required = True,
+        help_text="Evolution instance name",
+        validators=[validators.validate_slug],
+        required=True,
     )
 
     send_message_delay = forms.IntegerField(
-        help_text="Evolution delay to send message. Defaults to 1200", initial=1200,
-        required = False
+        help_text="Evolution delay to send message. Defaults to 1200",
+        initial=1200,
+        required=False,
     )
 
     session_management_token = forms.CharField(required=False)

@@ -1,6 +1,7 @@
 from django.contrib import admin
 
-from .models import LiveChatRoom, Message
+from .models import LiveChatRoom
+from .models import Message
 
 
 @admin.register(LiveChatRoom)

@@ -171,7 +171,8 @@ SPECTACULAR_SETTINGS["SERVERS"] = [
 # Your stuff...
 # ------------------------------------------------------------------------------
 SECURE_PROXY_SSL_HEADER = env.tuple(
-    "DJANGO_SECURE_PROXY_SSL_HEADER", default=("HTTP_X_FORWARDED_PROTO", "https")
+    "DJANGO_SECURE_PROXY_SSL_HEADER",
+    default=("HTTP_X_FORWARDED_PROTO", "https"),
 )
 SESSION_COOKIE_SECURE = env.bool("DJANGO_SESSION_COOKIE_SECURE", default=True)
 CSRF_COOKIE_SECURE = env.bool("DJANGO_CSRF_COOKIE_SECURE", default=True)

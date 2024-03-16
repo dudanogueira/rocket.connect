@@ -6,12 +6,12 @@ from instance.models import Server
 
 class ServerTestCase(TestCase):
     def setUp(self):
-        pass
         # create a test server
         self.server = Server.objects.create(name="TEST SERVER")
         # create a base connector
         self.connector = self.server.connectors.create(
-            name="TEST CONNECTOR", connector_type="base"
+            name="TEST CONNECTOR",
+            connector_type="base",
         )
         # get connector_class
         self.ConnectorClass = self.connector.get_connector_class()
@@ -19,7 +19,6 @@ class ServerTestCase(TestCase):
         self.payload = {"payload": "here"}
 
     def test_get_close_message(self):
-        pass
         """The close message will be defined:
         1 - force_close_message without department
         2 - advanced_force_close_message depending on department
@@ -33,7 +32,9 @@ class ServerTestCase(TestCase):
         self.connector.config["force_close_message"] = close_message
         self.connector.save()
         self.incoming = self.ConnectorClass(
-            self.connector, json.dumps(self.payload), "incoming"
+            self.connector,
+            json.dumps(self.payload),
+            "incoming",
         )
 
         # test simple forced message
@@ -49,7 +50,9 @@ class ServerTestCase(TestCase):
         }
         self.connector.save()
         self.incoming = self.ConnectorClass(
-            self.connector, json.dumps(self.payload), "incoming"
+            self.connector,
+            json.dumps(self.payload),
+            "incoming",
         )
         got_dpto1 = self.incoming.get_close_message(department="department1")
         got_dpto2 = self.incoming.get_close_message(department="department2")
@@ -57,8 +60,10 @@ class ServerTestCase(TestCase):
         print("B!!!!", got_dpto2)
 
         self.assertEqual(
-            forced_dpto1, self.incoming.get_close_message(department="department1")
+            forced_dpto1,
+            self.incoming.get_close_message(department="department1"),
         )
         self.assertEqual(
-            forced_dpto2, self.incoming.get_close_message(department="department2")
+            forced_dpto2,
+            self.incoming.get_close_message(department="department2"),
         )

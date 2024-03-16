@@ -5,7 +5,9 @@ import time
 import requests
 from django import forms
 from django.conf import settings
-from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
+from django.http import HttpResponse
+from django.http import HttpResponseForbidden
+from django.http import JsonResponse
 from requests_toolbelt import MultipartEncoder
 
 from .base import BaseConnectorConfigForm
@@ -37,7 +39,7 @@ class Connector(ConnectorBase):
             # facebook subscription
             if self.request.GET:
                 if mode == "subscribe" and verify_token == self.connector.config.get(
-                    "verify_token"
+                    "verify_token",
                 ):
                     if settings.DEBUG:
                         print("VERIFYING FACEBOOK ENDPOINT")
@@ -78,9 +80,7 @@ class Connector(ConnectorBase):
                         if attachment.get("type") == "location":
                             lat = attachment["payload"]["coordinates"]["lat"]
                             lng = attachment["payload"]["coordinates"]["long"]
-                            link = "https://www.google.com/maps/search/?api=1&query={}+{}".format(
-                                lat, lng
-                            )
+                            link = f"https://www.google.com/maps/search/?api=1&query={lat}+{lng}"
                             text = f"Lat:{lat}, Long:{lng}: Link: {link}"
                             deliver = self.outcome_text(room.room_id, text)
                         else:
@@ -91,7 +91,8 @@ class Connector(ConnectorBase):
                             self.outcome_file(base, room.room_id, mime)
                     if webhook_event["message"].get("text"):
                         deliver = self.outcome_text(
-                            room.room_id, webhook_event["message"].get("text")
+                            room.room_id,
+                            webhook_event["message"].get("text"),
                         )
                     # RETURN 200
                     return HttpResponse("EVENT_RECEIVED")
@@ -128,7 +129,8 @@ class Connector(ConnectorBase):
             print("GOT: ", data.json())
         if data.ok:
             visitor_name = "{} {}".format(
-                data.json()["first_name"], data.json()["last_name"]
+                data.json()["first_name"],
+                data.json()["last_name"],
             )
         else:
             if settings.DEBUG:
@@ -174,7 +176,7 @@ class Connector(ConnectorBase):
         # replace emojis
         content = self.joypixel_to_unicode(content)
         url = "https://graph.facebook.com/v2.6/me/messages?access_token={}".format(
-            self.connector.config["access_token"]
+            self.connector.config["access_token"],
         )
         payload = {"recipient": {"id": visitor_id}, "message": {"text": content}}
         sent = requests.post(url=url, json=payload)
@@ -213,11 +215,11 @@ class Connector(ConnectorBase):
                         "attachment": {
                             "type": file_type,
                             "payload": {"is_reusable": False},
-                        }
-                    }
+                        },
+                    },
                 ),
                 "filedata": (filename, get_file.content, mime),
-            }
+            },
         )
 
         sent = requests.post(

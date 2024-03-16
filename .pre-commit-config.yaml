@@ -1,4 +1,4 @@
-exclude: '^docs/|/migrations/|devcontainer.json'
+exclude: '^docs/|/migrations/|devcontainer.json|^emojipy|asterisk2rocketchat'
 default_stages: [commit]
 
 default_language_version:
@@ -27,14 +27,14 @@ repos:
         args: ['--target-version', '4.2']
 
   # Run the Ruff linter.
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.3.2
-    hooks:
-      # Linter
-      - id: ruff
-        args: [--fix, --exit-non-zero-on-fix]
-      # Formatter
-      - id: ruff-format
+  # - repo: https://github.com/astral-sh/ruff-pre-commit
+  #   rev: v0.3.2
+  #   hooks:
+  #     # Linter
+  #     - id: ruff
+  #       args: [--fix, --exit-non-zero-on-fix]
+  #     # Formatter
+  #     - id: ruff-format
 
   - repo: https://github.com/Riverside-Healthcare/djLint
     rev: v1.34.1

@@ -64,7 +64,7 @@ WEBHOOK_GLOBAL_URL=''
 WEBHOOK_GLOBAL_ENABLED=false
 # With this option activated, you work with a url per webhook event, respecting the global url and the name of each event
 WEBHOOK_GLOBAL_WEBHOOK_BY_EVENTS=false
-## Set the events you want to hear  
+## Set the events you want to hear
 WEBHOOK_EVENTS_APPLICATION_STARTUP=false
 WEBHOOK_EVENTS_QRCODE_UPDATED=true
 WEBHOOK_EVENTS_MESSAGES_SET=true

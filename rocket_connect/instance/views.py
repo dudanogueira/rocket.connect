@@ -5,27 +5,43 @@ import uuid
 import pytz
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.db.models import Count, Max, Q
+from django.db.models import Count
+from django.db.models import Max
+from django.db.models import Q
 from django.db.models.functions import TruncDay
-from django.http import HttpResponse, JsonResponse
-from django.shortcuts import get_object_or_404, redirect, render, reverse
+from django.http import HttpResponse
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404
+from django.shortcuts import redirect
+from django.shortcuts import render
+from django.shortcuts import reverse
 from django.views.decorators.csrf import csrf_exempt
 from envelope.models import LiveChatRoom
-from instance.forms import NewConnectorForm, NewServerForm
-from instance.models import Connector, Server
+from instance.forms import NewConnectorForm
+from instance.forms import NewServerForm
+from instance.models import Connector
+from instance.models import Server
 
-from .forms import NewChatwootConnectorForm, NewChatwootServerForm, NewInboundForm
+from .forms import NewChatwootConnectorForm
+from .forms import NewChatwootServerForm
+from .forms import NewInboundForm
 
 
 @csrf_exempt
 def connector_endpoint(request, connector_id):
     connector = get_object_or_404(
-        Connector, external_token=connector_id, enabled=True, server__enabled=True
+        Connector,
+        external_token=connector_id,
+        enabled=True,
+        server__enabled=True,
     )
     return_response = connector.intake(request)
     if not (return_response):
         return JsonResponse(
-            {"connector_name": connector.name, "connector_id": connector.external_token}
+            {
+                "connector_name": connector.name,
+                "connector_id": connector.external_token,
+            },
         )
     return return_response
 
@@ -33,7 +49,10 @@ def connector_endpoint(request, connector_id):
 @csrf_exempt
 def connector_inbound_endpoint(request, connector_id):
     connector = get_object_or_404(
-        Connector, external_token=connector_id, enabled=True, server__enabled=True
+        Connector,
+        external_token=connector_id,
+        enabled=True,
+        server__enabled=True,
     )
     return_response = connector.inbound_intake(request)
     if not return_response:
@@ -51,9 +70,10 @@ def must_be_yours(func):
     def check_and_call(request, *args, **kwargs):
         server_id = kwargs["server_id"]
         servers_owned = request.user.servers.all().values_list(
-            "external_token", flat=True
+            "external_token",
+            flat=True,
         )
-        if not (server_id in servers_owned):
+        if server_id not in servers_owned:
             return redirect(reverse("home"))
         return func(request, *args, **kwargs)
 
@@ -77,10 +97,11 @@ def server_endpoint(request, server_id):
             # alert manager channel
             server.multiple_connector_admin_message(
                 ":warning:  Rocket.Chat Omnichannel Connection Test was Received."
-                + "It was *not successfull*, as the secret token is different"
+                + "It was *not successfull*, as the secret token is different",
             )
             return HttpResponse(
-                "Unauthorized. No X-Rocketchat-Livechat-Token provided.", status=401
+                "Unauthorized. No X-Rocketchat-Livechat-Token provided.",
+                status=401,
             )
         # income message, we have a body
         if request.body:
@@ -91,7 +112,7 @@ def server_endpoint(request, server_id):
             #
             if raw_message.get("_id") == "fasd6f5a4sd6f8a4sdf":
                 message_sent = server.multiple_connector_admin_message(
-                    ":white_check_mark:  Rocket.Chat Omnichannel Connection Test was Received. This is the response."
+                    ":white_check_mark:  Rocket.Chat Omnichannel Connection Test was Received. This is the response.",
                 )
                 if message_sent:
                     return JsonResponse({})
@@ -112,7 +133,7 @@ def server_endpoint(request, server_id):
                 except LiveChatRoom.MultipleObjectsReturned:
                     # this situation hangs RocketChat forever
                     room = LiveChatRoom.objects.filter(
-                        room_id=raw_message["_id"]
+                        room_id=raw_message["_id"],
                     ).first()
 
                 # now, with a room, or at least one of them, let's keep it going
@@ -125,12 +146,13 @@ def server_endpoint(request, server_id):
                 for secondary_connector in room.connector.secondary_connectors.all():
                     SConnector = secondary_connector.get_connector_class()
                     sconnector = SConnector(
-                        secondary_connector, request.body, "ingoing", request
+                        secondary_connector,
+                        request.body,
+                        "ingoing",
+                        request,
                     )
                     connector.logger_info(
-                        "RUNING SECONDARY CONNECTOR *{}* WITH BODY {}:".format(
-                            sconnector.connector, request.body
-                        )
+                        f"RUNING SECONDARY CONNECTOR *{sconnector.connector}* WITH BODY {request.body}:",
                     )
                     sconnector.ingoing()
     if server.type == "chatwoot":
@@ -143,11 +165,14 @@ def server_endpoint(request, server_id):
             content = raw_message.get("messages", {})[0].get("content")
             connector_conversation_id = raw_message.get("id")
             connector_instance = server.connectors.get(
-                config__connector_conversation_id=connector_conversation_id
+                config__connector_conversation_id=connector_conversation_id,
             )
             Connectorcls = connector_instance.get_connector_class()
             connector = Connectorcls(
-                connector_instance, request.body, "ingoing", request
+                connector_instance,
+                request.body,
+                "ingoing",
+                request,
             )
             if content == "status":
                 status_session = connector.status_session()
@@ -221,16 +246,12 @@ def server_detail_view(request, server_id):
             if message.delivered:
                 messages.success(
                     request,
-                    "Sucess! Message #{} was delivered at connector {}".format(
-                        message.id, message.connector.name
-                    ),
+                    f"Sucess! Message #{message.id} was delivered at connector {message.connector.name}",
                 )
             else:
                 messages.error(
                     request,
-                    "Error! Could not deliver Message #{} at connector {}".format(
-                        message.id, message.connector.name
-                    ),
+                    f"Error! Could not deliver Message #{message.id} at connector {message.connector.name}",
                 )
 
         return redirect(reverse("instance:server_detail", args=[server.external_token]))
@@ -245,10 +266,12 @@ def server_detail_view(request, server_id):
     if request.GET.get("delete-delivered-messages"):
         if request.GET.get("do-delete-delivered-messages"):
             delivered_messages_to_delete = server.delete_delivered_messages(
-                age=10, execute=True
+                age=10,
+                execute=True,
             )
             messages.success(
-                request, f"Delivered messages deleted: {delivered_messages_to_delete}"
+                request,
+                f"Delivered messages deleted: {delivered_messages_to_delete}",
             )
         else:
             delivered_messages_to_delete = server.delete_delivered_messages(age=10)
@@ -308,7 +331,9 @@ def server_detail_view(request, server_id):
 @must_be_yours
 def connector_analyze(request, server_id, connector_id):
     connector = get_object_or_404(
-        Connector.objects, server__external_token=server_id, external_token=connector_id
+        Connector.objects,
+        server__external_token=server_id,
+        external_token=connector_id,
     )
     # get base uri
     uri = request.build_absolute_uri()
@@ -340,11 +365,13 @@ def connector_analyze(request, server_id, connector_id):
         if request.GET.get("date"):
             date = datetime.datetime.strptime(request.GET.get("date"), "%Y-%m-%d")
             undelivered_messages = connector.messages.filter(
-                created__date=date, delivered=False
+                created__date=date,
+                delivered=False,
             )
         if request.GET.get("id"):
             undelivered_messages = connector.messages.filter(
-                id=request.GET.get("id"), delivered=False
+                id=request.GET.get("id"),
+                delivered=False,
             )
         # act on messages
         if request.GET.get("action") == "force_delivery":
@@ -353,16 +380,12 @@ def connector_analyze(request, server_id, connector_id):
                 if delivery_happened:
                     messages.success(
                         request,
-                        "Success! Message #{} was delivered at connector {}".format(
-                            message.id, connector.name
-                        ),
+                        f"Success! Message #{message.id} was delivered at connector {connector.name}",
                     )
                 else:
                     messages.error(
                         request,
-                        "Error! Could not deliver Message #{} at connector {}".format(
-                            message.id, connector.name
-                        ),
+                        f"Error! Could not deliver Message #{message.id} at connector {connector.name}",
                     )
         if request.GET.get("action") == "mark_as_delivered":
             undelivered_messages.update(delivered=True)
@@ -377,7 +400,7 @@ def connector_analyze(request, server_id, connector_id):
                 reverse(
                     "instance:connector_analyze",
                     args=[connector.server.external_token, connector.external_token],
-                )
+                ),
             )
 
     if request.GET.get("check-room-sync"):
@@ -405,9 +428,8 @@ def connector_analyze(request, server_id, connector_id):
             # TODO: better save here
             config_form.save()
             messages.success(request, f"Configurations changed for {connector.name}")
-    else:
-        if config_form:
-            config_form = config_form(connector=connector)
+    elif config_form:
+        config_form = config_form(connector=connector)
 
     context = {
         "connector": connector,
@@ -449,7 +471,7 @@ def new_rocketchat_connector(request, server_id):
                         new_connector.server.external_token,
                         new_connector.external_token,
                     ],
-                )
+                ),
             )
     context = {"server": server, "form": form}
     return render(request, "instance/new_rocketchat_connector.html", context)
@@ -482,7 +504,7 @@ def new_chatwoot_connector(request, server_id):
                         new_connector.server.external_token,
                         new_connector.external_token,
                     ],
-                )
+                ),
             )
     context = {"server": server, "form": form}
     return render(request, "instance/new_chatwoot_connector.html", context)
@@ -527,12 +549,10 @@ def new_server_rocket_chat(request):
             if aditional_tasks:
                 messages.success(
                     request,
-                    "Additional tasks after server creation: {}".format(
-                        aditional_tasks
-                    ),
+                    f"Additional tasks after server creation: {aditional_tasks}",
                 )
             return redirect(
-                reverse("instance:server_detail", args=[server.external_token])
+                reverse("instance:server_detail", args=[server.external_token]),
             )
         else:
             messages.error(request, f"Error {status}")

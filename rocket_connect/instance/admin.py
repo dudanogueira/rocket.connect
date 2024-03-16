@@ -1,6 +1,8 @@
 from django.contrib import admin
 
-from .models import Connector, CustomDefaultMessages, Server
+from .models import Connector
+from .models import CustomDefaultMessages
+from .models import Server
 
 
 @admin.register(Server)
@@ -27,29 +29,32 @@ class ServerAdmin(admin.ModelAdmin):
     list_filter = ("enabled", "type", "created", "updated")
     search_fields = ("name",)
 
+    @admin.action(
+        description="Install Server Tasks",
+    )
     def install_server_tasks(self, request, queryset):
         for server in queryset.all():
             added_tasks = server.install_server_tasks()
             msg = f"Tasks added for server {server}: {len(added_tasks)}"
             self.message_user(request, msg)
 
+    @admin.action(
+        description="Install Omnichannel Webhooks (with default settings)",
+    )
     def install_omnichannel_webhooks(self, request, queryset):
         for server in queryset.all():
             server.install_omnichannel_webhook()
             msg = f"Omnichannel configured for server {server}"
             self.message_user(request, msg)
 
+    @admin.action(
+        description="Add Default WPPCONNECT Connector",
+    )
     def add_default_wppconnect(self, request, queryset):
         for server in queryset.all():
             server.add_default_wppconnect()
             msg = f"WPPCONNECT Connector added configured for server {server}"
             self.message_user(request, msg)
-
-    install_server_tasks.short_description = "Install Server Tasks"
-    install_omnichannel_webhooks.short_description = (
-        "Install Omnichannel Webhooks (with default settings)"
-    )
-    add_default_wppconnect.short_description = "Add Default WPPCONNECT Connector"
 
 
 @admin.register(Connector)

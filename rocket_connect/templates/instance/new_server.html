@@ -1,17 +1,24 @@
 {% extends "base.html" %}
-{% load crispy_forms_tags static %}
-{% block content %}
-    <nav class="breadcrumb">
-        <a class="breadcrumb-item" href="{% url 'home' %}">home</a>
-        <span class="breadcrumb-item active">New Server<span>
-        </nav>
-        <div id="form" class="container">
-            <a name="" id="" class="btn btn-light text-center" href="{% url 'instance:new_server_rocketchat' %}" role="button">
-                <img src="{% static "images/rocket-chat-logo.svg" %}" width=100px>
-            </a>
-            <a name="" id="" class="btn btn-light text-center" href="{% url 'instance:new_server_chatwoot' %}" role="button">
-                <img src="{% static "images/chatwoot-logo.svg" %}" width=100px>
-            </a>
 
-        </div>
-    {% endblock content %}
+{% load crispy_forms_tags static %}
+
+{% block content %}
+  <nav class="breadcrumb">
+    <a class="breadcrumb-item" href="{% url 'home' %}">home</a>
+    <span class="breadcrumb-item active">New Server</span>
+  </nav>
+  <div id="form" class="container">
+    <a name=""
+       class="btn btn-light text-center"
+       href="{% url 'instance:new_server_rocketchat' %}"
+       role="button">
+      <img src="{% static "images/rocket-chat-logo.svg" %}" width=100px alt="rocket chat logo" />
+    </a>
+    <a name=""
+       class="btn btn-light text-center"
+       href="{% url 'instance:new_server_chatwoot' %}"
+       role="button">
+      <img src="{% static "images/chatwoot-logo.svg" %}" width=100px alt="chatwoot logo" />
+    </a>
+  </div>
+{% endblock content %}

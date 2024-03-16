@@ -1,49 +1,54 @@
-# -*- coding: utf-8; -*-
-
-from __future__ import unicode_literals
 import re
+
 import six
 
 if six.PY3:
-    from html import escape, unescape
+    from html import escape
+    from html import unescape
 else:
-    from cgi import escape
-    from HTMLParser import HTMLParser
     import struct
+    from cgi import escape
+
+    from HTMLParser import HTMLParser
 
     unescape = HTMLParser.unescape
     chr = unichr
 
-from .ruleset import unicode_replace, shortcode_replace, ascii_replace, category_replace
+from .ruleset import ascii_replace
+from .ruleset import category_replace
+from .ruleset import shortcode_replace
+from .ruleset import unicode_replace
 
 
-class Emoji(object):
-
+class Emoji:
     ascii = False
     unicode_alt = True
     sprites = False
     image_png_path = "https://cdn.jsdelivr.net/joypixels/assets/4.5/png/64/"
-    ignored_regexp = "<object[^>]*>.*?<\/object>|<span[^>]*>.*?<\/span>|<(?:object|embed|svg|img|div|span|p|a)[^>]*>"
+    ignored_regexp = r"<object[^>]*>.*?<\/object>|<span[^>]*>.*?<\/span>|<(?:object|embed|svg|img|div|span|p|a)[^>]*>"
     unicode_regexp = (
         "("
         + "|".join(
             [
                 re.escape(x.decode("utf-8"))
                 for x in sorted(unicode_replace.keys(), key=len, reverse=True)
-            ]
+            ],
         )
         + ")"
     )
     shortcode_regexp = ":([-+\\w]+):"
     ascii_regexp = "(\\<3|&lt;3|\\<\\/3|&lt;\\/3|\\:'\\)|\\:'\\-\\)|\\:D|\\:\\-D|\\=D|\\:\\)|\\:\\-\\)|\\=\\]|\\=\\)|\\:\\]|'\\:\\)|'\\:\\-\\)|'\\=\\)|'\\:D|'\\:\\-D|'\\=D|\\>\\:\\)|&gt;\\:\\)|\\>;\\)|&gt;;\\)|\\>\\:\\-\\)|&gt;\\:\\-\\)|\\>\\=\\)|&gt;\\=\\)|;\\)|;\\-\\)|\\*\\-\\)|\\*\\)|;\\-\\]|;\\]|;D|;\\^\\)|'\\:\\(|'\\:\\-\\(|'\\=\\(|\\:\\*|\\:\\-\\*|\\=\\*|\\:\\^\\*|\\>\\:P|&gt;\\:P|X\\-P|x\\-p|\\>\\:\\[|&gt;\\:\\[|\\:\\-\\(|\\:\\(|\\:\\-\\[|\\:\\[|\\=\\(|\\>\\:\\(|&gt;\\:\\(|\\>\\:\\-\\(|&gt;\\:\\-\\(|\\:@|\\:'\\(|\\:'\\-\\(|;\\(|;\\-\\(|\\>\\.\\<|&gt;\\.&lt;|\\:\\$|\\=\\$|#\\-\\)|#\\)|%\\-\\)|%\\)|X\\)|X\\-\\)|\\*\\\\0\\/\\*|\\\\0\\/|\\*\\\\O\\/\\*|\\\\O\\/|O\\:\\-\\)|0\\:\\-3|0\\:3|0\\:\\-\\)|0\\:\\)|0;\\^\\)|O\\:\\-\\)|O\\:\\)|O;\\-\\)|O\\=\\)|0;\\-\\)|O\\:\\-3|O\\:3|B\\-\\)|B\\)|8\\)|8\\-\\)|B\\-D|8\\-D|\\-_\\-|\\-__\\-|\\-___\\-|\\>\\:\\\\|&gt;\\:\\\\|\\>\\:\\/|&gt;\\:\\/|\\:\\-\\/|\\:\\-\\.|\\:\\/|\\:\\\\|\\=\\/|\\=\\\\|\\:L|\\=L|\\:P|\\:\\-P|\\=P|\\:\\-p|\\:p|\\=p|\\:\\-Þ|\\:\\-&THORN;|\\:Þ|\\:&THORN;|\\:þ|\\:&thorn;|\\:\\-þ|\\:\\-&thorn;|\\:\\-b|\\:b|d\\:|\\:\\-O|\\:O|\\:\\-o|\\:o|O_O|\\>\\:O|&gt;\\:O|\\:\\-X|\\:X|\\:\\-#|\\:#|\\=X|\\=x|\\:x|\\:\\-x|\\=#)"
     shortcode_compiled = re.compile(
-        ignored_regexp + "|(" + shortcode_regexp + ")", re.IGNORECASE
+        ignored_regexp + "|(" + shortcode_regexp + ")",
+        re.IGNORECASE,
     )
     unicode_compiled = re.compile(
-        ignored_regexp + "|(" + unicode_regexp + ")", re.UNICODE
+        ignored_regexp + "|(" + unicode_regexp + ")",
+        re.UNICODE,
     )
     ascii_compiled = re.compile(
-        ignored_regexp + "|(" + ascii_regexp + ")", re.IGNORECASE
+        ignored_regexp + "|(" + ascii_regexp + ")",
+        re.IGNORECASE,
     )
 
     @classmethod
@@ -147,7 +152,7 @@ class Emoji(object):
         def replace_ascii(match):
             ascii = text[match.start() : match.end()]
             ascii = unescape(
-                ascii
+                ascii,
             )  # convert escaped HTML entities back to original chars
             if not ascii or ascii not in ascii_replace:
                 return ascii
@@ -160,7 +165,7 @@ class Emoji(object):
         def replace_ascii(match):
             ascii = text[match.start() : match.end()]
             ascii = unescape(
-                ascii
+                ascii,
             )  # convert escaped HTML entities back to original chars
             if not ascii or ascii not in ascii_replace:
                 return ascii

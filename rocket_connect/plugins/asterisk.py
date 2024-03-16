@@ -5,7 +5,8 @@ import pytz
 from asterisk.models import Call
 from django.conf import settings
 from django.http import JsonResponse
-from django.template import Context, Template
+from django.template import Context
+from django.template import Template
 
 from .base import Connector as ConnectorBase
 
@@ -57,14 +58,14 @@ class Connector(ConnectorBase):
                     and self.message.get("ConnectedLineNum") != "<unknown>"
                 ):
                     self.call.answered = datetime.datetime.now(
-                        pytz.timezone(self.timezone)
+                        pytz.timezone(self.timezone),
                     )
                 self.call.save()
 
         # user events
         if self.message.get("Event") == "UserEvent":
             if self.message.get("Context") in self.config.get(
-                "userevent_context_filter"
+                "userevent_context_filter",
             ):
                 self.call, created = self.get_call()
                 # register message
@@ -120,12 +121,12 @@ class Connector(ConnectorBase):
             # wild card
             if self.config.get("queue_notify_map").get("*"):
                 notify_map.extend(
-                    self.config.get("queue_notify_map").get("*").split(",")
+                    self.config.get("queue_notify_map").get("*").split(","),
                 )
             # queue map
             if self.config.get("queue_notify_map").get(queue):
                 notify_map.extend(
-                    self.config.get("queue_notify_map").get(queue).split(",")
+                    self.config.get("queue_notify_map").get(queue).split(","),
                 )
             # get unique list of notifies
             notify_map = list(set(notify_map))
@@ -133,16 +134,16 @@ class Connector(ConnectorBase):
             local_tz = pytz.timezone(self.timezone)
             call_epoch = int(self.message.get("Uniqueid").split(".")[0])
             utc_dt = datetime.datetime.utcfromtimestamp(call_epoch).replace(
-                tzinfo=pytz.utc
+                tzinfo=pytz.utc,
             )
             local_dt = local_tz.normalize(utc_dt.astimezone(local_tz))
             waitseconds = datetime.datetime.now(pytz.timezone(self.timezone)).replace(
-                microsecond=0
+                microsecond=0,
             ) - self.call.created.replace(microsecond=0)
             # render the temaplate with the call info
             enriched_message = self.message
             enriched_message["now"] = datetime.datetime.now(
-                pytz.timezone(self.timezone)
+                pytz.timezone(self.timezone),
             )
             enriched_message["call_initiated"] = local_dt
             enriched_message["waitseconds"] = waitseconds
@@ -163,13 +164,15 @@ class Connector(ConnectorBase):
                         )
                     # notify a channel
                     post = self.rocket.chat_post_message(
-                        channel=notify, text=rendered_template
+                        channel=notify,
+                        text=rendered_template,
                     )
                     if post.json().get("error") == "error-not-allowed":
                         # bot may not be at the channel. Send as admin
                         rocket = self.get_rocket_client(bot=True)
                         post = rocket.chat_post_message(
-                            channel=notify, text=rendered_template
+                            channel=notify,
+                            text=rendered_template,
                         )
                 else:
                     if settings.DEBUG:
@@ -181,7 +184,8 @@ class Connector(ConnectorBase):
                     if room:
                         room_id = room.json()["room"]["rid"]
                         self.rocket.chat_post_message(
-                            channel=room_id, text=rendered_template
+                            channel=room_id,
+                            text=rendered_template,
                         )
 
     def hook_voicemail(self):
@@ -203,7 +207,7 @@ class Connector(ConnectorBase):
             + " old{{New|pluralize}}"
         )
         template = Template(
-            self.config.get("notify_voicemail_template", default_template)
+            self.config.get("notify_voicemail_template", default_template),
         )
         rendered_template = template.render(context)
         users_found = users_with_extension.json().get("users")

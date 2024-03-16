@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8; -*-
 
-from __future__ import unicode_literals
-from unittest import TestCase
 import json
+from unittest import TestCase
 
-from emojipy.ruleset import ascii_replace,\
-    unicode_replace, shortcode_replace, category_replace
+from emojipy.ruleset import ascii_replace
+from emojipy.ruleset import shortcode_replace
+from emojipy.ruleset import unicode_replace
 
-json_path = '../../emoji.json'
+json_path = "../../emoji.json"
 
 
 class MappingTests(TestCase):
@@ -19,7 +18,7 @@ class MappingTests(TestCase):
             self.json_dict = json.loads(content)
             self.emoji_count = len(self.json_dict)
         for key, value in self.json_dict.items():
-            self.ascii_list.extend(value['ascii'])
+            self.ascii_list.extend(value["ascii"])
 
     def test_unicode_count(self):
         self.assertEqual(self.emoji_count, len(unicode_replace))

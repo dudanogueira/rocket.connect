@@ -1,12 +1,11 @@
-from django.forms import (
-    CharField,
-    ChoiceField,
-    Form,
-    ModelChoiceField,
-    ModelForm,
-    Textarea,
-)
-from instance.models import Connector, Server
+from django.forms import CharField
+from django.forms import ChoiceField
+from django.forms import Form
+from django.forms import ModelChoiceField
+from django.forms import ModelForm
+from django.forms import Textarea
+from instance.models import Connector
+from instance.models import Server
 
 
 class NewServerForm(ModelForm):
@@ -69,13 +68,16 @@ class NewConnectorForm(ModelForm):
         ]
         # adapt fields
         self.fields["connector_type"] = ChoiceField(
-            required=False, choices=connector_choices
+            required=False,
+            choices=connector_choices,
         )
         self.fields["custom_connector_type"] = CharField(
-            required=False, help_text="overwrite the connector type with a custom one"
+            required=False,
+            help_text="overwrite the connector type with a custom one",
         )
         self.fields["department"] = ChoiceField(
-            required=False, choices=departments_choice
+            required=False,
+            choices=departments_choice,
         )
 
     class Meta:
@@ -95,7 +97,8 @@ class NewChatwootConnectorForm(ModelForm):
             ("instagram_direct", "Meta Cloud Instagram"),
         ]
         self.fields["connector_type"] = ChoiceField(
-            required=False, choices=connector_choices
+            required=False,
+            choices=connector_choices,
         )
 
     class Meta:

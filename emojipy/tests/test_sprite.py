@@ -1,8 +1,6 @@
-# -*- coding: utf-8; -*-
-
-from __future__ import unicode_literals
-from emojipy import Emoji
 from unittest import TestCase
+
+from emojipy import Emoji
 
 
 class SpriteTest(TestCase):
@@ -16,7 +14,7 @@ class SpriteTest(TestCase):
         Test 'unicode_to_image' method with 'sprites' enabled
         """
 
-        text = 'Hello world! 😄 :smile:'
+        text = "Hello world! 😄 :smile:"
         expected = 'Hello world! <span class="emojione emojione-32-people _1f604" title=":smile:">😄</span> :smile:'
 
         self.assertEqual(self.emoji.unicode_to_image(text), expected)

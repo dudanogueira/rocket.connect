@@ -31,7 +31,10 @@ class Connector(ConnectorBase):
         headers = {"Content-Type": "application/json", "apikey": secret_key}
 
         create_instance_response = requests.request(
-            "POST", endpoint_create, json=payload, headers=headers
+            "POST",
+            endpoint_create,
+            json=payload,
+            headers=headers,
         )
         output = {}
         output["instance_create"] = {
@@ -41,10 +44,14 @@ class Connector(ConnectorBase):
         # GET {{baseUrl}}/instance/connect/{{instance}}
 
         endpoint_connect = "{}/instance/connect/{}".format(
-            self.config.get("endpoint"), instance_name
+            self.config.get("endpoint"),
+            instance_name,
         )
         connect_instance_response = requests.request(
-            "GET", endpoint_connect, json=payload, headers=headers
+            "GET",
+            endpoint_connect,
+            json=payload,
+            headers=headers,
         )
         output["instance_connect"] = {
             "endpoint": endpoint_connect,
@@ -52,11 +59,15 @@ class Connector(ConnectorBase):
         }
         # POST {{baseUrl}}/webhook/set/{{instance}}
         endpoint_webhook_set = "{}/webhook/set/{}".format(
-            self.config.get("endpoint"), instance_name
+            self.config.get("endpoint"),
+            instance_name,
         )
         payload = {"enabled": True, "url": webhook_url}
         connect_instance_response = requests.request(
-            "POST", endpoint_webhook_set, json=payload, headers=headers
+            "POST",
+            endpoint_webhook_set,
+            json=payload,
+            headers=headers,
         )
         output["instance_webhook"] = {
             "endpoint": endpoint_webhook_set,
@@ -72,10 +83,13 @@ class Connector(ConnectorBase):
             headers = {"apiKey": secret_key, "Content-Type": "application/json"}
 
             endpoint_status = "{}/instance/connect/{}".format(
-                self.config.get("endpoint"), instance_name
+                self.config.get("endpoint"),
+                instance_name,
             )
             status_instance_response = requests.request(
-                "GET", endpoint_status, headers=headers
+                "GET",
+                endpoint_status,
+                headers=headers,
             )
             if status_instance_response:
                 return status_instance_response.json()
@@ -89,10 +103,13 @@ class Connector(ConnectorBase):
         instance_name = self.config.get("instance_name")
         headers = {"apiKey": secret_key, "Content-Type": "application/json"}
         endpoint_status = "{}/instance/logout/{}".format(
-            self.config.get("endpoint"), instance_name
+            self.config.get("endpoint"),
+            instance_name,
         )
         status_instance_response = requests.request(
-            "DELETE", endpoint_status, headers=headers
+            "DELETE",
+            endpoint_status,
+            headers=headers,
         )
         return status_instance_response.ok
 
@@ -115,9 +132,7 @@ class Connector(ConnectorBase):
         #
         if self.message.get("event") == "connection.update":
             data = self.message.get("data", {})
-            text = "*CONNECTOR NAME:* {} > {}".format(
-                self.connector.name, json.dumps(data)
-            )
+            text = f"*CONNECTOR NAME:* {self.connector.name} > {json.dumps(data)}"
             if data.get("state") == "open":
                 text = text + "\n" + " ✅ " * 6
             self.outcome_admin_message(text)
@@ -166,7 +181,7 @@ class Connector(ConnectorBase):
                     # files that are actually text
                     if message.get("contactsArrayMessage"):
                         for contact in message.get("contactsArrayMessage").get(
-                            "contacts"
+                            "contacts",
                         ):
                             sent = self.outcome_text(
                                 room_id=room.room_id,
@@ -235,13 +250,13 @@ class Connector(ConnectorBase):
 
                     payload = {
                         "key": {
-                            "id": self.message.get("data", {}).get("key", {}).get("id")
-                        }
+                            "id": self.message.get("data", {}).get("key", {}).get("id"),
+                        },
                     }
                     url = self.connector.config[
                         "endpoint"
                     ] + "/chat/getBase64FromMediaMessage/{}".format(
-                        self.connector.config["instance_name"]
+                        self.connector.config["instance_name"],
                     )
                     headers = {
                         "apiKey": self.config.get("secret_key"),
@@ -261,19 +276,19 @@ class Connector(ConnectorBase):
                             filename=filename,
                         )
                         self.logger_info(
-                            f"Outcoming message. url {url}, file sent: {file_sent.json()}"
+                            f"Outcoming message. url {url}, file sent: {file_sent.json()}",
                         )
                         if file_sent.ok:
                             self.message_object.delivered = True
                             self.message_object.save()
                     else:
                         self.logger_info(
-                            f"GETTOMG message MEDIA ERROR. url {url}, file sent: {media_body.json()} media_body"
+                            f"GETTOMG message MEDIA ERROR. url {url}, file sent: {media_body.json()} media_body",
                         )
 
             else:
                 self.logger_info(
-                    f"Message Object {message.id} Already delivered. Ignoring"
+                    f"Message Object {message.id} Already delivered. Ignoring",
                 )
 
         return JsonResponse({})
@@ -293,7 +308,7 @@ class Connector(ConnectorBase):
             "textMessage": {"text": content},
         }
         url = self.connector.config["endpoint"] + "/message/SendText/{}".format(
-            self.connector.config["instance_name"]
+            self.connector.config["instance_name"],
         )
         headers = {
             "apiKey": self.config.get("secret_key"),
@@ -301,7 +316,7 @@ class Connector(ConnectorBase):
         }
         sent = requests.post(url, headers=headers, json=payload)
         self.logger_info(
-            f"OUTGO TEXT MESSAGE. URL: {url}. PAYLOAD {payload} RESULT: {sent.json()}"
+            f"OUTGO TEXT MESSAGE. URL: {url}. PAYLOAD {payload} RESULT: {sent.json()}",
         )
         return sent
 
@@ -334,7 +349,7 @@ class Connector(ConnectorBase):
         if caption:
             payload["mediaMessage"]["caption"] = str(caption)
         url = self.connector.config["endpoint"] + "/message/SendMedia/{}".format(
-            self.connector.config["instance_name"]
+            self.connector.config["instance_name"],
         )
         headers = {
             "apiKey": self.config.get("secret_key"),
@@ -342,7 +357,7 @@ class Connector(ConnectorBase):
         }
         sent = requests.post(url, headers=headers, json=payload)
         self.logger_info(
-            f"OUTGOING FILE. URL: {url}. PAYLOAD {payload} response: {sent.json()}"
+            f"OUTGOING FILE. URL: {url}. PAYLOAD {payload} response: {sent.json()}",
         )
         if sent.ok:
             # Audio doesnt have caption, so outgo as message
@@ -409,7 +424,9 @@ class Connector(ConnectorBase):
 
 class ConnectorConfigForm(BaseConnectorConfigForm):
     webhook = forms.CharField(
-        help_text="Where WPPConnect will send the events", required=True, initial=""
+        help_text="Where WPPConnect will send the events",
+        required=True,
+        initial="",
     )
     endpoint = forms.CharField(
         help_text="Where your WPPConnect is installed",
@@ -421,11 +438,13 @@ class ConnectorConfigForm(BaseConnectorConfigForm):
         required=True,
     )
     instance_name = forms.CharField(
-        help_text="CodeChat instance name", validators=[validators.validate_slug]
+        help_text="CodeChat instance name",
+        validators=[validators.validate_slug],
     )
 
     send_message_delay = forms.IntegerField(
-        help_text="CodeChat delay to send message. Defaults to 1200", initial=1200
+        help_text="CodeChat delay to send message. Defaults to 1200",
+        initial=1200,
     )
 
     field_order = [

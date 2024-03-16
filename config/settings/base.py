@@ -348,5 +348,6 @@ SPECTACULAR_SETTINGS = {
 # ------------------------------------------------------------------------------
 CSRF_COOKIE_HTTPONLY = env.bool("DJANGO_CSRF_COOKIE_HTTPONLY", default=True)
 DATA_UPLOAD_MAX_MEMORY_SIZE = env(
-    "DJANGO_DATA_UPLOAD_MAX_MEMORY_SIZE", default=31457280
+    "DJANGO_DATA_UPLOAD_MAX_MEMORY_SIZE",
+    default=31457280,
 )

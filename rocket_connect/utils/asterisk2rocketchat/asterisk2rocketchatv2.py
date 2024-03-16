@@ -88,9 +88,9 @@ def get_default_payload(payload, room_id=None):
                             + payload.get("Position"),
                         },
                     ],
-                }
+                },
             ],
-        }
+        },
     }
 
 

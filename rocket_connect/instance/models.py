@@ -10,8 +10,10 @@ from django.db import models
 from django.templatetags.static import static
 from django.urls import reverse
 from django.utils import timezone
-from django_celery_beat.models import CrontabSchedule, PeriodicTask
-from envelope.models import Message, LiveChatRoom
+from django_celery_beat.models import CrontabSchedule
+from django_celery_beat.models import PeriodicTask
+from envelope.models import LiveChatRoom
+from envelope.models import Message
 from rocketchat_API.APIExceptions.RocketExceptions import RocketAuthenticationException
 from rocketchat_API.rocketchat import RocketChat
 
@@ -41,11 +43,13 @@ class Server(models.Model):
     def new_connector_url(self):
         if self.type == "rocketchat":
             return reverse(
-                "instance:new_rocketchat_connector", args=[self.external_token]
+                "instance:new_rocketchat_connector",
+                args=[self.external_token],
             )
         else:
             return reverse(
-                "instance:new_chatwoot_connector", args=[self.external_token]
+                "instance:new_chatwoot_connector",
+                args=[self.external_token],
             )
 
     def __str__(self):
@@ -84,7 +88,8 @@ class Server(models.Model):
                     # register account_id
                     account_id = check.json()["account_id"]
                     account_info = requests.get(
-                        self.url + f"/api/v1/accounts/{account_id}", headers=headers
+                        self.url + f"/api/v1/accounts/{account_id}",
+                        headers=headers,
                     ).json()
                     self.config["account_id"] = account_id
                     # register or create inbox
@@ -158,20 +163,23 @@ class Server(models.Model):
                 )
             else:
                 rocket = RocketChat(
-                    self.bot_user, self.bot_password, server_url=self.url
-                )
-        else:
-            if self.admin_user_id and self.admin_user_token:
-                rocket = RocketChat(
-                    auth_token=self.admin_user_token,
-                    user_id=self.admin_user_id,
+                    self.bot_user,
+                    self.bot_password,
                     server_url=self.url,
                 )
+        elif self.admin_user_id and self.admin_user_token:
+            rocket = RocketChat(
+                auth_token=self.admin_user_token,
+                user_id=self.admin_user_id,
+                server_url=self.url,
+            )
 
-            else:
-                rocket = RocketChat(
-                    self.admin_user, self.admin_password, server_url=self.url
-                )
+        else:
+            rocket = RocketChat(
+                self.admin_user,
+                self.admin_password,
+                server_url=self.url,
+            )
 
         return rocket
 
@@ -208,7 +216,7 @@ class Server(models.Model):
         messages = self.custom_messages.filter(enabled=True).values("slug", "text")
         if term:
             messages = messages.filter(
-                models.Q(slug__icontains=term) | models.Q(text__icontains=term)
+                models.Q(slug__icontains=term) | models.Q(text__icontains=term),
             )
         return messages
 
@@ -239,7 +247,8 @@ class Server(models.Model):
         # get all open rooms in connector, except the actually open ones
         LiveChatRoom = apps.get_model(app_label="envelope", model_name="LiveChatRoom")
         close_rooms = LiveChatRoom.objects.filter(
-            connector__server=self, open=True
+            connector__server=self,
+            open=True,
         ).exclude(room_id__in=open_rooms_id)
         total = close_rooms.count()
         closed_rooms_id = close_rooms.values_list("room_id", flat=True)
@@ -254,10 +263,14 @@ class Server(models.Model):
             now = timezone.now()
             target_date = now - datetime.timedelta(days=age)
             livechats = LiveChatRoom.objects.filter(
-                connector__server=self, open=False, created__lte=target_date
+                connector__server=self,
+                open=False,
+                created__lte=target_date,
             )
             messages = Message.objects.filter(
-                room__connector__server=self, delivered=True, created__lte=target_date
+                room__connector__server=self,
+                delivered=True,
+                created__lte=target_date,
             )
             if execute:
                 return {"livechats": livechats.delete(), "messages": messages.delete()}
@@ -323,7 +336,7 @@ class Server(models.Model):
                     {
                         "server_token": self.external_token,
                         "delete_delivered_messages_age": 15,
-                    }
+                    },
                 ),
             )
             self.tasks.add(task)
@@ -354,7 +367,7 @@ class Server(models.Model):
                         + "\n*Last Message*: {{room.lm_obj|date:'SHORT_DATETIME_FORMAT'}} (_{{room.lm_obj|timesince}}_)"
                         + "\n*Chat Started At*: {{room.ts_obj|date:'SHORT_DATETIME_FORMAT'}}"
                         + "(_{{room.ts_obj|timesince}}_)",
-                    }
+                    },
                 ),
             )
             self.tasks.add(task)
@@ -377,7 +390,7 @@ class Server(models.Model):
                     {
                         "server_token": self.external_token,
                         "endpoint": "https://rocketconnect.requestcatcher.com/test",
-                    }
+                    },
                 ),
             )
             self.tasks.add(task)
@@ -402,7 +415,7 @@ class Server(models.Model):
                         "users": "bot",
                         "status": "online",
                         "message": "Some status",
-                    }
+                    },
                 ),
             )
             self.tasks.add(task)
@@ -429,7 +442,7 @@ class Server(models.Model):
                         "last_message_users": "bot,otherbot",
                         "last_message_seconds": 600,
                         "closing_message": "Due to inactivity, your chat is being closed.",
-                    }
+                    },
                 ),
             )
             self.tasks.add(task)
@@ -454,7 +467,7 @@ class Server(models.Model):
                         "server_token": self.external_token,
                         "notification_target": "general,otherchannel",
                         "notification_template": "Found {{undelivered_messages.count}} undelivered messages",
-                    }
+                    },
                 ),
             )
             self.tasks.add(task)
@@ -485,7 +498,7 @@ class Server(models.Model):
                         "action": "transfer|close|alert",
                         "target_department_id": None,
                         "target_agent_user_id": None,
-                    }
+                    },
                 ),
             )
             self.tasks.add(task)
@@ -510,7 +523,7 @@ class Server(models.Model):
                     {
                         "server_token": self.external_token,
                         "department_ids": [],
-                    }
+                    },
                 ),
             )
             self.tasks.add(task)
@@ -520,7 +533,8 @@ class Server(models.Model):
         return added_tasks
 
     def install_omnichannel_webhook(
-        self, rocketconnect_url="http://rocketconnect:5000"
+        self,
+        rocketconnect_url="http://rocketconnect:5000",
     ):
         output = []
         rocket = self.get_rocket_client()
@@ -589,11 +603,12 @@ class Server(models.Model):
                     "attribute_key": "identifier",
                     "filter_operator": "equal_to",
                     "values": [identifier],
-                }
-            ]
+                },
+            ],
         }
         url = "{}/api/v1/accounts/{}/contacts/filter".format(
-            self.url, self.config.get("account_id")
+            self.url,
+            self.config.get("account_id"),
         )
         contact_search = requests.post(url, headers=headers, json=payload)
         if contact_search.ok:
@@ -604,7 +619,8 @@ class Server(models.Model):
             else:
                 # contact not found, create one
                 url = "{}/api/v1/accounts/{}/contacts".format(
-                    self.url, self.config.get("account_id")
+                    self.url,
+                    self.config.get("account_id"),
                 )
                 payload = {
                     "name": visitor_json.get("name"),
@@ -616,7 +632,7 @@ class Server(models.Model):
                 output = contact_new.json()
                 contact_status = "created"
         logger.info(
-            f"CHATWOOT CONTACT ({contact_status}) URL {url} / output: {output} payload: {payload}"
+            f"CHATWOOT CONTACT ({contact_status}) URL {url} / output: {output} payload: {payload}",
         )
         return output
 
@@ -625,7 +641,9 @@ class Server(models.Model):
         create = False
         open_item = None
         url = "{}/api/v1/accounts/{}/contacts/{}/conversations".format(
-            self.url, self.config.get("account_id"), contact_id
+            self.url,
+            self.config.get("account_id"),
+            contact_id,
         )
         conversations_list = requests.get(url, headers=headers)
         conversation_json = conversations_list.json()
@@ -653,14 +671,17 @@ class Server(models.Model):
         if create:
             payload = {"inbox_id": connector_inbox_id, "contact_id": contact_id}
             url = "{}/api/v1/accounts/{}/conversations".format(
-                self.url, self.config.get("account_id")
+                self.url,
+                self.config.get("account_id"),
             )
             new_conversation = requests.post(url, headers=headers, json=payload).json()
             return new_conversation
 
     uuid = models.UUIDField(default=uuid.uuid4, editable=False)
     owners = models.ManyToManyField(
-        settings.AUTH_USER_MODEL, related_name="servers", blank=True
+        settings.AUTH_USER_MODEL,
+        related_name="servers",
+        blank=True,
     )
     type = models.TextField(choices=SERVER_TYPE, default="rocketchat")
     external_token = models.CharField(max_length=50, default=random_string, unique=True)
@@ -681,13 +702,17 @@ class Server(models.Model):
     admin_user = models.CharField(max_length=50, blank=True)
     admin_password = models.CharField(max_length=50, blank=True)
     admin_user_id = models.CharField(
-        max_length=50, blank=True, help_text="Admin User Personal Access Token"
+        max_length=50,
+        blank=True,
+        help_text="Admin User Personal Access Token",
     )
     admin_user_token = models.CharField(max_length=50, blank=True)
     bot_user = models.CharField(max_length=50, blank=True)
     bot_password = models.CharField(max_length=50, blank=True)
     bot_user_id = models.CharField(
-        max_length=50, blank=True, help_text="Bot User Personal Access Token"
+        max_length=50,
+        blank=True,
+        help_text="Bot User Personal Access Token",
     )
     bot_user_token = models.CharField(max_length=50, blank=True)
 
@@ -704,7 +729,9 @@ class Server(models.Model):
     )
     # meta
     created = models.DateTimeField(
-        blank=True, auto_now_add=True, verbose_name="Created"
+        blank=True,
+        auto_now_add=True,
+        verbose_name="Created",
     )
     updated = models.DateTimeField(blank=True, auto_now=True, verbose_name="Updated")
 
@@ -762,13 +789,13 @@ class Connector(models.Model):
             status.update(
                 {
                     "connector_contact_id": self.config.get(
-                        "chatwoot_connector_contact_id"
+                        "chatwoot_connector_contact_id",
                     ),
                     "connector_conversation_id": self.config.get(
-                        "connector_conversation_id"
+                        "connector_conversation_id",
                     ),
                     "connector_inbox_id": self.config.get("connector_inbox_id"),
-                }
+                },
             )
 
         # return initialize result
@@ -806,9 +833,9 @@ class Connector(models.Model):
                     chatwoot_connector_contact_id = (
                         search_contact.json().get("payload")[0].get("id")
                     )
-                    self.config[
-                        "chatwoot_connector_contact_id"
-                    ] = chatwoot_connector_contact_id
+                    self.config["chatwoot_connector_contact_id"] = (
+                        chatwoot_connector_contact_id
+                    )
                     self.save()
                 else:
                     payload = {"name": self.name, "identifier": self.external_token}
@@ -825,9 +852,9 @@ class Connector(models.Model):
                             chatwoot_connector_contact_id = (
                                 create.json().get("payload").get("id")
                             )
-                            self.config[
-                                "chatwoot_connector_contact_id"
-                            ] = chatwoot_connector_contact_id
+                            self.config["chatwoot_connector_contact_id"] = (
+                                chatwoot_connector_contact_id
+                            )
                             self.save()
             # if not conversation yet:
             if not self.config.get("connector_conversation_id"):
@@ -835,23 +862,24 @@ class Connector(models.Model):
                     "inbox_id": self.server.config.get("rocketconnect_inbox_id"),
                     "contact_id": self.config.get("chatwoot_connector_contact_id"),
                 }
-                url = f"{self.server.url}/api/v1/accounts/{str(self.server.config['account_id'])}/conversations"
+                url = f"{self.server.url}/api/v1/accounts/{self.server.config['account_id']!s}/conversations"
                 create_conversation = requests.post(
                     url,
                     headers=headers,
                     json=payload,
                 )
                 if create_conversation.ok:
-                    self.config[
-                        "connector_conversation_id"
-                    ] = create_conversation.json().get("id")
+                    self.config["connector_conversation_id"] = (
+                        create_conversation.json().get("id")
+                    )
                     self.save()
             # create the connector INBOX
             if not self.config.get("connector_inbox_id"):
                 payload = {
                     "name": self.name,
                     "lock_to_single_conversation": self.config.get(
-                        "connector_inbox_id", False
+                        "connector_inbox_id",
+                        False,
                     ),
                     "channel": {
                         "type": "api",
@@ -873,12 +901,12 @@ class Connector(models.Model):
                 {
                     "success": True,
                     "connector_contact_id": self.config.get(
-                        "chatwoot_connector_contact_id"
+                        "chatwoot_connector_contact_id",
                     ),
                     "connector_conversation_id": self.config.get(
-                        "connector_conversation_id"
+                        "connector_conversation_id",
                     ),
-                }
+                },
             )
 
         # get connector
@@ -924,13 +952,14 @@ class Connector(models.Model):
         for secondary_connector in self.secondary_connectors.all():
             SConnector = secondary_connector.get_connector_class()
             sconnector = SConnector(
-                secondary_connector, request.body, "incoming", request
+                secondary_connector,
+                request.body,
+                "incoming",
+                request,
             )
             # log it
             connector.logger_info(
-                "RUNING SECONDARY CONNECTOR *{}* WITH BODY {}:".format(
-                    sconnector.connector, request.body
-                )
+                f"RUNING SECONDARY CONNECTOR *{sconnector.connector}* WITH BODY {request.body}:",
             )
             sconnector.incoming()
         # return main incoming
@@ -1001,7 +1030,9 @@ class Connector(models.Model):
             ),
             total_messages=models.Count("id", distinct=True),
             open_rooms=models.Count(
-                "room__id", models.Q(room__open=True), distinct=True
+                "room__id",
+                models.Q(room__open=True),
+                distinct=True,
             ),
             total_rooms=models.Count("room__id", distinct=True),
             last_message=models.Max("created"),
@@ -1026,10 +1057,13 @@ class Connector(models.Model):
     uuid = models.UUIDField(default=uuid.uuid4, editable=False)
     external_token = models.CharField(max_length=50, default=random_string, unique=True)
     name = models.CharField(
-        max_length=50, help_text="Connector Name, ex: LAB PHONE (+55 33 9 99851212)"
+        max_length=50,
+        help_text="Connector Name, ex: LAB PHONE (+55 33 9 99851212)",
     )
     server = models.ForeignKey(
-        Server, on_delete=models.CASCADE, related_name="connectors"
+        Server,
+        on_delete=models.CASCADE,
+        related_name="connectors",
     )
     connector_type = models.CharField(max_length=50)
     department = models.CharField(max_length=50, blank=True, null=True)
@@ -1040,13 +1074,18 @@ class Connector(models.Model):
         help_text="separate users or channels with comma, eg: user1,user2,user3,#channel1,#channel2",
     )
     config = models.JSONField(
-        blank=True, null=True, help_text="Connector General configutarion", default=dict
+        blank=True,
+        null=True,
+        help_text="Connector General configutarion",
+        default=dict,
     )
     secondary_connectors = models.ManyToManyField("self", blank=True)
     enabled = models.BooleanField(default=True)
     # meta
     created = models.DateTimeField(
-        blank=True, auto_now_add=True, verbose_name="Created"
+        blank=True,
+        auto_now_add=True,
+        verbose_name="Created",
     )
     updated = models.DateTimeField(blank=True, auto_now=True, verbose_name="Updated")
 
@@ -1061,7 +1100,9 @@ class CustomDefaultMessages(models.Model):
         return self.slug
 
     server = models.ForeignKey(
-        Server, on_delete=models.CASCADE, related_name="custom_messages"
+        Server,
+        on_delete=models.CASCADE,
+        related_name="custom_messages",
     )
     enabled = models.BooleanField(default=True)
     slug = models.SlugField(blank=False, null=False)
@@ -1069,6 +1110,8 @@ class CustomDefaultMessages(models.Model):
     # meta
     order = models.IntegerField(default=0)
     created = models.DateTimeField(
-        blank=True, auto_now_add=True, verbose_name="Created"
+        blank=True,
+        auto_now_add=True,
+        verbose_name="Created",
     )
     updated = models.DateTimeField(blank=True, auto_now=True, verbose_name="Updated")

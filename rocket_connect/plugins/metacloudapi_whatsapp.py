@@ -6,7 +6,9 @@ import urllib.parse as urlparse
 import requests
 from django import forms
 from django.db import models
-from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
+from django.http import HttpResponse
+from django.http import HttpResponseForbidden
+from django.http import JsonResponse
 
 from .base import BaseConnectorConfigForm
 from .base import Connector as ConnectorBase
@@ -53,7 +55,8 @@ class Connector(ConnectorBase):
                                 return self.handle_message()
                         # it has a status receipt
                         if change["value"].get("statuses") and self.config.get(
-                            "enable_ack_receipt", True
+                            "enable_ack_receipt",
+                            True,
                         ):
                             # handle read receipt
                             # get the message id and body
@@ -64,13 +67,13 @@ class Connector(ConnectorBase):
                                 messages_to_search = self.connector.messages.filter(
                                     models.Q(response__id__contains=msg_id)
                                     | models.Q(
-                                        response__messages__contains=[{"id": msg_id}]
-                                    )
+                                        response__messages__contains=[{"id": msg_id}],
+                                    ),
                                 )
                                 print("FOUND: ", messages_to_search)
                                 for message in messages_to_search:
                                     original_message = self.rocket.chat_get_message(
-                                        msg_id=message.envelope_id
+                                        msg_id=message.envelope_id,
                                     )
                                     body = original_message.json()["message"]["msg"]
                                     body = body.replace(":ballot_box_with_check:", "")
@@ -86,7 +89,7 @@ class Connector(ConnectorBase):
                                     }
                                     update_response = self.rocket.chat_update(**payload)
                                     self.logger_info(
-                                        f"ACK RECEIPT UPDATE RESPONSE {update_response}"
+                                        f"ACK RECEIPT UPDATE RESPONSE {update_response}",
                                     )
 
         return JsonResponse({})
@@ -94,13 +97,13 @@ class Connector(ConnectorBase):
     def handle_challenge(self):
         self.logger_info(
             "VERIFYING META CLOUD ENDPOINT against with path: "
-            + str(self.request.get_full_path)
+            + str(self.request.get_full_path),
         )
         verify_token = self.request.GET.get("hub.verify_token")
         if verify_token == self.connector.config.get("verify_token"):
             self.logger_info(
                 "VERIFYING META CLOUD ENDPOINT against: "
-                + str(self.request.GET.get("hub.challenge"))
+                + str(self.request.GET.get("hub.challenge")),
             )
             challenge = self.request.GET.get("hub.challenge")
             text = "Connector: {}. Status: {}".format(
@@ -151,7 +154,8 @@ class Connector(ConnectorBase):
                 print("AQUI ", self.message)
                 for contact in self.message["contacts"]:
                     message = "Contact: {}  {}".format(
-                        contact["name"]["formatted_name"], contact["phones"]
+                        contact["name"]["formatted_name"],
+                        contact["phones"],
                     )
                     self.outcome_text(room.room_id, message)
 
@@ -215,7 +219,9 @@ class Connector(ConnectorBase):
 
     def get_graphql_endpoint(self, method=""):
         return "{}/{}/{}".format(
-            self.config.get("graph_url"), self.config.get("telephone_number_id"), method
+            self.config.get("graph_url"),
+            self.config.get("telephone_number_id"),
+            method,
         )
 
     def outgo_text_message(self, message, agent_name=None):
@@ -248,7 +254,8 @@ class Connector(ConnectorBase):
             if payload["to"].startswith("55"):
                 # 5531XXXXXXXX - > 55319XXXXXXXX
                 payload["to"] = payload["to"].replace(
-                    payload["to"][:4], payload["to"][:4] + "9"
+                    payload["to"][:4],
+                    payload["to"][:4] + "9",
                 )
                 # retry with different number
                 sent = session.post(url, json=payload)
@@ -261,11 +268,11 @@ class Connector(ConnectorBase):
                 if sent.ok:
                     if not self.message_object.response.get("id"):
                         self.message_object.response["id"] = [
-                            sent.json()["messages"][0]["id"]
+                            sent.json()["messages"][0]["id"],
                         ]
                     else:
                         self.message_object.response["id"].append(
-                            sent.json()["messages"][0]["id"]
+                            sent.json()["messages"][0]["id"],
                         )
             self.message_object.save()
             # message not sent
@@ -321,7 +328,7 @@ class Connector(ConnectorBase):
 
         send_file = session.post(endpoint_messages, json=payload)
         self.logger_info(
-            f"OUTGO file {send_file.json()} with payload {json.dumps(payload)} and mimetype {mime}"
+            f"OUTGO file {send_file.json()} with payload {json.dumps(payload)} and mimetype {mime}",
         )
         if send_file.ok:
             timestamp = int(time.time())

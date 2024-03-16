@@ -1,220 +1,276 @@
 {% extends "base.html" %}
 
 {% block content %}
-<nav class="breadcrumb">
+  <nav class="breadcrumb">
     <a class="breadcrumb-item" href="{% url 'home' %}">home</a>
     <span class="breadcrumb-item active">
-        <img src="{{server.get_icon}}" width="20px"/>
-        {{server}}
+      <img src="{{ server.get_icon }}" width="20px" alt="server icon" />
+      {{ server }}
     </span>
-</nav>
-<div class="container">
-    <!-- <a name="" id="" class="btn btn-warning btn-lg float-right m-1" href="{% url 'instance:server_monitor' server.external_token %}" role="button">
-        <i class="fas fa-user-secret    "></i> monitor
-    </a> -->
-
-    <a name="" id="" class="btn btn-primary btn-lg float-end m-1" href="{% url 'admin:django_celery_beat_periodictask_add' %}" role="button">
-        <i class="fa fa-plus" aria-hidden="true"></i> add task
+  </nav>
+  <div class="container">
+    <a name=""
+       class="btn btn-primary btn-lg float-end m-1"
+       href="{% url 'admin:django_celery_beat_periodictask_add' %}"
+       role="button">
+      <i class="fa fa-plus" aria-hidden="true"></i> add task
     </a>
-    <a name="" id="" class="btn btn-primary btn-lg float-end m-1" href="{{server.new_connector_url}}" role="button">
-        <i class="fa fa-plus" aria-hidden="true"></i> add connector
+    <a name=""
+       class="btn btn-primary btn-lg float-end m-1"
+       href="{{ server.new_connector_url }}"
+       role="button">
+      <i class="fa fa-plus" aria-hidden="true"></i> add connector
     </a>
-</div>
-<div class="container" id="server-header">
-        <h1 class="mt-4">
-            <img src="{{server.get_icon}}" width="50px" class="mt-2">
-            {{server}} <span class="text-{{ server.enabled|yesno:'success,danger' }}">{{ server.enabled|yesno:"Active,Inactive" }}</span>
-        </h1>
-
-        {% if request.user.is_staff %}
-        <a name="" id="" class="btn btn-primary" href="{% url 'admin:instance_server_change' server.id %}" role="button">
-            <i class="fa fa-edit" aria-hidden="true"></i> edit
-        </a>
-        {% endif %}
-        <a name="" id="" class="btn btn-primary" href="?check-room-sync=1" role="button" title="check rooms sync">
-            <i class="fa fa-recycle" aria-hidden="true"></i> sync
-        </a>
-        <a name="" id="" class="btn btn-primary" href="?delete-delivered-messages=1" role="button" title="check rooms sync">
-            <i class="fa fa-recycle" aria-hidden="true"></i> remove delivered messages
-        </a>
-
+  </div>
+  <div class="container" id="server-header">
+    <h1 class="mt-4">
+      <img src="{{ server.get_icon }}"
+           width="50px"
+           class="mt-2"
+           alt="server icon" />
+      {{ server }} <span class="text-{{ server.enabled|yesno:'success,danger' }}">{{ server.enabled|yesno:"Active,Inactive" }}</span>
+    </h1>
+    {% if request.user.is_staff %}
+      <a name=""
+         class="btn btn-primary"
+         href="{% url 'admin:instance_server_change' server.id %}"
+         role="button">
+        <i class="fa fa-edit" aria-hidden="true"></i> edit
+      </a>
+    {% endif %}
+    <a name=""
+       class="btn btn-primary"
+       href="?check-room-sync=1"
+       role="button"
+       title="check rooms sync">
+      <i class="fa fa-recycle" aria-hidden="true"></i> sync
+    </a>
+    <a name=""
+       class="btn btn-primary"
+       href="?delete-delivered-messages=1"
+       role="button"
+       title="check rooms sync">
+      <i class="fa fa-recycle" aria-hidden="true"></i> remove delivered messages
+    </a>
     <hr />
-    <a href="{{server.get_external_url}}">{{server.get_external_url}}</a>
-    
+    <a href="{{ server.get_external_url }}">{{ server.get_external_url }}</a>
     {% if status.alive %}
-        <span class="badge bg-success">UP</span>
-        {% for info in status.info %}
-            <span class="badge bg-info">{{info}}</span>
-        {% endfor %}
+      <span class="badge bg-success">UP</span>
+      {% for info in status.info %}<span class="badge bg-info">{{ info }}</span>{% endfor %}
     {% else %}
-        <span class="badge bg-danger">Down!</span>
+      <span class="badge bg-danger">Down!</span>
     {% endif %}
     {% if status.auth_error %}
-        <span class="badge bg-danger" title="Check Credentials!">AUTH ERROR!</span>
+      <span class="badge bg-danger" title="Check Credentials!">AUTH ERROR!</span>
     {% else %}
-        <span class="badge bg-success">AUTH</span>
+      <span class="badge bg-success">AUTH</span>
     {% endif %}
     <hr />
     <i>
-        Server Endpoint:<br />
-        http://rocketconnect:5000/server/{{server.external_token}}/
+      Server Endpoint:
+      <br />
+      http://rocketconnect:5000/server/{{ server.external_token }}/
     </i>
     {% if room_sync %}
-    <div class="alert alert-warning alert-dismissible fade show" role="alert">
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        <strong> Unsync Rooms:</strong> {{room_sync.total}}
+      <div class="alert alert-warning alert-dismissible fade show" role="alert">
+        <button type="button"
+                class="btn-close"
+                data-bs-dismiss="alert"
+                aria-label="Close"></button>
+        <strong>Unsync Rooms:</strong> {{ room_sync.total }}
         <small>(open here and closed in Rocket.Chat)</small>
         {% if room_sync.total %}
-        <p class="mt-3">
-            <a name="" id="" class="btn btn-success" href="?check-room-sync=1&do-check-room-sync=1" role="button">sync!</a>
-        </p>
+          <p class="mt-3">
+            <a name=""
+               class="btn btn-success"
+               href="?check-room-sync=1&do-check-room-sync=1"
+               role="button">sync!</a>
+          </p>
         {% endif %}
-    </div>
-
-    <script>
-      $(".alert").alert();
-    </script>
-
+      </div>
+      <script>
+        $(".alert").alert();
+      </script>
     {% endif %}
-
     {% if delivered_messages_to_delete %}
-    <div class="alert alert-warning alert-dismissible fade show" role="alert">
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        <strong> Delivered Messages to Delete:</strong> {{delivered_messages_to_delete.count}}
+      <div class="alert alert-warning alert-dismissible fade show" role="alert">
+        <button type="button"
+                class="btn-close"
+                data-bs-dismiss="alert"
+                aria-label="Close"></button>
+        <strong>Delivered Messages to Delete:</strong> {{ delivered_messages_to_delete.count }}
         <small>(older then 10 days)</small>
         {% if delivered_messages_to_delete.count %}
-        <p class="mt-3">
-            <a name="" id="" class="btn btn-danger" href="?delete-delivered-messages=1&do-delete-delivered-messages=1" role="button">
-                Remove!
-            </a>
-        </p>
+          <p class="mt-3">
+            <a name=""
+               class="btn btn-danger"
+               href="?delete-delivered-messages=1&do-delete-delivered-messages=1"
+               role="button">Remove!</a>
+          </p>
         {% endif %}
-    </div>
-
-    <script>
-      $(".alert").alert();
-    </script>
-
+      </div>
+      <script>
+        $(".alert").alert();
+      </script>
     {% endif %}
-
-</div>
-
-
-<ul class="nav nav-tabs" id="myTab" role="tablist">
+  </div>
+  <ul class="nav nav-tabs" id="myTab" role="tablist">
     <li class="nav-item">
-      <a class="nav-link active" id="connectors-tab" data-bs-toggle="tab" data-bs-target="#connectors" href="#connectors" role="tab" aria-controls="connectors" aria-selected="true">
-        Connectors ({{connectors.count}})
-        </a>
+      <a class="nav-link active"
+         id="connectors-tab"
+         data-bs-toggle="tab"
+         data-bs-target="#connectors"
+         href="#connectors"
+         role="tab"
+         aria-controls="connectors"
+         aria-selected="true">Connectors ({{ connectors.count }})</a>
     </li>
     <li class="nav-item">
-      <a class="nav-link" id="tasks-tab" data-bs-toggle="tab" data-bs-target="#tasks" href="#tasks" role="tab" aria-controls="tasks" aria-selected="false">
-        Server Tasks ({{server.tasks.count}})
-      </a>
+      <a class="nav-link"
+         id="tasks-tab"
+         data-bs-toggle="tab"
+         data-bs-target="#tasks"
+         href="#tasks"
+         role="tab"
+         aria-controls="tasks"
+         aria-selected="false">Server Tasks ({{ server.tasks.count }})</a>
     </li>
     <li class="nav-item">
-      <a class="nav-link" id="custom-messages-tab" data-bs-toggle="tab"  data-bs-target="#custom-messages" href="#custom-messages" role="tab" aria-controls="tasks" aria-selected="false">
-        Custom Messages ({{server.custom_messages.count}})
-      </a>
+      <a class="nav-link"
+         id="custom-messages-tab"
+         data-bs-toggle="tab"
+         data-bs-target="#custom-messages"
+         href="#custom-messages"
+         role="tab"
+         aria-controls="tasks"
+         aria-selected="false">Custom Messages ({{ server.custom_messages.count }})</a>
     </li>
-</ul>
-<div class="tab-content" id="myTabContent">
+  </ul>
+  <div class="tab-content" id="myTabContent">
     <!-- CONNECTORS -->
-    <div class="tab-pane fade show active" id="connectors" role="tabpanel" aria-labelledby="connectors-tab">
-        {% for connector in connectors %}
+    <div class="tab-pane fade show active"
+         id="connectors"
+         role="tabpanel"
+         aria-labelledby="connectors-tab">
+      {% for connector in connectors %}
         <div class="card mb-3">
-            <div class="card-header">
-                <h2>
-                    Connector: {{connector.name}} <span class="text-{{ connector.enabled|yesno:'success,danger' }}">{{ connector.enabled|yesno:"Active,Inactive" }}</span>
-                    <span class="badge badge-primary bg-info float-end badge-sm">{{connector.connector_type}}</span>
-                </h2>
-            </div>
-            <div class="card-body">
-                <a class="btn btn-primary btn-bg" href="{% url 'instance:connector_analyze' connector.server.external_token connector.external_token %}">analyze</a>
-
-                    {% if connector.last_message %} Last Message: {{connector.last_message}} ({{connector.last_message|timesince}})<br />{% endif %}
-                    <span class="{% if connector.undelivered_messages %}text-danger{% else %}text-success{%endif%}">
-                        Undelivered Messages: {{connector.undelivered_messages}}
-                    </span>
-
-            </div>
+          <div class="card-header">
+            <h2>
+              Connector: {{ connector.name }} <span class="text-{{ connector.enabled|yesno:'success,danger' }}">{{ connector.enabled|yesno:"Active,Inactive" }}</span>
+              <span class="badge badge-primary bg-info float-end badge-sm">{{ connector.connector_type }}</span>
+            </h2>
+          </div>
+          <div class="card-body">
+            <a class="btn btn-primary btn-bg"
+               href="{% url 'instance:connector_analyze' connector.server.external_token connector.external_token %}">analyze</a>
+            {% if connector.last_message %}
+              Last Message: {{ connector.last_message }} ({{ connector.last_message|timesince }})
+              <br />
+            {% endif %}
+            <span class="{% if connector.undelivered_messages %}text-danger{% else %}text-success{% endif %}">
+              Undelivered Messages: {{ connector.undelivered_messages }}
+            </span>
+          </div>
         </div>
-        {% endfor %}
+      {% endfor %}
     </div>
     <!--- TASKS -->
-    <div class="tab-pane fade" id="tasks" role="tabpanel" aria-labelledby="tasks-tab">
-
-        <div class="my-4 clearfix">
-            <a name="" id="" class="btn-lg btn-primary float-end" href="?install-default-tasks=1" role="button">install tasks</a>
-        </div>
-
-        {% for task in tasks.all %}
+    <div class="tab-pane fade"
+         id="tasks"
+         role="tabpanel"
+         aria-labelledby="tasks-tab">
+      <div class="my-4 clearfix">
+        <a name=""
+           class="btn-lg btn-primary float-end"
+           href="?install-default-tasks=1"
+           role="button">install tasks</a>
+      </div>
+      {% for task in tasks.all %}
         <div class="card mb-3">
-            <div class="card-header">
-                <h2>
-                {% if request.user.is_staff %}
-                <a name="" id="" class="btn btn-primary" href="{% url 'admin:django_celery_beat_periodictask_change' task.id %}" role="button">
-                    <i class="fa fa-edit" aria-hidden="true"></i> edit
+          <div class="card-header">
+            <h2>
+              {% if request.user.is_staff %}
+                <a name=""
+                   class="btn btn-primary"
+                   href="{% url 'admin:django_celery_beat_periodictask_change' task.id %}"
+                   role="button">
+                  <i class="fa fa-edit" aria-hidden="true"></i> edit
                 </a>
-                {% endif %}
-                {% if task.enabled %} <span class="badge bg-success">enabled</span>{% else %} <span class="badge bg-danger">disabled</span>{% endif %}
-                {{task.name}}
-
-                </h2>
-                <small>{{task.description}}</small>
-            </div>
-            <div class="card-body">
-                interval: {{ task.interval }}<br />
-                crontab: {{ task.crontab }}<br />
-                args: {{ task.args }}<br />
-                kwargs: {{task.kwargs }}
-            </div>
-            <div class="card-footer text-muted">
-                {% if task.last_run_at %}
-                    last run: {{task.last_run_at}} ({{task.last_run_at|timesince}}) (<small>Ps: this value has some delays</small>)
-                {% else %}
-                    <b>this task never runned</b>
-                {% endif %}
-            </div>
+              {% endif %}
+              {% if task.enabled %}
+                <span class="badge bg-success">enabled</span>
+              {% else %}
+                <span class="badge bg-danger">disabled</span>
+              {% endif %}
+              {{ task.name }}
+            </h2>
+            <small>{{ task.description }}</small>
+          </div>
+          <div class="card-body">
+            interval: {{ task.interval }}
+            <br />
+            crontab: {{ task.crontab }}
+            <br />
+            args: {{ task.args }}
+            <br />
+            kwargs: {{ task.kwargs }}
+          </div>
+          <div class="card-footer text-muted">
+            {% if task.last_run_at %}
+              last run: {{ task.last_run_at }} ({{ task.last_run_at|timesince }}) (<small>Ps: this value has some delays</small>)
+            {% else %}
+              <b>this task never runned</b>
+            {% endif %}
+          </div>
         </div>
-        {% empty %}
+      {% empty %}
         <p class="my-5">
-            <h1>
-                No Tasks found!
-            </h1>
-            <a name="" id="" class="btn btn-primary" href="?install-default-tasks=1" role="button">add default tasks</a>
+          <h1>No Tasks found!</h1>
+          <a name=""
+             class="btn btn-primary"
+             href="?install-default-tasks=1"
+             role="button">add default tasks</a>
         </p>
-        {% endfor %}
+      {% endfor %}
     </div>
     <!-- CUSTOM MESSAGES-->
-    <div class="tab-pane fade" id="custom-messages" role="tabpanel" aria-labelledby="custom-messages-tab">
-        <div class="alert alert-primary" role="alert">
-            This feature needs Rocket Connect Companion App installed on your Rocket.Chat Server:<br />
-            <a href="https://github.com/dudanogueira/Rocket.Chat.Rocket.Connect.App/">https://github.com/dudanogueira/Rocket.Chat.Rocket.Connect.App/</a>
+    <div class="tab-pane fade"
+         id="custom-messages"
+         role="tabpanel"
+         aria-labelledby="custom-messages-tab">
+      <div class="alert alert-primary" role="alert">
+        This feature needs Rocket Connect Companion App installed on your Rocket.Chat Server:
+        <br />
+        <a href="https://github.com/dudanogueira/Rocket.Chat.Rocket.Connect.App/">https://github.com/dudanogueira/Rocket.Chat.Rocket.Connect.App/</a>
+      </div>
+      <form method="post">
+        {% csrf_token %}
+        <div class="form-group">
+          <label for=""></label>
+          <textarea class="form-control"
+                    name="custom-messages-import"
+                    id="custom-messages-import"
+                    rows="3"></textarea>
         </div>
-        <form method="POST">
-            {% csrf_token %}
-            <div class="form-group">
-            <label for=""></label>
-            <textarea class="form-control" name="custom-messages-import" id="custom-messages-import" rows="3"></textarea>
-            </div>
-            <button type="submit" class="btn btn-primary">Update Messages</button>
-        </form>
-        <hr />
-        {% for message in server.custom_messages.all %}
+        <button type="submit" class="btn btn-primary">Update Messages</button>
+      </form>
+      <hr />
+      {% for message in server.custom_messages.all %}
         <div class="card">
-            <div class="card-body">
-                <h4 class="card-title">
-                    {% if message.enabled %}<span class="badge badge-success">enabled</span>{% else %}<span class="badge badge-danger">disabled</span>{% endif %}
-                    <span class="badge badge-info">order: {{message.order}}</span>
-                    {{message.slug}}
-                </h4>
-                <p class="card-text">{{message.text}}</p>
-            </div>
+          <div class="card-body">
+            <h4 class="card-title">
+              {% if message.enabled %}
+                <span class="badge badge-success">enabled</span>
+              {% else %}
+                <span class="badge badge-danger">disabled</span>
+              {% endif %}
+              <span class="badge badge-info">order: {{ message.order }}</span>
+              {{ message.slug }}
+            </h4>
+            <p class="card-text">{{ message.text }}</p>
+          </div>
         </div>
-        {% endfor %}
-    <div>
-
-</div>
-
-
+      {% endfor %}
+    </div>
+  </div>
 {% endblock content %}
