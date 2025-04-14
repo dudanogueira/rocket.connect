@@ -3,6 +3,8 @@ volumes:
   local_postgres_data_backups: {}
   evolution_local_store: {}
   evolution_local_instances: {}
+  evolution_db: {}
+  evolution_redis: {}
   local_wppconnect_data: {}
   local_wppconnect_tokens: {}
 
@@ -101,7 +103,7 @@ services:
 
   evolution:
     #image: atendai/evolution-api:v2.0.10
-    image: atendai/evolution-api:v1.8.2
+    image: atendai/evolution-api:v2.2.3
     restart: always
     ports:
       - 8084:8080
@@ -112,15 +114,36 @@ services:
       - ./compose/local/evolution/env
     command: ['node', './dist/src/main.js']
 
-  wppconnect:
-    image: wppconnect/server-cli:main
-    # for some reason, the server-cli is not working properly
-    # in mac, so build it locally and use it here:
-    #image: server-cli-local
-    # for command options: https://github.com/wppconnect-team/server-cli/blob/main/src/program.js
-    command: wppserver --startAllSession
+
+  evolution_db:
+    container_name: postgres
+    image: postgres:15
+    command: ["postgres", "-c", "max_connections=1000"]
+    restart: always
+    environment:
+      - POSTGRES_PASSWORD=EVOPASSWD
     volumes:
-      - local_wppconnect_data:/usr/src/server-cli/userDataDir
-      - local_wppconnect_tokens:/usr/src/server-cli/tokens
+      - evolution_db:/var/lib/postgresql/data
+
+  evolution_redis:
+    image: redis:latest
+    container_name: redis
+    command: >
+      redis-server --port 6379 --appendonly yes
+    volumes:
+      - evolution_redis:/data
     ports:
-      - "21465:21465"
+      - 6379:6379
+
+  # wppconnect:
+  #   image: wppconnect/server-cli:main
+  #   # for some reason, the server-cli is not working properly
+  #   # in mac, so build it locally and use it here:
+  #   #image: server-cli-local
+  #   # for command options: https://github.com/wppconnect-team/server-cli/blob/main/src/program.js
+  #   command: wppserver --startAllSession
+  #   volumes:
+  #     - local_wppconnect_data:/usr/src/server-cli/userDataDir
+  #     - local_wppconnect_tokens:/usr/src/server-cli/tokens
+  #   ports:
+  #     - "21465:21465"

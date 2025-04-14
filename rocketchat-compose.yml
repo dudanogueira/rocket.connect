@@ -1,5 +1,3 @@
-version: "3.7"
-
 volumes:
   local_rocket_mongodb_data: {}
 

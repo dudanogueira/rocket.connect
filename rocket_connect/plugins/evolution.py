@@ -28,7 +28,7 @@ class Connector(ConnectorBase):
         instance_name = self.config.get("instance_name")
         headers = {"apiKey": secret_key, "Content-Type": "application/json"}
         # GET {{baseUrl}}/instance/create with { "instanceName": "codechat"}
-        payload = {"instanceName": instance_name}
+        payload = {"instanceName": instance_name, "integration": "WHATSAPP-BAILEYS"}
         headers = {"Content-Type": "application/json", "apikey": secret_key}
 
         create_instance_response = requests.request(
@@ -91,6 +91,45 @@ class Connector(ConnectorBase):
             json=payload,
             headers=headers,
         )
+        if not connect_instance_response:
+            payload = {'webhook':
+                       {'enabled': True,
+                        'url': webhook_url,
+                        'events': ['APPLICATION_STARTUP',
+                                   'CALL',
+                                   'CHATS_DELETE',
+                                   'CHATS_SET',
+                                   'CHATS_UPDATE',
+                                   'CHATS_UPSERT',
+                                   'CONNECTION_UPDATE',
+                                   'CONTACTS_SET',
+                                   'CONTACTS_UPDATE',
+                                   'CONTACTS_UPSERT',
+                                   'GROUP_PARTICIPANTS_UPDATE',
+                                   'GROUP_UPDATE',
+                                   'GROUPS_UPSERT',
+                                   'LABELS_ASSOCIATION',
+                                   'LABELS_EDIT',
+                                   'LOGOUT_INSTANCE',
+                                   'MESSAGES_DELETE',
+                                   'MESSAGES_SET',
+                                   'MESSAGES_UPDATE',
+                                   'MESSAGES_UPSERT',
+                                   'PRESENCE_UPDATE',
+                                   'QRCODE_UPDATED',
+                                   'REMOVE_INSTANCE',
+                                   'SEND_MESSAGE',
+                                   'TYPEBOT_CHANGE_STATUS',
+                                   'TYPEBOT_START'],
+                        'base64': True,
+                        'byEvents': False}}
+            connect_instance_response = requests.request(
+                "POST",
+                endpoint_webhook_set,
+                json=payload,
+                headers=headers,
+            )
+
         output["instance_webhook"] = {
             "endpoint": endpoint_webhook_set,
             **connect_instance_response.json(),
@@ -138,10 +177,11 @@ class Connector(ConnectorBase):
                 instance = [
                     i
                     for i in endpoint_fetchinstances_response.json()
-                    if i.get("instance").get("instanceName") == instance_name
+                    if (i.get("instance") and i.get("instance").get("instanceName") == instance_name) or
+                    i.get("name") == instance_name
                 ]
                 if instance:
-                    endpoint_fetchinstances_response = instance[0].get("instance")
+                    endpoint_fetchinstances_response = instance[0].get("instance") or instance[0]
                 else:
                     endpoint_fetchinstances_response = False
             else:
@@ -220,9 +260,14 @@ class Connector(ConnectorBase):
         }
         response = requests.post(endpoint, headers=headers, json=payload)
         response_json = response.json()
-        if len(response_json) >= 1:
-            return response_json[0]
-        return None
+        if response_json.get("messages"):
+            msg =  response_json.get("messages",{}).get("records")[0]
+            if msg:
+                return msg
+        else:
+            if len(response_json) >= 1:
+                return response_json[0]
+            return None
 
     def check_number_status(self, phone):
         endpoint = "{}/chat/whatsappNumbers/{}".format(
@@ -593,8 +638,6 @@ class Connector(ConnectorBase):
             ]:
                 return JsonResponse({"message": "Buttons or list not supported"})
 
-
-
             department = None
             message_obj, created = self.register_message()
             if not message_obj.delivered:
@@ -653,6 +696,8 @@ class Connector(ConnectorBase):
                             .get("extendedTextMessage")
                             .get("text")
                         )
+                    elif original_message.get("message", {}).get("conversation"):
+                        msg = original_message.get("message", {}).get("conversation")
                     elif original_message.get("message").get("imageMessage"):
                         msg = (
                             original_message.get("message")
@@ -961,6 +1006,7 @@ class Connector(ConnectorBase):
             "number": self.get_ingoing_visitor_phone() or self.get_visitor_phone(),
             "options": {"delay": self.connector.config.get("send_message_delay", 1200)},
             "textMessage": {"text": content},
+            "text": content
         }
         url = self.connector.config["endpoint"] + "/message/SendText/{}".format(
             self.connector.config["instance_name"],
@@ -1005,6 +1051,9 @@ class Connector(ConnectorBase):
         payload = {
             "number": self.get_ingoing_visitor_phone(),
             "options": {"delay": self.connector.config.get("send_message_delay", 1200)},
+            "mediatype": mediatype,
+            "fileName": file_name,
+            "media": content,
             "mediaMessage": {
                 "mediatype": mediatype,
                 "fileName": file_name,
@@ -1047,6 +1096,8 @@ class Connector(ConnectorBase):
             id = self.message.get("data", {}).get("key", {}).get("id")
         elif self.message.get("event") in ["call", "messages.update"]:
             id = self.message.get("data", {}).get("id")
+            if not id:
+                id = self.message.get("data", {}).get("messageId")
         if self.message.get("type") == "active_chat":
             id = self.message.get("message_id")
         return id
