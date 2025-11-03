@@ -261,7 +261,7 @@ class Connector(ConnectorBase):
         response = requests.post(endpoint, headers=headers, json=payload)
         response_json = response.json()
         if response_json.get("messages"):
-            msg =  response_json.get("messages",{}).get("records")[0]
+            msg = response_json.get("messages", {}).get("records")[0]
             if msg:
                 return msg
         else:
@@ -632,6 +632,11 @@ class Connector(ConnectorBase):
         #
         if self.message.get("event") == "messages.upsert":
 
+            # IGNORE FROM ME UPSERTS - check this before processing
+            if self.message.get("data", {}).get("key", {}).get("fromMe") == True:
+                self.logger_info("Ignoring fromMe upsert message")
+                return JsonResponse({"message": "fromMe upsert ignored"})
+
             # ignore buttons message
             if self.message.get("data").get("messageType") in [
                 "buttonsMessage", "buttonsResponseMessage", "listMessage", "listResponseMessage"
@@ -935,9 +940,11 @@ class Connector(ConnectorBase):
                 room = self.get_room()
                 self.handle_incoming_call()
             return JsonResponse({})
+
         #
         # handle sent and acks confirmation
         #
+
         if (
             self.message.get("event") in ["send.message"]
             and self.message.get("data", {}).get("key", {}).get("fromMe") == True

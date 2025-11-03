@@ -41,7 +41,7 @@ services:
         mode: host
 
   mongodb:
-    image: docker.io/bitnami/mongodb:${MONGODB_VERSION:-4.4}
+    image: docker.io/bitnamilegacy/mongodb:${MONGODB_VERSION:-4.4}
     restart: on-failure
     volumes:
       - local_rocket_mongodb_data:/bitnami/mongodb
