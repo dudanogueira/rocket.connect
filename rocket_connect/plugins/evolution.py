@@ -1124,6 +1124,9 @@ class Connector(ConnectorBase):
             remoteJid = self.message.get("data", {}).get("remoteJid")
         else:
             remoteJid = self.message.get("data", {}).get("key", {}).get("remoteJid")
+            # hack for alt remotejid
+            if "@lid" in remoteJid:
+                remoteJid = self.message.get("data", {}).get("key", {}).get("remoteJidAlt")
         if remoteJid:
             return remoteJid.split("@")[0]
 
