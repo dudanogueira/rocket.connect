@@ -127,13 +127,15 @@
         <div class="card">
           <div class="card-body">
             <h4 class="card-title">Connector Response</h4>
-            <p class="card-text">
+            <p class="card-text ">
               {% if connector_action_response.status_session.base64 %}
-                <img src="{{ connector_action_response.status_session.base64 }}"
+                <img class="qr-code"
+                     src="{{ connector_action_response.status_session.base64 }}"
                      alt="QRCODE" />
               {% endif %}
               {% if connector_action_response.initialize.instance_connect.base64 %}
-                <img src="{{ connector_action_response.initialize.instance_connect.base64 }}"
+                <img class="qr-code"
+                     src="{{ connector_action_response.initialize.instance_connect.base64 }}"
                      alt="QRCODE" />
               {% endif %}
               <pre>{{connector_action_response|pprint}}</pre>
